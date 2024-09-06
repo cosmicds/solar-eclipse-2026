@@ -1148,6 +1148,12 @@
                 </v-list-item>
                 <v-list-item density="compact">
                   <template v-slot:prepend>
+                    <font-awesome-icon icon="cloud-sun" size="xl" class="bullet-icon"></font-awesome-icon>
+                  </template>
+                    <strong>View historical cloud data</strong> for the week of April 12th from 2003&#8211;2023. 
+                </v-list-item>
+                <v-list-item density="compact">
+                  <template v-slot:prepend>
                     <font-awesome-icon icon="book-open" size="xl" class="bullet-icon"></font-awesome-icon>
                   </template>
                     <strong>Learn more</strong> about solar eclipses. 
