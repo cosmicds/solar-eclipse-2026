@@ -1022,19 +1022,6 @@
           </v-btn>
         </div>
 
-        <div v-if="narrow">
-          <p class="splash-small-text">
-            <a 
-              href="#" 
-              @click.prevent="showNewMobileUI = !showNewMobileUI">Switch</a> to {{ showNewMobileUI ? "detailed" : "new streamlined" }} interface
-          </p>
-        </div>
-        <div v-else>
-          <p class="splash-small-text">
-            <v-icon icon="mdi-creation" size="small" class="bullet-icon"></v-icon> New! NOW button, active starting at 6:40am EDT
-          </p>
-        </div>
-
         <div id="splash-screen-acknowledgements">
           <div>
             <img
@@ -1158,12 +1145,6 @@
                     <font-awesome-icon icon="location-dot" size="xl" class="bullet-icon"></font-awesome-icon>
                   </template>
                     <strong>Select any location</strong> around the world. See and share how the eclipse would look from there.
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <font-awesome-icon icon="cloud-sun" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>View historical cloud data</strong> for the week of April 8th from 2003&#8211;2023. 
                 </v-list-item>
                 <v-list-item density="compact">
                   <template v-slot:prepend>
