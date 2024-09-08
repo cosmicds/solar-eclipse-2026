@@ -42,47 +42,51 @@
     </div>
     <div class="eclipse-data-list" v-if="!noEclipse">
       <table id="eclipse-values">
-        <tr>
-          <td>
-            <define-term
-              term="Max Eclipsed"
-              definition="The fraction (percentage) of the Sun covered by the Moon."
-              underlined
-              />:
-          </td>
-          <td> {{ coverage < 0.01 ? '<1' :(coverage*100).toFixed(0) }}% </td>
-        </tr>
-        <tr v-if="isTotal">
-          <td>Totality Duration:</td>
-          <td> {{ totalityDuration }}</td>
-        </tr>
-        <tr v-if="eclipseDuration != ''">
-          <td>Eclipse Duration:</td>
-          <td> {{ eclipseDuration }}</td>
-        </tr>
+        <tbody>
+          <tr>
+            <td>
+              <define-term
+                term="Max Eclipsed"
+                definition="The fraction (percentage) of the Sun covered by the Moon."
+                underlined
+                />:
+            </td>
+            <td> {{ coverage < 0.01 ? '<1' :(coverage*100).toFixed(0) }}% </td>
+          </tr>
+          <tr v-if="isTotal">
+            <td>Totality Duration:</td>
+            <td> {{ totalityDuration }}</td>
+          </tr>
+          <tr v-if="eclipseDuration != ''">
+            <td>Eclipse Duration:</td>
+            <td> {{ eclipseDuration }}</td>
+          </tr>
+        </tbody>
       </table>
       <hr class="eclipse-timer-dividier"/>
       <table id="time-container">
-        <tr class="time">
-          <td class="time-label">Partial Start</td>
-          <td class="time-value">{{ partialStart[1] === '' ? timeString(partialStart[0]) : 'Sun below Horizon' }}</td>
-        </tr>
-        <tr class="time" v-if="isTotal">
-          <td class="time-label">Totality Start</td>
-          <td class="time-value">{{ centralStart[1] === '' ? timeString(centralStart[0]) : 'Sun below Horizon' }}</td>
-        </tr>
-        <tr class="time">
-          <td class="time-label">Max Eclipse</td>
-          <td class="time-value">{{ maxTime[1] === '' ? timeString(maxTime[0]) : 'Sun below Horizon' }}</td>
-        </tr>
-        <tr class="time" v-if="isTotal">
-          <td class="time-label">Totality End</td>
-          <td class="time-value">{{ centralEnd[1] === '' ? timeString(centralEnd[0]) : 'Sun below Horizon' }}</td>
-        </tr>
-        <tr class="time">
-          <td class="time-label">Partial End</td>
-          <td class="time-value">{{ partialEnd[1] === '' ? timeString(partialEnd[0]) : 'Sun below Horizon' }}</td>
-        </tr>
+        <tbody>
+          <tr class="time">
+            <td class="time-label">Partial Start</td>
+            <td class="time-value">{{ partialStart[1] === '' ? timeString(partialStart[0]) : 'Sun below Horizon' }}</td>
+          </tr>
+          <tr class="time" v-if="isTotal">
+            <td class="time-label">Totality Start</td>
+            <td class="time-value">{{ centralStart[1] === '' ? timeString(centralStart[0]) : 'Sun below Horizon' }}</td>
+          </tr>
+          <tr class="time">
+            <td class="time-label">Max Eclipse</td>
+            <td class="time-value">{{ maxTime[1] === '' ? timeString(maxTime[0]) : 'Sun below Horizon' }}</td>
+          </tr>
+          <tr class="time" v-if="isTotal">
+            <td class="time-label">Totality End</td>
+            <td class="time-value">{{ centralEnd[1] === '' ? timeString(centralEnd[0]) : 'Sun below Horizon' }}</td>
+          </tr>
+          <tr class="time">
+            <td class="time-label">Partial End</td>
+            <td class="time-value">{{ partialEnd[1] === '' ? timeString(partialEnd[0]) : 'Sun below Horizon' }}</td>
+          </tr>
+        </tbody>
       </table>
       <hr class="mt-4" style="width:100%">
     </div>

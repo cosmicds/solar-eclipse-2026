@@ -411,7 +411,7 @@
                     
                     <details>
                       <summary>Where can I learn more?</summary>
-                      <p>
+                      <div>
                         Check out
                         <ul>
                           <li>
@@ -421,7 +421,7 @@
                             Fiske Planetarium's <a href="https://www.colorado.edu/fiske/projects/science-through-shadows" target="_blank" rel="noopener noreferrer">Science Through Shadows</a> videos
                           </li>
                         </ul>
-                      </p>
+                      </div>
                     </details>
                   </div>
                 </div>

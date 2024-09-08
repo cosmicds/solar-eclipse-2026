@@ -4,7 +4,7 @@
 </template>
 
 <script lang="ts">
-import L, { LeafletMouseEvent, Map, TileLayerOptions } from "leaflet";
+import L, { CircleMarkerOptions, LeafletMouseEvent, Map, TileLayerOptions } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { notify } from "@kyvg/vue3-notification";
 import { defineComponent, PropType } from "vue";
@@ -311,7 +311,7 @@ export default defineComponent({
     },
 
     circleForLocation(location: LocationDeg, circleOptions: Record<string,any>): L.CircleMarker {  // eslint-disable-line @typescript-eslint/no-explicit-any
-      return this.circleMaker([location.latitudeDeg, location.longitudeDeg], circleOptions);
+      return this.circleMaker([location.latitudeDeg, location.longitudeDeg], circleOptions as CircleMarkerOptions);
     },
 
     circleForSelection() : L.CircleMarker | null {
@@ -405,7 +405,7 @@ export default defineComponent({
       this.geoJsonFiles.forEach((geojsonrecord) => {
         const url = geojsonrecord.url;
         const geo = geojsonrecord.geojson;
-        const style = geojsonrecord.style;
+        const style = geojsonrecord.style as CircleMarkerOptions;
         if (url) {
           fetch(url)
             .then((response) => response.json())
