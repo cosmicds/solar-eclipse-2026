@@ -5709,15 +5709,22 @@ video, #info-video {
     @media (max-width: 600px) {
       flex-basis: fit-content;
     }
+    @media (min-width: 960px) {
+      flex: 0 1 38%;
+    }
   }
-    
+
   #map-column {
     flex-basis: 100%;
-    
+
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
     align-items: center;
+
+    @media (min-width: 960px) {
+      flex: 1 1 62%;
+    }
   }
   
   
