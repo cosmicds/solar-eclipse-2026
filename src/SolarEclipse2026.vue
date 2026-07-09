@@ -4,34 +4,54 @@
   :style="cssVars"
 >
 
-  <!-- Top content box with map, location, time, and option icons -->
-  <div id="closed-top-container" :class="[!showGuidedContent ?'budge' : 'open']">
+  <!-- Floating button to reopen the top content box once it's hidden.
+       Stays in the DOM (v-show, not v-if) even while the box is open so
+       the ref used below to reset its tooltip/focus keeps working. -->
+  <div id="closed-top-container" v-show="!showGuidedContent" class="budge">
     <icon-button
       v-model="showGuidedContent"
       id="show-guided-content"
       ref="showGuidedContent"
-      :fa-icon="showGuidedContent ? 'times' : 'chevron-down'"
-      :fa-size="showGuidedContent ? 'lg' : 'lg'"
+      fa-icon="chevron-down"
+      fa-size="lg"
       :color="accentColor"
-      :focus-color="showGuidedContent ? skyColor : accentColor"
-      :tooltip-text="showGuidedContent ? 'Hide' : 'Click to learn more'"
+      :focus-color="accentColor"
+      tooltip-text="Click to learn more"
       :tooltip-location="'bottom'"
       :show-tooltip="!mobile"
       :box-shadow="false"
-      @activate="() => {
-        // console.log('showGuidedContent = ', showGuidedContent);
-        // showGuidedContent = !showGuidedContent;
-        onResize();
-      }"
+      @activate="onResize"
     >
-    <template v-if="!showGuidedContent" v-slot:button>
-      Map & Weather <font-awesome-icon icon="chevron-down" class="bullet-icon"/>
+    <template v-slot:button>
+      <font-awesome-icon icon="chevron-down" size="lg" class="bullet-icon"/> Map & Weather
     </template>
   </icon-button>
   </div>
-  <v-container id="guided-content-container" v-show="showGuidedContent">
-    <div id="non-map-container">
+  <v-container
+    id="guided-content-container"
+    v-show="showGuidedContent"
+    :style="topContainerStyle"
+    :class="{ 'no-height-transition': isResizingTopContainer }"
+  >
+    <div id="non-map-container" :style="nonMapContainerStyle">
         <div id="title-row" class="non-map-row">
+
+            <!-- In-flow (not overlaid) close control, so it always has its
+                 own reserved space and never overlaps the title text. -->
+            <icon-button
+              v-model="showGuidedContent"
+              id="hide-guided-content"
+              fa-icon="chevron-up"
+              fa-size="lg"
+              :color="accentColor"
+              :focus-color="skyColor"
+              background-color="transparent"
+              tooltip-text="Hide Info and Map"
+              :tooltip-location="'bottom'"
+              :show-tooltip="!mobile"
+              :box-shadow="false"
+              @activate="onResize"
+            ></icon-button>
 
             <div id="title">
               <span v-if="learnerPath=='Location'"
@@ -200,33 +220,36 @@
           <!-- </v-col> -->
         </div>
       </div>
+      <div
+        v-if="smAndUp"
+        id="map-column-resize-handle"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize map width"
+        tabindex="0"
+        @mousedown="startMapWidthResize"
+        @touchstart="startMapWidthResize"
+      ></div>
+      <div
+        v-if="!smAndUp"
+        id="mobile-map-height-resize-handle"
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize map height"
+        tabindex="0"
+        @mousedown="startMobileNonMapHeightResize"
+        @touchstart="startMobileNonMapHeightResize"
+      ></div>
       <div id="map-column">
       <v-hover v-slot="{isHovering, props}">
         <v-btn v-bind="props" v-if="false &&!isHovering && !smAndUp" color="blue" :width="'100%'">Tap here to reveal map</v-btn>
         <v-slide-y-transition
           :disabled="smAndUp"
         >
-          <div 
+          <div
             :class="['']"
-            id="map-container" :data-before-text="eclipsePredictionText">
-            
-            <div 
-              v-if="learnerPath === 'Location' && showEclipsePredictionTextBanner && !mobile && !showNewMobileUI" 
-              id="map-banner" 
-              class="show-after"
-              >
-              <span v-if="showEclipsePredictionText">
-                {{ eclipsePredictionText }}
-                <v-icon v-if="narrow" style="padding: 2px; border-radius:3px; background-color:#ddd;" class="elevation-2" @click="showEclipsePredictionSheet = true; showEclipsePredictionText = true">mdi-sun-clock</v-icon> 
-              </span>
-              <span v-else>
-                {{ touchscreen ? "Tap" : "Click" }} <v-icon style="padding: 2px; border-radius:3px; background-color:#ddd;" class="elevation-2" @click="showEclipsePredictionSheet = true; showEclipsePredictionText = true">mdi-sun-clock</v-icon> to see eclipse predictions
-              </span>
-              <span class="banner-close" @click="showEclipsePredictionTextBanner = false">
-                <v-icon>mdi-close</v-icon>
-              </span>
-            </div>
-            
+            id="map-container">
+
             <!-- modelValue = false, starts with it closed, use stay-open to keep it open -->
             <location-search
               v-model="searchOpen"
@@ -271,13 +294,7 @@
               :focus-color="accentColor"
               tooltip-text="View eclipse timing details"
               tooltip-location="start"
-              @activate="() => {
-                showEclipsePredictionSheet = true;
-                if (!showEclipsePredictionText) {
-                  showEclipsePredictionTextBanner = !showNewMobileUI;
-                }
-                showEclipsePredictionText = true;
-              }"
+              @activate="() => { showEclipsePredictionSheet = true; }"
               >
             </icon-button>
             <!-- :places="places" -->
@@ -295,15 +312,19 @@
               :cloud-cover-opacity-function="sigmoid"
               :rectangle-degrees="rectangleDegrees"
             ></location-selector>
-              <color-bar
-                v-if="learnerPath === 'Clouds'"
-                label="Historical Cloud Cover %"
-                :cmap="cloudColorMap"
-                />
           </div>
         </v-slide-y-transition>
       </v-hover>
     </div>
+    <div
+      id="top-container-resize-handle"
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label="Resize map area"
+      tabindex="0"
+      @mousedown="startTopContainerResize"
+      @touchstart="startTopContainerResize"
+    ></div>
   </v-container>
   
   <v-dialog
@@ -579,27 +600,14 @@
                     <h4 class="user-guide-header">Viewing Mode:</h4>
                     <p  class="mb-3">(Upper-right of the screen)</p>
                     <ul class="text-list">
-                      <li>
-                        <span 
-                        style="color: blue; background-color: white;
-                        padding-inline: 0.7em;
-                        border-radius: 20px;
-                        font-weight: bold ">Selected Location</span> The currently selected location.  
+                      <li class="mb-2">
+                        The view of the eclipse is shown for the location selected.
                       </li>
                       <li class="mb-2">
-                        <span 
-                        style="color: blue; background-color: white;
-                        padding-inline: 0.7em;
-                        border-radius: 20px;
-                        font-weight: bold ">Date/Time</span> The date and time being displayed by WorldWide Telescopse
+                        Eclipse status: The type of eclipse — "No Eclipse", "Partial Eclipse", or "Total Eclipse (+length of totality)" — visible from your selected location on August 12, 2026.
                       </li>
-                      <li v-if="showNewMobileUI">
-                        <span 
-                          style="color: blue; background-color: white;
-                          padding-inline: 0.7em;
-                          border-radius: 20px;
-                          font-weight: bold ">Eclipsed:
-                        </span> The fraction of the Sun that is eclipsed in the currenty view (for the selected time and location).
+                      <li>
+                        Eclipsed: The fraction of the Sun that is eclipsed in the current view (for the selected time and location).
                       </li>
                       <li v-if="!showNewMobileUI" class="switch-bullets">
                         <v-switch
@@ -664,18 +672,8 @@
                       <li v-if="!showNewMobileUI">
                         <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Eclipse Timing:</span> Display eclipse start time for your selected location. If applicable, display duration of totality. (This appears at the top of the map if it is open, and at the top of the screen if the map is closed.)                   
-                      </li>
                       <li v-if="narrow && !showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)                               
-                      </li>
-                      <li v-if="!showNewMobileUI"  class="mt-2">
-                        <span 
-                          style="color: blue; background-color: white;
-                          padding-inline: 0.7em;
-                          border-radius: 20px;
-                          font-weight: bold ">Eclipsed:</span> The fraction of the Sun that is eclipsed in the currenty view (for the selected time and location).
+                        <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)
                       </li>
                     </ul>
                           
@@ -773,18 +771,6 @@
       </v-card>
     </v-dialog>
 
-  
-  <div v-show="!showGuidedContent && showEclipsePredictionTextBanner && !showNewMobileUI" class="user-banner">
-    <span class="banner-text" v-if="showEclipsePredictionText">
-      {{ eclipsePredictionText }}
-    </span>
-    <span class="banner-text" v-else>
-      {{ touchscreen ? "Tap" : "Click" }} <v-icon>mdi-sun-clock</v-icon> to see eclipse predictions
-    </span>
-    <span class="banner-close" @click="showEclipsePredictionTextBanner = false">
-      <v-icon>mdi-close</v-icon>
-    </span>
-  </div>
   
   <div
     id="main-content"
@@ -945,15 +931,7 @@
               @keyup.enter="useRegularMoon = !useRegularMoon"
               label="Visible Moon"
               hide-details
-            />    
-            <v-checkbox
-              v-show="!showNewMobileUI"
-              :color="accentColor"
-              v-model="showEclipsePredictionTextBanner"
-              @keyup.enter="showEclipsePredictionTextBanner = !showEclipsePredictionTextBanner"
-              label="Eclipse Timing"
-              hide-details 
-            />  
+            />
             <v-checkbox
               v-show="narrow"
               :color="accentColor"
@@ -1248,35 +1226,26 @@
     </v-dialog>
     
   
-  <div id="top-wwt-content">
+  <div id="top-wwt-content" :class="[!showGuidedContent ? 'budge' : '']">
     <!-- <p> in total eclipse {{ locationInTotality }}</p> -->
       <div id="location-date-display">
-        <v-chip 
-          :prepend-icon="cloudIcon"
-          variant="outlined"
-          size="small"
-          elevation="3"
-          :text="selectedLocationText"
+        <div
+          id="location-status-box"
+          tabindex="0"
           @click="() => {
-            searchOpen = true; 
+            searchOpen = true;
             learnerPath = 'Location'
             }"
-        > </v-chip>
-        <v-chip 
-          :prepend-icon="smallSize ? `` : `mdi-clock`"
-          variant="outlined"
-          size="small"
-          elevation="1"
-          :text="selectedLocaledTimeDateString"
-        > </v-chip>
-        <v-chip 
-          v-if="showNewMobileUI"
-          :prepend-icon="smallSize ? `` : `mdi-sun-angle`"
-          variant="outlined"
-          elevation="1"
-          size="small"
-          :text="percentEclipsedText"
-        > </v-chip>
+          @keyup.enter="() => {
+            searchOpen = true;
+            learnerPath = 'Location'
+            }"
+        >
+          <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
+          <div>{{ selectedLocalDateString }}</div>
+          <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
+          <div>{{ percentEclipsedText }}</div>
+        </div>
       </div>
       <div id="top-switches" v-if="!showNewMobileUI">
         <div id="track-sun-switch"> 
@@ -1373,13 +1342,7 @@
         :focus-color="accentColor"
         tooltip-text="View eclipse timing details"
         tooltip-location="start"
-        @activate="() => {
-          showEclipsePredictionSheet = true;
-          if (!showEclipsePredictionText) {
-            showEclipsePredictionTextBanner = !showNewMobileUI;
-          }
-          showEclipsePredictionText = true;
-        }"
+        @activate="() => { showEclipsePredictionSheet = true; }"
         >
       </icon-button>
 
@@ -1442,15 +1405,7 @@
                 @keyup.enter="useRegularMoon = !useRegularMoon"
                 label="Visible Moon"
                 hide-details
-            />    
-            <v-checkbox
-              v-show="!showNewMobileUI"
-              :color="accentColor"
-              v-model="showEclipsePredictionTextBanner"
-              @keyup.enter="showEclipsePredictionTextBanner = !showEclipsePredictionTextBanner"
-              label="Eclipse Timing"
-              hide-details 
-            />  
+            />
             <v-checkbox
               v-show="narrow"
               :color="accentColor"
@@ -1479,13 +1434,6 @@
         >
           Now
         </v-btn>
-        <v-chip 
-          v-if="!showNewMobileUI"
-          :prepend-icon="smallSize ? `` : `mdi-sun-angle`"
-          variant="outlined"
-          elevation="1"
-          :text="percentEclipsedText"
-        > </v-chip>
       </div>
       
       <div id="video-icon">
@@ -2096,10 +2044,13 @@ export default defineComponent({
     moonPlace.set_target(SolarSystemObjects.moon);
     const initialView = {
       initialLocation: {
-        latitudeDeg: 42,
-        longitudeDeg: -4
+        // Map center for the default view — deliberately not the same as
+        // the default selected location (Antiguita, Spain, below), so the
+        // eclipse path is visible instead of being centered on the pin.
+        latitudeDeg: 54.2,
+        longitudeDeg: -14.7
       },
-      initialZoom: 3.3
+      initialZoom: 3
     };
 
     const userSelectedLocations: [number, number][] = [];
@@ -2198,9 +2149,7 @@ export default defineComponent({
       showAWVFullScreen: false,
       
       showEclipsePredictionSheet: false,
-      showEclipsePredictionText: false,
-      showEclipsePredictionTextBanner: false,
-      
+
       
       selectionProximity: 4,
       pointerMoveThreshold: 6,
@@ -2281,6 +2230,18 @@ export default defineComponent({
       moonColor: "#CFD8DC",
       guidedContentHeight: "300px",
       showGuidedContent: true,
+      topContainerCustomHeight: null as number | null,
+      isResizingTopContainer: false,
+      topContainerResizeStartY: 0,
+      topContainerResizeStartHeight: 0,
+      nonMapContainerWidthPercent: null as number | null,
+      isResizingMapWidth: false,
+      mapWidthResizeStartX: 0,
+      mapWidthResizeStartWidth: 0,
+      nonMapContainerMobileHeightPercent: null as number | null,
+      isResizingMobileNonMapHeight: false,
+      mobileNonMapHeightResizeStartY: 0,
+      mobileNonMapHeightResizeStartHeight: 0,
 
       inIntro: false,
       displaySwitchOn: true,
@@ -2379,11 +2340,7 @@ export default defineComponent({
     }
     
     this.showNewMobileUI = this.narrow;
-    
-    if (!this.showSplashScreen) {
-      this.showEclipsePredictionTextBanner = !this.showNewMobileUI;
-    }
-    
+
     this.searchOpen = this.smAndUp;
     
     this.createUserEntry();
@@ -2520,43 +2477,50 @@ export default defineComponent({
   },
 
   computed: {
-    
-    eclipsePredictionText(): string {
-      
-      if (!this.showEclipsePredictionText) {
-        return 'Open "Timing Details" to see eclipse predictions';
-      }
-      
-      if (this.eclipsePrediction) {
-        const { type, maxTime, duration } = this.eclipsePrediction;
-        if (type === '' || type === null || maxTime[0] === null) {
-          return "No eclipse";
-        }
-        const typeString = (new Map([
-          ["P", "Partial"],
-          ["T", "Total"],
-          ["A", "Annular"],
-        ])).get(type);
-        
-        // const maxTimeString = formatInTimeZone(maxTime[0], this.selectedTimezone, "h:mm aa (zzz)");
-        
-        if (type == "T") {
-          const begins = formatInTimeZone(this.eclipsePrediction.centralStart[0], this.selectedTimezone, "h:mm:ss aa (zzz)");
-          if (this.$vuetify.display.xs) {
-            return `Totality starts: ${begins} Duration: ${spaceHMS(duration)}`;
-          }
-          return `Totality begins at ${begins} and lasts ${spaceHMS(duration)}`;
-        }
-        
 
-        if (duration === '') {
-          // get the duration of the partial eclipse
-          const starting = formatInTimeZone(this.eclipsePrediction.partialStart[0], this.selectedTimezone, "h:mm aa (zzz)");
-          if (this.$vuetify.display.xs) {
-            return `${typeString} starts: ${starting}`;
+    eclipsePredictionText(): string {
+      if (!this.eclipsePrediction) {
+        return '';
+      }
+      const { type, maxTime, duration } = this.eclipsePrediction;
+      if (type === '' || type === null || maxTime[0] === null) {
+        return "No Eclipse";
+      }
+
+      if (!this.onDayOfEclipse) {
+        // Until the actual day of the eclipse, just show the simple status
+        // — the detailed begins-at/duration timing below is only useful
+        // once "today" is a meaningful reference point.
+        if (type === "T") {
+          if (duration) {
+            return `Total Eclipse\n(${spaceHMS(duration)} of totality)`;
           }
-          return `${typeString} eclipse begins at ${starting}`;
+          return "Total Eclipse";
         }
+        return "Partial Eclipse";
+      }
+
+      const typeString = (new Map([
+        ["P", "Partial"],
+        ["T", "Total"],
+        ["A", "Annular"],
+      ])).get(type);
+
+      if (type == "T") {
+        const begins = formatInTimeZone(this.eclipsePrediction.centralStart[0], this.selectedTimezone, "h:mm:ss aa (zzz)");
+        if (this.$vuetify.display.xs) {
+          return `Totality starts: ${begins} Duration: ${spaceHMS(duration)}`;
+        }
+        return `Totality begins at ${begins} and lasts ${spaceHMS(duration)}`;
+      }
+
+      if (duration === '') {
+        // get the duration of the partial eclipse
+        const starting = formatInTimeZone(this.eclipsePrediction.partialStart[0], this.selectedTimezone, "h:mm aa (zzz)");
+        if (this.$vuetify.display.xs) {
+          return `${typeString} starts: ${starting}`;
+        }
+        return `${typeString} eclipse begins at ${starting}`;
       }
       return '';
     },
@@ -2580,7 +2544,7 @@ export default defineComponent({
     },
 
     selectedLocalDateString() {
-      return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MMMM dd, yyyy');
+      return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MMMM d, yyyy');
     },
     
     selectedLocaledTimeDateString() {
@@ -2699,6 +2663,29 @@ export default defineComponent({
         '--top-content-height': this.showGuidedContent? this.guidedContentHeight : this.guidedContentHeight,
         '--moon-color': this.moonColor,
       };
+    },
+    topContainerStyle() {
+      if (this.topContainerCustomHeight === null) {
+        return {};
+      }
+      const height = `${this.topContainerCustomHeight}px`;
+      return { height, minHeight: height, maxHeight: height };
+    },
+    nonMapContainerStyle() {
+      // Mobile stacks non-map-container above map-column (flex-direction:
+      // column), so flex-basis there governs height instead of width.
+      if (this.narrow) {
+        if (this.nonMapContainerMobileHeightPercent === null) {
+          return {};
+        }
+        const basis = `${this.nonMapContainerMobileHeightPercent}%`;
+        return { flexBasis: basis, flexGrow: 0, flexShrink: 0 };
+      }
+      if (this.nonMapContainerWidthPercent === null) {
+        return {};
+      }
+      const basis = `${this.nonMapContainerWidthPercent}%`;
+      return { flexBasis: basis, flexGrow: 0, flexShrink: 0 };
     },
     forwardGeocodingCss() {
       return {
@@ -3001,11 +2988,6 @@ export default defineComponent({
     },
     
 
-    cloudColorMap(v: number) {
-      const cc = this.sigmoid(v);
-      return `hsl(0, 0%, 100%, ${0.9 * cc * 100}%)`;
-    },
-    
     sigmoid(val: number | null): number {
       if (val === null) {
         return 0;
@@ -3859,12 +3841,7 @@ export default defineComponent({
         if (guidedContentContainer) {
           height += guidedContentContainer.clientHeight;
         }
-        
-        const topbanner = document.querySelector('.user-banner');
-        if (topbanner) {
-          height += topbanner.clientHeight;
-        }
-        
+
         this.guidedContentHeight = `${height}px`;
       });
     },
@@ -3875,6 +3852,169 @@ export default defineComponent({
         this.updateGuidedContentHeight();
       });
       this.updateGuidedContentHeight();
+    },
+
+    startTopContainerResize(event: MouseEvent | TouchEvent) {
+      const container = document.getElementById('guided-content-container');
+      if (!container) {
+        return;
+      }
+      event.preventDefault();
+      this.topContainerResizeStartY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      this.topContainerResizeStartHeight = container.getBoundingClientRect().height;
+      this.isResizingTopContainer = true;
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', this.onTopContainerResizeMove);
+      window.addEventListener('mouseup', this.endTopContainerResize);
+      window.addEventListener('touchmove', this.onTopContainerResizeMove, { passive: false });
+      window.addEventListener('touchend', this.endTopContainerResize);
+      window.addEventListener('touchcancel', this.endTopContainerResize);
+      window.addEventListener('blur', this.endTopContainerResize);
+    },
+
+    onTopContainerResizeMove(event: MouseEvent | TouchEvent) {
+      if (!this.isResizingTopContainer) {
+        return;
+      }
+      // Safety net: if the mouseup/touchend was missed (e.g. released outside
+      // the window), the next stray mousemove ends the drag instead of
+      // continuing to resize indefinitely.
+      if (event instanceof MouseEvent && event.buttons === 0) {
+        this.endTopContainerResize();
+        return;
+      }
+      event.preventDefault();
+      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      const delta = clientY - this.topContainerResizeStartY;
+      const minHeight = 150;
+      const maxHeight = window.innerHeight - 100;
+      this.topContainerCustomHeight = Math.min(Math.max(this.topContainerResizeStartHeight + delta, minHeight), maxHeight);
+      this.updateGuidedContentHeight();
+    },
+
+    endTopContainerResize() {
+      this.isResizingTopContainer = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', this.onTopContainerResizeMove);
+      window.removeEventListener('mouseup', this.endTopContainerResize);
+      window.removeEventListener('touchmove', this.onTopContainerResizeMove);
+      window.removeEventListener('touchend', this.endTopContainerResize);
+      window.removeEventListener('touchcancel', this.endTopContainerResize);
+      window.removeEventListener('blur', this.endTopContainerResize);
+    },
+
+    startMapWidthResize(event: MouseEvent | TouchEvent) {
+      const nonMapContainer = document.getElementById('non-map-container');
+      if (!nonMapContainer) {
+        return;
+      }
+      event.preventDefault();
+      this.mapWidthResizeStartX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      this.mapWidthResizeStartWidth = nonMapContainer.getBoundingClientRect().width;
+      this.isResizingMapWidth = true;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', this.onMapWidthResizeMove);
+      window.addEventListener('mouseup', this.endMapWidthResize);
+      window.addEventListener('touchmove', this.onMapWidthResizeMove, { passive: false });
+      window.addEventListener('touchend', this.endMapWidthResize);
+      window.addEventListener('touchcancel', this.endMapWidthResize);
+      window.addEventListener('blur', this.endMapWidthResize);
+    },
+
+    onMapWidthResizeMove(event: MouseEvent | TouchEvent) {
+      if (!this.isResizingMapWidth) {
+        return;
+      }
+      // Safety net: if the mouseup/touchend was missed (e.g. released outside
+      // the window), the next stray mousemove ends the drag instead of
+      // continuing to resize indefinitely.
+      if (event instanceof MouseEvent && event.buttons === 0) {
+        this.endMapWidthResize();
+        return;
+      }
+      const container = document.getElementById('guided-content-container');
+      if (!container) {
+        return;
+      }
+      event.preventDefault();
+      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      const delta = clientX - this.mapWidthResizeStartX;
+      const containerWidth = container.clientWidth;
+      const minWidth = 150;
+      const maxWidth = containerWidth - 150;
+      const newWidth = Math.min(Math.max(this.mapWidthResizeStartWidth + delta, minWidth), maxWidth);
+      this.nonMapContainerWidthPercent = (newWidth / containerWidth) * 100;
+    },
+
+    endMapWidthResize() {
+      this.isResizingMapWidth = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', this.onMapWidthResizeMove);
+      window.removeEventListener('mouseup', this.endMapWidthResize);
+      window.removeEventListener('touchmove', this.onMapWidthResizeMove);
+      window.removeEventListener('touchend', this.endMapWidthResize);
+      window.removeEventListener('touchcancel', this.endMapWidthResize);
+      window.removeEventListener('blur', this.endMapWidthResize);
+    },
+
+    startMobileNonMapHeightResize(event: MouseEvent | TouchEvent) {
+      const nonMapContainer = document.getElementById('non-map-container');
+      if (!nonMapContainer) {
+        return;
+      }
+      event.preventDefault();
+      this.mobileNonMapHeightResizeStartY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      this.mobileNonMapHeightResizeStartHeight = nonMapContainer.getBoundingClientRect().height;
+      this.isResizingMobileNonMapHeight = true;
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+      window.addEventListener('mousemove', this.onMobileNonMapHeightResizeMove);
+      window.addEventListener('mouseup', this.endMobileNonMapHeightResize);
+      window.addEventListener('touchmove', this.onMobileNonMapHeightResizeMove, { passive: false });
+      window.addEventListener('touchend', this.endMobileNonMapHeightResize);
+      window.addEventListener('touchcancel', this.endMobileNonMapHeightResize);
+      window.addEventListener('blur', this.endMobileNonMapHeightResize);
+    },
+
+    onMobileNonMapHeightResizeMove(event: MouseEvent | TouchEvent) {
+      if (!this.isResizingMobileNonMapHeight) {
+        return;
+      }
+      // Safety net: if the mouseup/touchend was missed (e.g. released outside
+      // the window), the next stray mousemove ends the drag instead of
+      // continuing to resize indefinitely.
+      if (event instanceof MouseEvent && event.buttons === 0) {
+        this.endMobileNonMapHeightResize();
+        return;
+      }
+      const container = document.getElementById('guided-content-container');
+      if (!container) {
+        return;
+      }
+      event.preventDefault();
+      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+      const delta = clientY - this.mobileNonMapHeightResizeStartY;
+      const containerHeight = container.clientHeight;
+      const minHeight = 100;
+      const maxHeight = containerHeight - 100;
+      const newHeight = Math.min(Math.max(this.mobileNonMapHeightResizeStartHeight + delta, minHeight), maxHeight);
+      this.nonMapContainerMobileHeightPercent = (newHeight / containerHeight) * 100;
+    },
+
+    endMobileNonMapHeightResize() {
+      this.isResizingMobileNonMapHeight = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', this.onMobileNonMapHeightResizeMove);
+      window.removeEventListener('mouseup', this.endMobileNonMapHeightResize);
+      window.removeEventListener('touchmove', this.onMobileNonMapHeightResizeMove);
+      window.removeEventListener('touchend', this.endMobileNonMapHeightResize);
+      window.removeEventListener('touchcancel', this.endMobileNonMapHeightResize);
+      window.removeEventListener('blur', this.endMobileNonMapHeightResize);
     },
 
     startHorizonMode() {
@@ -4252,13 +4392,6 @@ export default defineComponent({
       }
     },
     
-    showEclipsePredictionTextBanner(_val: boolean) {
-      this.onResize();
-      this.$nextTick(() => {
-        this.onScroll();
-      });
-    },
-
     cssVars(_css: unknown) {
       // console.log(_css);
     },
@@ -4281,7 +4414,6 @@ export default defineComponent({
     inIntro(value: boolean) {
       if (!value) {
         this.playing = true;
-        this.showEclipsePredictionTextBanner = !this.showNewMobileUI;
         if (!this.showSplashScreen && this.responseOptOut === null) {
           this.showPrivacyDialog = true;
         }
@@ -4595,6 +4727,30 @@ export default defineComponent({
   --time-content-max-width: 700px;
 }
 
+// A thin, subdued scrollbar that only takes up visible space once there's
+// something to scroll (overflow: auto, not scroll), but still reserves its
+// track via scrollbar-gutter so content doesn't reflow when it appears.
+.thin-scrollbar() {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+}
+
 html {
   height: 100%;
   margin: 0;
@@ -4605,9 +4761,12 @@ html {
   overflow-y: hidden !important; 
   -ms-overflow-style: none;
 
-  // We don't want a scrollbar for the overall canvas
+  // We don't want a scrollbar for the overall canvas.
+  // NOTE: this must use "&" so it compiles to "html::-webkit-scrollbar"
+  // (this element's own scrollbar) rather than "html ::-webkit-scrollbar",
+  // a descendant selector that would hide every scrollbar on the page.
   scrollbar-width: none;
-  ::-webkit-scrollbar {
+  &::-webkit-scrollbar {
     display: none;
   }
 }
@@ -4639,19 +4798,6 @@ body {
   opacity: 1;
   padding: 0.5em;
 }  
-
-.user-banner {
-  position: relative;
-  font-size: calc(0.8 * var(--default-font-size));
-  text-align: center;
-  background-color: rgb(93, 93, 93);
-  
-  .banner-close {
-    position: absolute;
-    right: 5px;
-    cursor: pointer;
-  }
-}
 
 
 #main-content {
@@ -4852,7 +4998,10 @@ body {
     }
 
     @media (min-width: 600px) {
-      top: 3.5rem;
+      // Bumped from 3.5rem — at desktop font sizes the closed Map &
+      // Weather button is tall enough that 3.5rem left no visible gap
+      // below it (unlike the narrower mobile offset above).
+      top: 4.3rem;
     }
   }
   
@@ -5582,24 +5731,28 @@ video, #info-video {
   }
   
 
+  // Styled to match the time-slider flag from the Seasons data story.
   .v-slider-thumb__label {
     min-width: fit-content;
     white-space: nowrap;
-    color: black;
+    color: white;
+    font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--accent-color);
+    border-radius: 5px;
     padding-inline: 0.7rem;
-    background-color: var(--accent-color);
 
-    font-size: var(--default-font-size);
+    // Matches .location-status-name's size.
+    font-size: calc(0.95 * var(--default-font-size));
     padding-block: calc(0.5 * var(--default-line-height));
 
     @media (max-width: 600px) {
-      font-size: calc(1 * var(--default-font-size));
-      padding-block: 0;
+      font-size: calc(0.95 * var(--default-font-size));
+      padding-block: 4px;
       padding-inline: 0.3rem;
-      height: 15px;
     }
   }
-  
+
   .v-slider-thumb__label::before {
     color: var(--accent-color);
   }
@@ -5617,38 +5770,31 @@ video, #info-video {
   max-width: 100%;
 }
 
+// Only ever shown while the top content box is hidden (see v-show above),
+// to reopen it.
 #closed-top-container {
     position: absolute;
-    left: 1.5rem;
+    left: 0.5rem;
     z-index: 500;
     top: calc(var(--default-font-size) + 1px);
-    
-    &.open > .icon-wrapper {
-      --color: var(--accent-color)  !important;
-      --background-color: transparent !important;
-      border: none;
-      border-radius: 2px;
-      padding: 4px;
-    }
-    
-    // &.open > .icon-wrapper:hover {
-    //   --color: var(--sky-color)  !important;
-    // }
-
-
-    &.budge {
-      left: 0.5rem;
-      @media (max-width: 599px) {
-        left: 0.5rem;
-      }
-    }
+    // Match the open-state title's size (1.3em over --default-font-size);
+    // this button sits outside #guided-content-container so it doesn't
+    // inherit that sizing on its own.
+    font-size: calc(1.3 * var(--default-font-size));
+    font-weight: bold;
   }
 
-#guided-content-container {  
+#guided-content-container {
   --top-content-max-height: max(30vmin, 35vh);
-  --top-content-min-height: 200px;
+  // fit-content (rather than a fixed px floor) means the default,
+  // un-resized height always accommodates the title/instructions/buttons
+  // without needing to scroll — min-height wins over max-height when they
+  // conflict, so this only grows past --top-content-max-height for
+  // content that genuinely needs more room. Scrolling only kicks in once
+  // the user explicitly drags the container shorter than this.
+  --top-content-min-height: fit-content;
   z-index: 400;
-  
+
   @media (max-width: 600px) {
     --top-content-max-height: calc(100% - 1rem);
     --top-content-min-height: calc(100% - 1rem);
@@ -5678,8 +5824,15 @@ video, #info-video {
   border: solid 1.5px var(--accent-color);
   
   line-height: var(--default-line-height);
-  overflow-y: scroll;
-  
+  .thin-scrollbar();
+  // Content is now fully contained by #non-map-container's own internal
+  // scroll and #map-column's sizing, so this outer container practically
+  // never overflows — scrollbar-gutter: stable was permanently reserving
+  // space on the right for a scrollbar that's essentially never shown,
+  // which looked like doubled right-side padding. Drop the reservation
+  // here; overflow-y: auto above still lets it scroll in a pinch.
+  scrollbar-gutter: auto;
+
   transition: height 0.5s ease-in-out;
   
   display: flex;
@@ -5687,7 +5840,10 @@ video, #info-video {
   
   @media (max-width: 600px) {
     flex-direction: column;
-    gap: 1rem;
+    // This gap sits directly above/below #mobile-map-height-resize-handle
+    // (the only other flex child on mobile), so it reads as dead space
+    // around the handle rather than breathing room between sections.
+    gap: 0.25rem;
   }
   
   
@@ -5706,25 +5862,108 @@ video, #info-video {
 
   #non-map-container {
     flex-basis: 100%;
+    min-width: 0;
     @media (max-width: 600px) {
-      flex-basis: fit-content;
+      // Always its natural content height on mobile — never grows, never
+      // shrinks — so the title/instructions/buttons are never forced to
+      // scroll by default; #map-column (below) is the one that gives up
+      // height to make room for it.
+      flex: 0 0 auto;
+    }
+    @media (min-width: 960px) {
+      flex: 0 1 38%;
     }
   }
-    
+
   #map-column {
     flex-basis: 100%;
-    
+
     display: flex;
     flex-direction: column;
     justify-content: space-evenly;
     align-items: center;
+
+    @media (max-width: 600px) {
+      // Fills whatever vertical space #non-map-container's content
+      // doesn't need, instead of being pinned to a fixed aspect ratio
+      // that could force it (and the box as a whole) taller than needed.
+      flex: 1 1 auto;
+      min-height: 120px;
+    }
+
+    @media (min-width: 960px) {
+      flex: 1 1 62%;
+    }
   }
-  
-  
+
+  #map-column-resize-handle {
+    flex: 0 0 10px;
+    align-self: stretch;
+    cursor: col-resize;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    @media (max-width: 600px) {
+      display: none;
+    }
+
+    &::before {
+      content: "";
+      width: 4px;
+      height: 40px;
+      border-radius: 2px;
+      background-color: var(--accent-color);
+      opacity: 0.6;
+    }
+
+    &:hover::before,
+    &:active::before {
+      opacity: 1;
+    }
+  }
+
+  #mobile-map-height-resize-handle {
+    display: none;
+
+    @media (max-width: 600px) {
+      display: flex;
+      flex: 0 0 10px;
+      align-self: stretch;
+      cursor: row-resize;
+      touch-action: none;
+      align-items: center;
+      justify-content: center;
+
+      &::before {
+        content: "";
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background-color: var(--accent-color);
+        opacity: 0.6;
+      }
+
+      &:hover::before,
+      &:active::before {
+        opacity: 1;
+      }
+    }
+  }
 
 
   #non-map-container { // Keep content away from the x to close
     height: 100%;
+    @media (max-width: 600px) {
+      // On mobile, height is this element's flex *main* axis (the layout
+      // is a column). flex-basis: auto (set below) defers to the height
+      // property when present, so leaving height: 100% here made this
+      // element claim the container's entire height, leaving nothing for
+      // #map-column. Content-based height lets it size to its own
+      // natural content instead.
+      height: auto;
+    }
     --padding-left: 0.5rem;
     // @media (max-width: 600px) {
     //   --padding-left: 0;
@@ -5734,26 +5973,57 @@ video, #info-video {
     
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
+    // Center the title/instructions/buttons group when it doesn't fill
+    // the (possibly resized-tall) container; #instructions-row still
+    // shrinks (and scrolls internally) rather than overflowing if the
+    // container is too short for everything to fit at natural size.
+    justify-content: center;
+    // "safe" falls back to start-alignment once content overflows, so the
+    // top of an overflowing group stays reachable by scrolling instead of
+    // being clipped off — plain "center" leaves start-side overflow
+    // unreachable even with a scrollbar. (Ignored by browsers that don't
+    // support safe/unsafe alignment, which keep the plain "center" above.)
+    justify-content: safe center;
     align-items: stretch;
     gap: 0.5em;
-    
+    .thin-scrollbar();
+    overflow-x: hidden;
+
     position: relative;
-    
+
     .non-map-row {
       margin: 0;
       padding: 0;
+      // Title and button rows stay at their natural content height.
+      flex: 0 0 auto;
     }
-  
+
   }
     
     // .v-row.non-map-row#title-row
   #title-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5em;
     color: var(--accent-color);
     font-weight: bold;
-    text-align: right;
     font-size: 1.3em;
 
+    #title {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: left;
+    }
+
+    #hide-guided-content-button {
+      flex: 0 0 auto;
+      // The icon-button's border prop is a no-op in the installed
+      // @cosmicds/vue-toolkit version — its .icon-wrapper always renders
+      // a border — so it has to be overridden directly here to match the
+      // borderless chevron used for the controls box.
+      border: none;
+    }
   }
   
   .v-btn#toggle-instruction-text {
@@ -5765,32 +6035,35 @@ video, #info-video {
   }
     
     // .v-row.non-map-row#instructions-row
-  #instructions-row { 
-    max-height: 70%;
+  #instructions-row {
+    // Size to content (don't force-grow to fill leftover space — that's
+    // what let the whole group get vertically centered above), but still
+    // allow shrinking so it scrolls internally instead of overflowing.
+    flex: 0 1 auto;
+    min-height: 0;
     display: flex;
     border: 1.5px solid var(--sky-color);
     border-radius: 5px;
-    align-items: center;
-    justify-content: space-evenly;
-    
-    @media (max-width: 600px) {
-      max-height: unset;
-    }
-    
+    align-items: stretch;
+    justify-content: center;
+
     // v-col
-    #top-container-main-text { 
-      max-height: 100%;
+    #top-container-main-text {
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
       display: flex;
       flex-direction:column;
 
-    
+
       // div
       .instructions-text {
-        min-width: 40vw;
+        min-width: 0;
+        min-height: 0;
         flex: 1;
         width: 100%;
-        overflow-y: scroll;
-        
+        .thin-scrollbar();
+
         padding-inline: 0.7em;
         padding-block: 0.4em; // this plus the margin on p give .7 em on top and bottom
 
@@ -5827,7 +6100,7 @@ video, #info-video {
       flex-direction: row;
       justify-content: space-evenly;
       gap: 0.5em;
-            
+
       .icon-wrapper {
         background-color: rgba(209, 209, 209, .2);
         border: none;
@@ -5835,92 +6108,77 @@ video, #info-video {
         padding-block: 4px;
         // be as large as you can but shrink if needed
         width: 100%;
+        min-width: 0;
         flex-shrink: 1;
-        
+
 
         &.active {
           border: 2px solid var(--sky-color);
 
-          
+
         }
       }
     }
   }
 
+  &.no-height-transition {
+    transition: none !important;
+  }
+
+  #top-container-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 10px;
+    z-index: 20;
+    cursor: row-resize;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::before {
+      content: "";
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background-color: var(--accent-color);
+      opacity: 0.6;
+    }
+
+    &:hover::before,
+    &:active::before {
+      opacity: 1;
+    }
+  }
 
 }
 
 #map-column { // v-col
   position: relative;
   --map-max-height: calc(var(--top-content-max-height) - 2*var(--margin) - 2*var(--container-padding));
+  --map-edge-gap: 4px;
   height: 100%;
   width: 100%;
+  min-height: 0;
   // outline: 1px solid red;
-  @media (max-width: 600px) {
-      aspect-ratio: 5/3;
-    }
-  
+  // (No mobile aspect-ratio here anymore — it forced a minimum height via
+  // the flex "automatic minimum size" mechanism, which is what was
+  // squeezing #non-map-container. #map-column's height on mobile is now
+  // driven purely by the flex-basis/min-height set above instead.)
 
   #map-container {
     height: 100%;
     width: 100%;
-    
+    box-sizing: border-box;
+    padding: var(--map-edge-gap);
+    position: relative;
+
     display: flex;
-    
-    .show-after {
-      display:flex;
-      width: 100%;
-      min-height: 2.5em;
-      height: max-content;
-      align-items: center;
-      justify-content: center;
-      font-size: calc(0.9 * var(--default-font-size));
-      padding: 0 10px;
-      position: absolute;
-      top: 0;
-      left: 0;
-      
-      @media (max-width: 600px) {
-        font-size: calc(1.1 * var(--default-font-size));
-      }
-      
-      color: black;
-      background-color: #cccccc77;
-      z-index: 500;
-      
-      backdrop-filter: blur(5px) saturate(50%);
-      
-      
-      .banner-close {
-        position: absolute;
-        right: 5px;
-        cursor: pointer;
-      }
-      
-    }
-    
-    
-    &.show-after::after {
-      content: attr(data-before-text);
-      
-      display:flex;
-      width: 100%;
-      min-height: 2.5em;
-      height: max-content;
-      align-items: center;
-      justify-content: center;
-      font-size: calc(0.8 * var(--default-font-size));
-      padding: 0 10px;
-      position: absolute;
-      top: 0;
-      left: 0;
-      
-      color: black;
-      background-color: #cccccc77;
-      z-index: 500;
-      
-      backdrop-filter: blur(5px) saturate(50%);
-    }
+    align-items: center;
+    justify-content: center;
+
 
     .location-search-overmap {
       height: fit-content;
@@ -5970,7 +6228,8 @@ video, #info-video {
     .map-container {
       height: 100%;
       width: 100%;
-      aspect-ratio: 5/3;
+      min-width: 0;
+      min-height: 0;
     }
   
     span {
@@ -6345,60 +6604,82 @@ video, #info-video {
 }
 
 #eclipse-percent-chip {
-  // position: absolute;
-  // right: 0.5rem;
-  // top: calc(-1.5 * var(--default-line-height));
     display: flex;
     width: 100%;
-    justify-content: space-between;
-
-  .v-chip.v-chip--density-default {
-    height: var(--default-line-height);
-    padding-inline: 0.8rem;
-    padding-block: 0.8rem;
-    margin-left: auto;
-  }
-
-  .v-chip__content {
-    font-size: calc(0.8 * var(--default-font-size));
-}
-
-
 }
 
 #top-wwt-content {
   position: absolute;
-  top: calc(var(--default-font-size) + 0.5rem);
   right: 0.5rem;
 
-  #location-date-display  {
-  
+  // Same top offsets as #left-buttons-wrapper while the Map & Weather box
+  // is open, so the two stay vertically aligned.
+  @media (max-width: 599px) {
+    top: 2.5rem;
+  }
+
+  @media (min-width: 600px) {
+    top: 0.7rem;
+  }
+
+  // Once it's closed, align with the closed Map & Weather button
+  // (#closed-top-container) instead — #left-buttons-wrapper's own .budge
+  // offset drops further still, to leave a gap below that button.
+  &.budge {
+    top: calc(var(--default-font-size) + 1px);
+  }
+
+  #location-date-display {
     display: flex;
-    justify-content: flex-end;
-    flex-wrap: column;
-    gap:5px;
-    
-    @media (max-width: 600px) {
-      flex-direction: column;
-      align-items: flex-end;
-    }
-    
+    flex-direction: column;
+    align-items: flex-end;
+
     @media (max-width: 250px) {
       padding-top: 3.5em;
     }
-    
-    @media (max-width: 700px) {
-      .v-chip.v-chip--density-default {
-        height: var(--default-line-height);
-        padding-inline: calc(0.6 * var(--default-line-height));
-        padding-block: calc(0.8 * var(--default-line-height));
-      }
+  }
 
-      .v-chip__content {
-        font-size: calc(1.2 * var(--default-font-size));
-      }
+  // Styled to match the location-button box from the Seasons data story:
+  // dark background, accent-colored border, bold location name with
+  // unbolded details underneath.
+  #location-status-box {
+    cursor: pointer;
+    pointer-events: auto;
+    background: black;
+    color: white;
+    border: 1px solid var(--accent-color);
+    border-radius: 5px;
+    padding: 0.5rem;
+    font-size: calc(0.9 * var(--default-font-size));
+    text-align: center;
+    // Fixed width so the box doesn't grow/shrink with the length of the
+    // location name — long names wrap instead (max-width guards against
+    // overflow on very narrow screens).
+    width: 12rem;
+    max-width: 70vw;
+    transition: border-color 0.2s ease;
+
+    @media (max-width: 600px) {
+      width: 10rem;
     }
 
+    &:hover,
+    &:focus-visible {
+      border-color: color-mix(in srgb, var(--accent-color) 70%, black);
+    }
+
+    .location-status-name {
+      font-size: calc(0.95 * var(--default-font-size));
+      margin-bottom: 0.25rem;
+    }
+
+    .eclipse-status-line {
+      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
+      // actually render as a line break.
+      white-space: pre-line;
+      // Same vertical space as between the location name and this line.
+      margin-block: 0.25rem;
+    }
   }
 
   .icon-wrapper {
