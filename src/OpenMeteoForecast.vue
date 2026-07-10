@@ -14,6 +14,7 @@
         <!-- <v-icon size="35">{{ cloudIcon(forecastForHour.cloud_cover) }}</v-icon> -->
          <div>{{  forecastForHour.time }}</div>
         <table class="forecast-table">
+          <tbody>
           <tr>
             <td>Cloud cover:</td>
             <td>{{ forecastForHour.cloud_cover }}%</td>
@@ -30,6 +31,7 @@
             <td>Precipitation:</td>
             <td>{{ forecastForHour.precipitation }} mm</td>
           </tr>
+          </tbody>
         </table>
       </div>
       <v-btn-toggle 
