@@ -433,7 +433,7 @@
                     
                     <details>
                       <summary>Where can I learn more?</summary>
-                      <p>
+                      <div class="p">
                         Check out
                         <ul>
                           <li>
@@ -443,7 +443,7 @@
                             Fiske Planetarium's <a href="https://www.colorado.edu/fiske/projects/science-through-shadows" target="_blank" rel="noopener noreferrer">Science Through Shadows</a> videos
                           </li>
                         </ul>
-                      </p>
+                      </div>
                     </details>
                   </div>
                 </div>
@@ -672,9 +672,6 @@
                       <li v-if="!showNewMobileUI">
                         <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
-                      <li v-if="narrow && !showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)
-                      </li>
                     </ul>
                           
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
@@ -722,9 +719,6 @@
                       <li v-if="showNewMobileUI">
                         <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)                               
-                      </li>                  
                     </ul>
 
                   </div>
@@ -788,18 +782,6 @@
     <div>
       <div id="left-buttons-wrapper" :class="[!showGuidedContent ?'budge' : '']">
         <div id='geocoding-row' class="d-flex align-center ga-1">
-          <location-search
-            class="location-search-overwwt"
-            v-model="searchOpen"
-            :search-provider="geocodingInfoForSearch"
-            :accentColor="accentColor"
-            @set-location="setLocationFromSearchFeature"
-            @error="searchErrorMessage = $event"
-            small
-            buttonSize="lg"
-          />
-        </div>
-        <div>
           <icon-button
             v-if="getMyLocation"
             class="geolocation-button"
@@ -823,68 +805,65 @@
             }"
             faSize="lg"
           ></icon-button>
-        
-          <div id="location-progress" :class="[!showGuidedContent ?'budge' : '']">
-            <geolocation-button
-              :color="accentColor"
-              :show-text-progress = "true"
-              hide-button
-              show-progress-circle
-              ref="geolocation"
-              @geolocation="(loc: GeolocationCoordinates) => { 
-                myLocation = {
-                  latitudeDeg: loc.latitude, 
-                  longitudeDeg: loc.longitude
-                };
-                showMyLocationDialog = false;
-                
-                if (myLocation.latitudeDeg !== locationDeg.latitudeDeg || myLocation.longitudeDeg !== locationDeg.longitudeDeg) {
-                  locationDeg = myLocation;
-                  $nextTick(() => {
-                    updateSelectedLocationText();
-                  });
-                }
-              }"
-              @error="(error: GeolocationPositionError) => { 
-                $notify({
-                  group: 'geolocation-error',
-                  title: 'Error',
-                  text: error.message,
-                  type: 'error',
-                }); 
-                if (error.code === 1) {
-                  geolocationPermission = 'denied';
-                }
-                console.log(error);
-              }"
-              @permission="(p: PermissionState) => {
-                geolocationPermission = p;
-                // we're always gonna show the button,
-                // just leaving this if we wanna change
-                if (p == 'granted') {
-                  getMyLocation = true;
-                } else if (p == 'prompt') {
-                  getMyLocation = true;
-                } else {
-                  getMyLocation = true;
-                }
-              }"
-            ></geolocation-button>
-          </div>
+          <location-search
+            class="location-search-overwwt"
+            v-model="searchOpen"
+            :search-provider="geocodingInfoForSearch"
+            :accentColor="accentColor"
+            @set-location="setLocationFromSearchFeature"
+            @error="searchErrorMessage = $event"
+            small
+            buttonSize="lg"
+          />
         </div>
-        
-        <icon-button
-          id="share"
-          fa-icon="share-nodes"
-          :color="accentColor"
-          :focus-color="accentColor"
-          :box-shadow="false"
-          tooltip-text="Share view of this location"
-          :show-tooltip="!mobile"
-          @activate="copyShareURL"
-          faSize="lg"
-        ></icon-button>
-        
+        <div id="location-progress" :class="[!showGuidedContent ?'budge' : '']">
+          <geolocation-button
+            :color="accentColor"
+            :show-text-progress = "true"
+            hide-button
+            show-progress-circle
+            ref="geolocation"
+            @geolocation="(loc: GeolocationCoordinates) => {
+              myLocation = {
+                latitudeDeg: loc.latitude,
+                longitudeDeg: loc.longitude
+              };
+              showMyLocationDialog = false;
+
+              if (myLocation.latitudeDeg !== locationDeg.latitudeDeg || myLocation.longitudeDeg !== locationDeg.longitudeDeg) {
+                locationDeg = myLocation;
+                $nextTick(() => {
+                  updateSelectedLocationText();
+                });
+              }
+            }"
+            @error="(error: GeolocationPositionError) => {
+              $notify({
+                group: 'geolocation-error',
+                title: 'Error',
+                text: error.message,
+                type: 'error',
+              });
+              if (error.code === 1) {
+                geolocationPermission = 'denied';
+              }
+              console.log(error);
+            }"
+            @permission="(p: PermissionState) => {
+              geolocationPermission = p;
+              // we're always gonna show the button,
+              // just leaving this if we wanna change
+              if (p == 'granted') {
+                getMyLocation = true;
+              } else if (p == 'prompt') {
+                getMyLocation = true;
+              } else {
+                getMyLocation = true;
+              }
+            }"
+          ></geolocation-button>
+        </div>
+
         <div
           id="controls"
           class="control-icon-wrapper"
@@ -932,17 +911,71 @@
               label="Visible Moon"
               hide-details
             />
-            <v-checkbox
-              v-show="narrow"
-              :color="accentColor"
-              v-model="showOldMobileUI"
-              @keyup.enter="showOldMobileUI = !showOldMobileUI;"
-              label="Detailed Interface"
-              hide-details
-            ></v-checkbox>            
           </div>
       </div>
-    </div>      
+
+        <div
+          id="controls"
+          class="control-icon-wrapper"
+          v-if="!showNewMobileUI"
+        >
+          <div id="controls-top-row">
+            <font-awesome-icon
+              size="lg"
+              :color="accentColor"
+              :icon="showControls ? `chevron-down` : `gear`"
+              @click="showControls = !showControls"
+              @keyup.enter="showControls = !showControls"
+              tabindex="0"
+            />
+          </div>
+
+          <div v-if="showControls" id="control-checkboxes">
+            <v-checkbox
+              v-if="!showNewMobileUI"
+              :color="accentColor"
+              v-model="sunCenteredTracking"
+              @change="centerSun()"
+              label="Center Sun"
+              :disabled="sunCenteredTracking"
+              hide-details
+            />
+            <v-checkbox
+              :color="accentColor"
+              v-model="showAltAzGrid"
+              @keyup.enter="showAltAzGrid = !showAltAzGrid"
+              label="Sky Grid"
+              hide-details
+            />
+            <v-checkbox
+              :color="accentColor"
+              v-model="showHorizon"
+              @keyup.enter="showHorizon = !showHorizon"
+              label="Horizon/Daytime Sky"
+              hide-details
+            />
+            <v-checkbox
+                :color="accentColor"
+                v-model="useRegularMoon"
+                @keyup.enter="useRegularMoon = !useRegularMoon"
+                label="Visible Moon"
+                hide-details
+            />
+          </div>
+      </div>
+
+        <icon-button
+          id="share"
+          fa-icon="share-nodes"
+          :color="accentColor"
+          :focus-color="accentColor"
+          :box-shadow="false"
+          tooltip-text="Share view of this location"
+          :show-tooltip="!mobile"
+          @activate="copyShareURL"
+          faSize="lg"
+        ></icon-button>
+    </div>
       <!-- <div id="mobile-zoom-control"> -->
         <!-- {{ Math.round(Math.pow(10, userZoom)*100)/100 }} -->
         <!-- <div class="slider-padding">
@@ -1025,14 +1058,7 @@
           </v-btn>
         </div>
 
-        <div v-if="narrow">
-          <p class="splash-small-text">
-            <a 
-              href="#" 
-              @click.prevent="showNewMobileUI = !showNewMobileUI">Switch</a> to {{ showNewMobileUI ? "detailed" : "new streamlined" }} interface
-          </p>
-        </div>
-        <div v-else>
+        <div v-if="!narrow">
           <p v-if="onDayOfEclipse" class="splash-small-text">
             <v-icon icon="mdi-creation" size="small" class="bullet-icon"></v-icon> New! NOW button, active starting at 6:40am EDT
           </p>
@@ -1358,66 +1384,7 @@
         :show-tooltip="!mobile"
         :box-shadow="false"
       ></icon-button>
-            
-      <div
-        id="controls"
-        class="control-icon-wrapper"
-        v-if="!showNewMobileUI"
-      >
-        <div id="controls-top-row">
-          <font-awesome-icon
-            size="lg"
-            :color="accentColor"
-            :icon="showControls ? `chevron-down` : `gear`"
-            @click="showControls = !showControls"
-            @keyup.enter="showControls = !showControls"
-            tabindex="0"
-          /> 
-        </div>
 
-          <div v-if="showControls" id="control-checkboxes">
-            <v-checkbox
-              v-if="!showNewMobileUI"
-              :color="accentColor"
-              v-model="sunCenteredTracking"
-              @change="centerSun()"
-              label="Center Sun"
-              :disabled="sunCenteredTracking"
-              hide-details 
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showAltAzGrid"
-              @keyup.enter="showAltAzGrid = !showAltAzGrid"
-              label="Sky Grid"
-              hide-details 
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showHorizon"
-              @keyup.enter="showHorizon = !showHorizon"
-              label="Horizon/Daytime Sky"
-              hide-details
-            />
-            <v-checkbox
-                :color="accentColor"
-                v-model="useRegularMoon"
-                @keyup.enter="useRegularMoon = !useRegularMoon"
-                label="Visible Moon"
-                hide-details
-            />
-            <v-checkbox
-              v-show="narrow"
-              :color="accentColor"
-              v-model="showOldMobileUI"
-              @keyup.enter="showOldMobileUI = !showOldMobileUI"
-              label="Detailed Interface"
-              hide-details
-            ></v-checkbox>            
-          </div>
-
-      </div>
-      
       <div id="eclipse-percent-chip">
         <v-btn
           v-if="onDayOfEclipse"
@@ -1454,17 +1421,17 @@
             <div id="speed-control">
               <icon-button
                 id="reverse-speed"
-                :fa-icon="'angles-left'"
+                :md-icon="playbackRate < 0 ? 'mdi-step-forward-2' : 'mdi-step-backward-2'"
                 @activate="() => {
                       reversePlaybackRate();
                       // playing = true;
                     }"
                 :color="accentColor"
                 :focus-color="accentColor"
-                :tooltip-text="playbackRate < 0 ? 'Reverse Faster' : 'Reverse'"
+                :tooltip-text="playbackRate < 0 ? 'Play time forwards' : 'Play time backwards'"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                mdSize="18"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1482,15 +1449,30 @@
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
+                id="backward-speed"
+                :fa-icon="'angles-down'"
+                @activate="() => {
+                      decreasePlaybackRate();
+                      // playing = true;
+                    }"
+                :color="accentColor"
+                :focus-color="accentColor"
+                :tooltip-text="'Slower'"
+                tooltip-location="top"
+                tooltip-offset="5px"
+                faSize="1x"
+                :show-tooltip="!mobile"
+              ></icon-button>
+              <icon-button
                 id="forward-speed"
-                :fa-icon="'angles-right'"
+                :fa-icon="'angles-up'"
                 @activate="() => {
                       increasePlaybackRate();
                       // playing = true;
                     }"
                 :color="accentColor"
                 :focus-color="accentColor"
-                :tooltip-text="playbackRate > 0 ? 'Faster' : 'Forward'"
+                :tooltip-text="'Faster'"
                 tooltip-location="top"
                 tooltip-offset="5px"
                 faSize="1x"
@@ -1498,9 +1480,10 @@
               ></icon-button>
               <icon-button
                 id="reset"
-                :fa-icon="'rotate'"
+                :fa-icon="'house'"
                 @activate="() => {
-                  selectedTime = (new Date('2024-04-08T18:18:00Z')).getTime() - 60*60*1000*1.5;
+
+                  selectedTime = (totalEclipseTimeUTC.getTime() - 60*60*1000*1.5);
                   playbackRate = 500;
                   playing = false;
                   toggleTrackSun = true;
@@ -2003,6 +1986,8 @@ cloudData.forEach((row, i) => {
 
 console.log("cloud cover data loaded");
 
+const MAX_PLAYBACK_RATE = 5**6;
+
 const wwtMove = WWTControl.singleton.move;
 
 /* READ IN Eclipse Umbra */
@@ -2082,8 +2067,7 @@ export default defineComponent({
       { latitudeRad: D2R * latitudeDeg, longitudeRad: D2R * longitudeDeg } :
       { latitudeRad: D2R * 41.05651083190793, longitudeRad: D2R * -2.3823344069458017 };
     return {
-      
-      showNewMobileUI: false,
+
       showForecastSheet: false,
       
       selectedCloudCoverVariable: 'median', // Define selectedCloudCoverVariable
@@ -2157,6 +2141,7 @@ export default defineComponent({
       pointerStartPosition: null as { x: number; y: number } | null,  
 
       // "Greatest Eclipse"
+      totalEclipseTimeUTC,
       selectedTime:  totalEclipseTimeUTC.getTime() - 60*60*1000*1.5,
       selectedTimezone: "Europe/Madrid",
       location,
@@ -2270,8 +2255,9 @@ export default defineComponent({
       playbackRateValue: 1,
       forceRate: false,
       playbackVisible: false,
+      maxPlaybackRate: MAX_PLAYBACK_RATE,
       
-      horizonRate: 500, 
+      horizonRate: 625, 
       scopeRate: 100, 
 
       startPaused: false,
@@ -2338,11 +2324,7 @@ export default defineComponent({
       this.selectedTimezone = tzlookup(...[queryData.latitudeDeg, queryData.longitudeDeg]);
       this.updateSelectedLocationText();
     }
-    
-    this.showNewMobileUI = this.narrow;
 
-    this.searchOpen = this.smAndUp;
-    
     this.createUserEntry();
 
     // We just need to force these to get around some Safari issues whose cause is TBD
@@ -2464,8 +2446,7 @@ export default defineComponent({
       this.onResize();
     });
 
-    this.showControls = !this.narrow;
-    this.showGuidedContent = !this.xSmallSize;
+    this.applyLayoutDefaults(this.narrow);
 
     this.updateSkyOpacityForSunAlt(10 * D2R); // 10 degrees above horizon
 
@@ -2651,7 +2632,13 @@ export default defineComponent({
     narrow(): boolean {
       return this.$vuetify.display.width <= 600;
     },
-    
+    // The new streamlined UI is shown responsively on narrow/mobile screens;
+    // wider (desktop) screens continue to use the detailed interface.
+    // This is not user-toggleable.
+    showNewMobileUI(): boolean {
+      return this.narrow;
+    },
+
     mobile(): boolean {
       return this.smallSize && this.touchscreen;
     },
@@ -2761,11 +2748,11 @@ export default defineComponent({
       return MILLISECONDS_PER_INTERVAL / (this.playbackRate);
     },
 
-    maxPlaybackRate(): number {
-      const minDuration = 10; //min setInterval on Chrome is ~5ms
-      // console.log('maxPlaybackRate', MILLISECONDS_PER_INTERVAL / minDuration);
-      return MILLISECONDS_PER_INTERVAL / minDuration;
-    },
+    // maxPlaybackRate(): number {
+    //   const minDuration = 10; //min setInterval on Chrome is ~5ms
+    //   // console.log('maxPlaybackRate', MILLISECONDS_PER_INTERVAL / minDuration);
+    //   return MILLISECONDS_PER_INTERVAL / minDuration;
+    // },
     
     sunPosition(): EquatorialRad & HorizontalRad {
       const sunAltAz = this.equatorialToHorizontal(this.sunPlace.get_RA() * 15 * D2R,
@@ -2863,7 +2850,7 @@ export default defineComponent({
     
     playbackRate: {
       set(value: number) {
-        this.playbackRateValue = Math.sign(value) * Math.min(Math.abs(value), 5000);
+        this.playbackRateValue = Math.sign(value) * this.clampPlaybackRate(Math.abs(value));
       },
       get(): number {
         if (this.forceRate) {
@@ -2894,15 +2881,6 @@ export default defineComponent({
         //   // video.pause();
         // }
       }
-    },
-
-    showOldMobileUI: {
-      get(): boolean {
-        return !this.showNewMobileUI;
-      },
-      set(value: boolean) {
-        this.showNewMobileUI = !value;
-      },
     },
 
   },
@@ -4312,30 +4290,29 @@ export default defineComponent({
       }
     },
     
+    clampPlaybackRate(val: number): number {
+      const minSpeed = 1;
+      const maxSpeed = this.maxPlaybackRate;
+      return Math.min(Math.max(val, minSpeed), maxSpeed);
+    },
+
     reversePlaybackRate() {
       this.forceRate = false;
-      const sign = Math.sign(this.playbackRate);
-      if (sign > 0 ) {
-        this.playbackRate = -Math.min(this.playbackRate,1);
-        return;
-      }
-      const abs = Math.abs(this.playbackRate);
-      let ezrate = Math.floor(Math.log10(abs));
-      ezrate -= sign * 1;
-      this.playbackRate = sign * Math.pow(10, Math.abs(ezrate));
+      this.playbackRate = -this.playbackRate;
     },
-    
+
+    decreasePlaybackRate() {
+      this.forceRate = false;
+      const sign = Math.sign(this.playbackRate);
+      const abs = Math.abs(this.playbackRate);
+      this.playbackRate = sign * this.clampPlaybackRate(abs / 5);
+    },
+
     increasePlaybackRate() {
       this.forceRate = false;
-      if (Math.sign(this.playbackRate) < 0 ) {
-        this.playbackRate = -Math.max(this.playbackRate,-1);
-        return;
-      }
       const sign = Math.sign(this.playbackRate);
       const abs = Math.abs(this.playbackRate);
-      let ezrate = Math.floor(Math.log10(abs));
-      ezrate += sign * 1;
-      this.playbackRate = sign * Math.pow(10, Math.abs(ezrate));
+      this.playbackRate = sign * this.clampPlaybackRate(abs * 5);
     },
     
     async updateSelectedLocationText() {
@@ -4343,22 +4320,19 @@ export default defineComponent({
     },
 
     niceRound(val: number) {
-      // rounding routine specifically for the playback rate
-      const abs = Math.abs(val);
-      
-      if (abs < 2.7) {
-        return val.toFixed(1);
-      }
-      
-      if (abs < 35) {
-        return val.toFixed(0);
-      }
-      
-      if (abs < 255) {
-        return Math.round(val / 10) * 10;
-      }
-      
-      return Math.round(val / 100) * 100;
+      return val.toFixed(0);
+    },
+
+    // Default layout state for each of the two responsive modes: the
+    // wide/detailed UI (narrow === false) and the narrow/streamlined UI
+    // (narrow === true). Called at mount and whenever the viewport crosses the
+    // responsive boundary, so each mode always starts from its intended layout
+    // (guided content + wide book icon, location search, and controls) instead
+    // of inheriting the other mode's state.
+    applyLayoutDefaults(narrow: boolean) {
+      this.searchOpen = !narrow;
+      this.showControls = !narrow;
+      this.showGuidedContent = !narrow;
     }
   },
 
@@ -4368,8 +4342,14 @@ export default defineComponent({
       console.log(`Playing wait count: ${old} ---> ${val}`);
     },
     
-    showNewMobileUI(_val: boolean) {
-      this.updatePanForMobile(); 
+    showNewMobileUI(narrow: boolean) {
+      this.updatePanForMobile();
+      // showNewMobileUI is driven by `narrow`, so this fires whenever the
+      // viewport crosses the 600px boundary. Apply the default layout for the
+      // mode we just entered — the same defaults used at mount — so the book
+      // icon, guided content, location search, etc. don't get stuck in a state
+      // that belongs to the other layout.
+      this.applyLayoutDefaults(narrow);
     },
 
     showGuidedContent(show: boolean) {
@@ -4702,7 +4682,7 @@ export default defineComponent({
     playbackRate(val: number) {
       if (Math.abs(val) > 11_000) {
         console.warn('playbackRate too high, setting to maxPlaybackRate');
-        this.playbackRate = Math.sign(val) * 10_000;
+        this.playbackRate = Math.sign(val) * this.maxPlaybackRate;
       }
       
       this.setClockRate(val === 1 ? 1 : val - 1 + 0.000000001 );
@@ -4981,6 +4961,7 @@ body {
   flex-direction: column;
   gap: 10px;
   width: fit-content;
+  align-items: flex-start;
   
   @media (max-width: 599px) {
     top: 2.5rem;
@@ -5028,7 +5009,14 @@ body {
   transform: translateY(-50%);
   left: 2.5rem;
 
-  
+
+}
+
+#geocoding-row {
+  @media (max-width: 599px) {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
 }
 
 .url-notification {
@@ -5194,7 +5182,11 @@ body {
     display: flex;
     width: 100%;
     flex-direction: row;
-    justify-content: flex-end;
+    justify-content: flex-start;
+
+    @media (max-width: 599px) {
+      justify-content: flex-start;
+    }
   }
 }
 
@@ -5492,7 +5484,7 @@ video, #info-video {
         cursor: pointer;
       }
       
-      p {
+      p, div.p {
         padding-top: 0.5em;
         padding-inline: 1em;
       }

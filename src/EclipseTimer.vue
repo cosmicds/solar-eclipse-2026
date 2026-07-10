@@ -42,6 +42,7 @@
     </div>
     <div class="eclipse-data-list" v-if="!noEclipse">
       <table id="eclipse-values">
+        <tbody>
         <tr>
           <td>
             <define-term
@@ -60,9 +61,11 @@
           <td>Eclipse Duration:</td>
           <td> {{ eclipseDuration }}</td>
         </tr>
+        </tbody>
       </table>
       <hr class="eclipse-timer-dividier"/>
       <table id="time-container">
+        <tbody>
         <tr class="time">
           <td class="time-label">Partial Start</td>
           <td class="time-value">{{ partialStart[1] === '' ? timeString(partialStart[0]) : 'Sun below Horizon' }}</td>
@@ -83,6 +86,7 @@
           <td class="time-label">Partial End</td>
           <td class="time-value">{{ partialEnd[1] === '' ? timeString(partialEnd[0]) : 'Sun below Horizon' }}</td>
         </tr>
+        </tbody>
       </table>
       <hr class="mt-4" style="width:100%">
     </div>
