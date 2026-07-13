@@ -5951,7 +5951,10 @@ video, #info-video {
   
   @media (max-width: 600px) {
     flex-direction: column;
-    gap: 1rem;
+    // This gap sits directly above/below #mobile-map-height-resize-handle
+    // (the only other flex child on mobile), so it reads as dead space
+    // around the handle rather than breathing room between sections.
+    gap: 0.25rem;
   }
   
   
