@@ -46,7 +46,7 @@
               :color="accentColor"
               :focus-color="skyColor"
               background-color="transparent"
-              tooltip-text="Hide"
+              tooltip-text="Hide Info and Map"
               :tooltip-location="'bottom'"
               :show-tooltip="!mobile"
               :box-shadow="false"
@@ -2140,10 +2140,13 @@ export default defineComponent({
     moonPlace.set_target(SolarSystemObjects.moon);
     const initialView = {
       initialLocation: {
-        latitudeDeg: 42,
-        longitudeDeg: -4
+        // Map center for the default view — deliberately not the same as
+        // the default selected location (Antiguita, Spain, below), so the
+        // eclipse path is visible instead of being centered on the pin.
+        latitudeDeg: 54.2,
+        longitudeDeg: -14.7
       },
-      initialZoom: 3.3
+      initialZoom: 3
     };
 
     const userSelectedLocations: [number, number][] = [];
