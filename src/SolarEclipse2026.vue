@@ -1249,7 +1249,6 @@
   <div id="top-wwt-content" :class="[!showGuidedContent ? 'budge' : '']">
     <!-- <p> in total eclipse {{ locationInTotality }}</p> -->
       <div id="location-date-display">
-        <h4 id="location-title">View from</h4>
         <div
           id="location-status-box"
           tabindex="0"
@@ -6660,16 +6659,6 @@ video, #info-video {
     }
   }
 
-  // Styled to match the "View from" title above the location button in
-  // the Seasons data story.
-  #location-title {
-    font-size: 0.85rem;
-    margin: 0;
-    padding-bottom: 5px;
-    color: var(--accent-color);
-    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-  }
-
   // Styled to match the location-button box from the Seasons data story:
   // dark background, accent-colored border, bold location name with
   // unbolded details underneath.
@@ -6682,9 +6671,17 @@ video, #info-video {
     border-radius: 5px;
     padding: 0.5rem;
     font-size: calc(0.9 * var(--default-font-size));
-    text-align: right;
-    width: fit-content;
+    text-align: center;
+    // Fixed width so the box doesn't grow/shrink with the length of the
+    // location name — long names wrap instead (max-width guards against
+    // overflow on very narrow screens).
+    width: 12rem;
+    max-width: 70vw;
     transition: border-color 0.2s ease;
+
+    @media (max-width: 600px) {
+      width: 10rem;
+    }
 
     &:hover,
     &:focus-visible {
