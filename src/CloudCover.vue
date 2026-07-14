@@ -94,17 +94,21 @@ export default defineComponent({
 .cloud-cover-label-text {
   font-size: calc(1.1 * var(--default-font-size));
   font-weight: normal;
-  width: 70%;
+  /* Fixed (not %) so its width — and therefore how it wraps around the
+     <br> — doesn't depend on how wide the sibling value text happens to
+     be ("No data" vs "42%" otherwise wrapped this differently). */
+  width: 9em;
+  flex-shrink: 0;
   text-align: center;
 }
 
 .cloud-cover-label-value {
-  font-size: calc(1.5 * var(--default-font-size));
+  font-size: calc(1.3 * var(--default-font-size));
   margin-left: 1rem;
-  /* no text wrapping */
-  white-space: nowrap;
   font-weight: bold;
-  width: 30%;
+  width: 4.5em;
+  flex-shrink: 0;
+  text-align: center;
 }
 
 </style>
