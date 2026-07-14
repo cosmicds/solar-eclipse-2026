@@ -1762,7 +1762,7 @@ import pointInPolygon from 'point-in-polygon';
 import { recalculateForObserverUTC } from "./eclipse_predict";
 import { EclipseData } from "./eclipse_types";
 import { spaceHMS } from './utils';
-
+import nso from './nso_coordinates';
 
 interface CloudData {
   lat: number;
@@ -1991,7 +1991,7 @@ const MAX_PLAYBACK_RATE = 5**6;
 const wwtMove = WWTControl.singleton.move;
 
 /* READ IN Eclipse Umbra */
-import eclipseUmbra from "./assets/upath_lo.json";
+// import eclipseUmbra from "./assets/upath_lo.json";
 
 export default defineComponent({
   extends: MiniDSBase,
@@ -2270,17 +2270,13 @@ export default defineComponent({
       // the order is the layer order form bottom to top
       geojson: [
         {
-          geojson: eclipseUmbra as GeoJSON.GeometryCollection,
+          geojson: nso.umbra,
           style: {fillColor: '#333', weight: 1, opacity: 0, fillOpacity: 0.3, id:"upath"}
         },
         {
-          url: "https://raw.githubusercontent.com/johnarban/wwt_interactives/refs/heads/main/images/center_2026.json",
+          'geojson': {'type': 'FeatureCollection', 'features': [nso.centerline]} as GeoJSON.FeatureCollection,
           style: {color: '#ff0000', weight: 1, opacity: 1, fillOpacity: 0}
         },
-        // { // individual places
-        //   'geojson': _eclipsePathGeoJson as GeoJSON.FeatureCollection,
-        //   'style': {radius:3,fillColor: '#ccc', color:'#222', weight: 2, opacity: 1, fillOpacity: 1}
-        // }
       ],
       
 
@@ -2864,7 +2860,7 @@ export default defineComponent({
     locationInTotality() {
       // check if the location is within eclipseUmbra path
       const location = this.locationDeg;
-      const poly = eclipseUmbra.geometries[0].coordinates[0];
+      const poly = (nso.umbra.geometries[0] as any).coordinates[0];
       const point = [location.longitudeDeg, location.latitudeDeg];
       return pointInPolygon(point, poly);
     },
