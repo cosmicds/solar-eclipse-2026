@@ -600,27 +600,14 @@
                     <h4 class="user-guide-header">Viewing Mode:</h4>
                     <p  class="mb-3">(Upper-right of the screen)</p>
                     <ul class="text-list">
-                      <li>
-                        <span 
-                        style="color: blue; background-color: white;
-                        padding-inline: 0.7em;
-                        border-radius: 20px;
-                        font-weight: bold ">Selected Location</span> The currently selected location.  
+                      <li class="mb-2">
+                        The view of the eclipse is shown for the location selected.
                       </li>
                       <li class="mb-2">
-                        <span 
-                        style="color: blue; background-color: white;
-                        padding-inline: 0.7em;
-                        border-radius: 20px;
-                        font-weight: bold ">Date/Time</span> The date and time being displayed by WorldWide Telescopse
+                        Eclipse status: The type of eclipse — "No Eclipse", "Partial Eclipse", or "Total Eclipse (+length of totality)" — visible from your selected location on August 12, 2026.
                       </li>
-                      <li v-if="showNewMobileUI">
-                        <span 
-                          style="color: blue; background-color: white;
-                          padding-inline: 0.7em;
-                          border-radius: 20px;
-                          font-weight: bold ">Eclipsed:
-                        </span> The fraction of the Sun that is eclipsed in the currenty view (for the selected time and location).
+                      <li>
+                        Eclipsed: The fraction of the Sun that is eclipsed in the current view (for the selected time and location).
                       </li>
                       <li v-if="!showNewMobileUI" class="switch-bullets">
                         <v-switch
@@ -686,14 +673,7 @@
                         <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
                       <li v-if="narrow && !showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)                               
-                      </li>
-                      <li v-if="!showNewMobileUI"  class="mt-2">
-                        <span 
-                          style="color: blue; background-color: white;
-                          padding-inline: 0.7em;
-                          border-radius: 20px;
-                          font-weight: bold ">Eclipsed:</span> The fraction of the Sun that is eclipsed in the currenty view (for the selected time and location).
+                        <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)
                       </li>
                     </ul>
                           
@@ -2504,7 +2484,7 @@ export default defineComponent({
       }
       const { type, maxTime, duration } = this.eclipsePrediction;
       if (type === '' || type === null || maxTime[0] === null) {
-        return "No eclipse";
+        return "No Eclipse";
       }
 
       if (!this.onDayOfEclipse) {
