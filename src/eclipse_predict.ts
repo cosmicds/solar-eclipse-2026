@@ -1008,11 +1008,11 @@ function getcoverage(): [number, SunBSR]{
   }
   if (mid[40] == 2) {
     // during sunrise
-    a = [a,"r"];
+    return [a,"r"];
   }
   if (mid[40] == 3) {
     // during sunset
-    a = [a,"s"];
+    return [a,"s"];
   }
   return [a as number,null];
 }
