@@ -1991,7 +1991,7 @@ const MAX_PLAYBACK_RATE = 5**6;
 const wwtMove = WWTControl.singleton.move;
 
 /* READ IN Eclipse Umbra */
-// import eclipseUmbra from "./assets/upath_lo.json";
+import eclipseUmbra from "./assets/upath_lo.json";
 
 export default defineComponent({
   extends: MiniDSBase,
@@ -2270,7 +2270,7 @@ export default defineComponent({
       // the order is the layer order form bottom to top
       geojson: [
         {
-          geojson: nso.umbra,
+          geojson: eclipseUmbra as GeoJSON.GeometryCollection,
           style: {fillColor: '#333', weight: 1, opacity: 0, fillOpacity: 0.3, id:"upath"}
         },
         {
@@ -2860,7 +2860,8 @@ export default defineComponent({
     locationInTotality() {
       // check if the location is within eclipseUmbra path
       const location = this.locationDeg;
-      const poly = (nso.umbra.geometries[0] as any).coordinates[0];
+      const poly = eclipseUmbra.geometries[0].coordinates[0];
+      // const poly = (nso.umbra.geometries[0] as any).coordinates[0];
       const point = [location.longitudeDeg, location.latitudeDeg];
       return pointInPolygon(point, poly);
     },
