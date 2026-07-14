@@ -246,27 +246,10 @@
         <v-slide-y-transition
           :disabled="smAndUp"
         >
-          <div 
+          <div
             :class="['']"
-            id="map-container" :data-before-text="eclipsePredictionText">
-            
-            <div 
-              v-if="learnerPath === 'Location' && showEclipsePredictionTextBanner && !mobile && !showNewMobileUI" 
-              id="map-banner" 
-              class="show-after"
-              >
-              <span v-if="showEclipsePredictionText">
-                {{ eclipsePredictionText }}
-                <v-icon v-if="narrow" style="padding: 2px; border-radius:3px; background-color:#ddd;" class="elevation-2" @click="showEclipsePredictionSheet = true; showEclipsePredictionText = true">mdi-sun-clock</v-icon> 
-              </span>
-              <span v-else>
-                {{ touchscreen ? "Tap" : "Click" }} <v-icon style="padding: 2px; border-radius:3px; background-color:#ddd;" class="elevation-2" @click="showEclipsePredictionSheet = true; showEclipsePredictionText = true">mdi-sun-clock</v-icon> to see eclipse predictions
-              </span>
-              <span class="banner-close" @click="showEclipsePredictionTextBanner = false">
-                <v-icon>mdi-close</v-icon>
-              </span>
-            </div>
-            
+            id="map-container">
+
             <!-- modelValue = false, starts with it closed, use stay-open to keep it open -->
             <location-search
               v-model="searchOpen"
@@ -311,13 +294,7 @@
               :focus-color="accentColor"
               tooltip-text="View eclipse timing details"
               tooltip-location="start"
-              @activate="() => {
-                showEclipsePredictionSheet = true;
-                if (!showEclipsePredictionText) {
-                  showEclipsePredictionTextBanner = !showNewMobileUI;
-                }
-                showEclipsePredictionText = true;
-              }"
+              @activate="() => { showEclipsePredictionSheet = true; }"
               >
             </icon-button>
             <!-- :places="places" -->
@@ -708,9 +685,6 @@
                       <li v-if="!showNewMobileUI">
                         <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Eclipse Timing:</span> Display eclipse start time for your selected location. If applicable, display duration of totality. (This appears at the top of the map if it is open, and at the top of the screen if the map is closed.)                   
-                      </li>
                       <li v-if="narrow && !showNewMobileUI">
                         <span class="user-guide-emphasis-white">Detailed Interface:</span> Switch to original mobile interface. (Uncheck box to use new streamlined interface)                               
                       </li>
@@ -817,18 +791,6 @@
       </v-card>
     </v-dialog>
 
-  
-  <div v-show="!showGuidedContent && showEclipsePredictionTextBanner && !showNewMobileUI" class="user-banner">
-    <span class="banner-text" v-if="showEclipsePredictionText">
-      {{ eclipsePredictionText }}
-    </span>
-    <span class="banner-text" v-else>
-      {{ touchscreen ? "Tap" : "Click" }} <v-icon>mdi-sun-clock</v-icon> to see eclipse predictions
-    </span>
-    <span class="banner-close" @click="showEclipsePredictionTextBanner = false">
-      <v-icon>mdi-close</v-icon>
-    </span>
-  </div>
   
   <div
     id="main-content"
@@ -989,15 +951,7 @@
               @keyup.enter="useRegularMoon = !useRegularMoon"
               label="Visible Moon"
               hide-details
-            />    
-            <v-checkbox
-              v-show="!showNewMobileUI"
-              :color="accentColor"
-              v-model="showEclipsePredictionTextBanner"
-              @keyup.enter="showEclipsePredictionTextBanner = !showEclipsePredictionTextBanner"
-              label="Eclipse Timing"
-              hide-details 
-            />  
+            />
             <v-checkbox
               v-show="narrow"
               :color="accentColor"
@@ -1292,35 +1246,27 @@
     </v-dialog>
     
   
-  <div id="top-wwt-content">
+  <div id="top-wwt-content" :class="[!showGuidedContent ? 'budge' : '']">
     <!-- <p> in total eclipse {{ locationInTotality }}</p> -->
       <div id="location-date-display">
-        <v-chip 
-          :prepend-icon="cloudIcon"
-          variant="outlined"
-          size="small"
-          elevation="3"
-          :text="selectedLocationText"
+        <h4 id="location-title">View from</h4>
+        <div
+          id="location-status-box"
+          tabindex="0"
           @click="() => {
-            searchOpen = true; 
+            searchOpen = true;
             learnerPath = 'Location'
             }"
-        > </v-chip>
-        <v-chip 
-          :prepend-icon="smallSize ? `` : `mdi-clock`"
-          variant="outlined"
-          size="small"
-          elevation="1"
-          :text="selectedLocaledTimeDateString"
-        > </v-chip>
-        <v-chip 
-          v-if="showNewMobileUI"
-          :prepend-icon="smallSize ? `` : `mdi-sun-angle`"
-          variant="outlined"
-          elevation="1"
-          size="small"
-          :text="percentEclipsedText"
-        > </v-chip>
+          @keyup.enter="() => {
+            searchOpen = true;
+            learnerPath = 'Location'
+            }"
+        >
+          <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
+          <div>{{ selectedLocalDateString }}</div>
+          <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
+          <div>{{ percentEclipsedText }}</div>
+        </div>
       </div>
       <div id="top-switches" v-if="!showNewMobileUI">
         <div id="track-sun-switch"> 
@@ -1417,13 +1363,7 @@
         :focus-color="accentColor"
         tooltip-text="View eclipse timing details"
         tooltip-location="start"
-        @activate="() => {
-          showEclipsePredictionSheet = true;
-          if (!showEclipsePredictionText) {
-            showEclipsePredictionTextBanner = !showNewMobileUI;
-          }
-          showEclipsePredictionText = true;
-        }"
+        @activate="() => { showEclipsePredictionSheet = true; }"
         >
       </icon-button>
 
@@ -1486,15 +1426,7 @@
                 @keyup.enter="useRegularMoon = !useRegularMoon"
                 label="Visible Moon"
                 hide-details
-            />    
-            <v-checkbox
-              v-show="!showNewMobileUI"
-              :color="accentColor"
-              v-model="showEclipsePredictionTextBanner"
-              @keyup.enter="showEclipsePredictionTextBanner = !showEclipsePredictionTextBanner"
-              label="Eclipse Timing"
-              hide-details 
-            />  
+            />
             <v-checkbox
               v-show="narrow"
               :color="accentColor"
@@ -1523,13 +1455,6 @@
         >
           Now
         </v-btn>
-        <v-chip 
-          v-if="!showNewMobileUI"
-          :prepend-icon="smallSize ? `` : `mdi-sun-angle`"
-          variant="outlined"
-          elevation="1"
-          :text="percentEclipsedText"
-        > </v-chip>
       </div>
       
       <div id="video-icon">
@@ -2245,9 +2170,7 @@ export default defineComponent({
       showAWVFullScreen: false,
       
       showEclipsePredictionSheet: false,
-      showEclipsePredictionText: false,
-      showEclipsePredictionTextBanner: false,
-      
+
       
       selectionProximity: 4,
       pointerMoveThreshold: 6,
@@ -2438,11 +2361,7 @@ export default defineComponent({
     }
     
     this.showNewMobileUI = this.narrow;
-    
-    if (!this.showSplashScreen) {
-      this.showEclipsePredictionTextBanner = !this.showNewMobileUI;
-    }
-    
+
     this.searchOpen = this.smAndUp;
     
     this.createUserEntry();
@@ -2579,43 +2498,50 @@ export default defineComponent({
   },
 
   computed: {
-    
-    eclipsePredictionText(): string {
-      
-      if (!this.showEclipsePredictionText) {
-        return 'Open "Timing Details" to see eclipse predictions';
-      }
-      
-      if (this.eclipsePrediction) {
-        const { type, maxTime, duration } = this.eclipsePrediction;
-        if (type === '' || type === null || maxTime[0] === null) {
-          return "No eclipse";
-        }
-        const typeString = (new Map([
-          ["P", "Partial"],
-          ["T", "Total"],
-          ["A", "Annular"],
-        ])).get(type);
-        
-        // const maxTimeString = formatInTimeZone(maxTime[0], this.selectedTimezone, "h:mm aa (zzz)");
-        
-        if (type == "T") {
-          const begins = formatInTimeZone(this.eclipsePrediction.centralStart[0], this.selectedTimezone, "h:mm:ss aa (zzz)");
-          if (this.$vuetify.display.xs) {
-            return `Totality starts: ${begins} Duration: ${spaceHMS(duration)}`;
-          }
-          return `Totality begins at ${begins} and lasts ${spaceHMS(duration)}`;
-        }
-        
 
-        if (duration === '') {
-          // get the duration of the partial eclipse
-          const starting = formatInTimeZone(this.eclipsePrediction.partialStart[0], this.selectedTimezone, "h:mm aa (zzz)");
-          if (this.$vuetify.display.xs) {
-            return `${typeString} starts: ${starting}`;
+    eclipsePredictionText(): string {
+      if (!this.eclipsePrediction) {
+        return '';
+      }
+      const { type, maxTime, duration } = this.eclipsePrediction;
+      if (type === '' || type === null || maxTime[0] === null) {
+        return "No eclipse";
+      }
+
+      if (!this.onDayOfEclipse) {
+        // Until the actual day of the eclipse, just show the simple status
+        // — the detailed begins-at/duration timing below is only useful
+        // once "today" is a meaningful reference point.
+        if (type === "T") {
+          if (duration) {
+            return `Total Eclipse\n(${spaceHMS(duration)} of totality)`;
           }
-          return `${typeString} eclipse begins at ${starting}`;
+          return "Total Eclipse";
         }
+        return "Partial Eclipse";
+      }
+
+      const typeString = (new Map([
+        ["P", "Partial"],
+        ["T", "Total"],
+        ["A", "Annular"],
+      ])).get(type);
+
+      if (type == "T") {
+        const begins = formatInTimeZone(this.eclipsePrediction.centralStart[0], this.selectedTimezone, "h:mm:ss aa (zzz)");
+        if (this.$vuetify.display.xs) {
+          return `Totality starts: ${begins} Duration: ${spaceHMS(duration)}`;
+        }
+        return `Totality begins at ${begins} and lasts ${spaceHMS(duration)}`;
+      }
+
+      if (duration === '') {
+        // get the duration of the partial eclipse
+        const starting = formatInTimeZone(this.eclipsePrediction.partialStart[0], this.selectedTimezone, "h:mm aa (zzz)");
+        if (this.$vuetify.display.xs) {
+          return `${typeString} starts: ${starting}`;
+        }
+        return `${typeString} eclipse begins at ${starting}`;
       }
       return '';
     },
@@ -2639,7 +2565,7 @@ export default defineComponent({
     },
 
     selectedLocalDateString() {
-      return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MMMM dd, yyyy');
+      return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MMMM d, yyyy');
     },
     
     selectedLocaledTimeDateString() {
@@ -3936,12 +3862,7 @@ export default defineComponent({
         if (guidedContentContainer) {
           height += guidedContentContainer.clientHeight;
         }
-        
-        const topbanner = document.querySelector('.user-banner');
-        if (topbanner) {
-          height += topbanner.clientHeight;
-        }
-        
+
         this.guidedContentHeight = `${height}px`;
       });
     },
@@ -4492,13 +4413,6 @@ export default defineComponent({
       }
     },
     
-    showEclipsePredictionTextBanner(_val: boolean) {
-      this.onResize();
-      this.$nextTick(() => {
-        this.onScroll();
-      });
-    },
-
     cssVars(_css: unknown) {
       // console.log(_css);
     },
@@ -4521,7 +4435,6 @@ export default defineComponent({
     inIntro(value: boolean) {
       if (!value) {
         this.playing = true;
-        this.showEclipsePredictionTextBanner = !this.showNewMobileUI;
         if (!this.showSplashScreen && this.responseOptOut === null) {
           this.showPrivacyDialog = true;
         }
@@ -4907,19 +4820,6 @@ body {
   padding: 0.5em;
 }  
 
-.user-banner {
-  position: relative;
-  font-size: calc(0.8 * var(--default-font-size));
-  text-align: center;
-  background-color: rgb(93, 93, 93);
-  
-  .banner-close {
-    position: absolute;
-    right: 5px;
-    cursor: pointer;
-  }
-}
-
 
 #main-content {
   position: relative;
@@ -5119,7 +5019,10 @@ body {
     }
 
     @media (min-width: 600px) {
-      top: 3.5rem;
+      // Bumped from 3.5rem — at desktop font sizes the closed Map &
+      // Weather button is tall enough that 3.5rem left no visible gap
+      // below it (unlike the narrower mobile offset above).
+      top: 4.3rem;
     }
   }
   
@@ -5849,24 +5752,28 @@ video, #info-video {
   }
   
 
+  // Styled to match the time-slider flag from the Seasons data story.
   .v-slider-thumb__label {
     min-width: fit-content;
     white-space: nowrap;
-    color: black;
+    color: white;
+    font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--accent-color);
+    border-radius: 5px;
     padding-inline: 0.7rem;
-    background-color: var(--accent-color);
 
-    font-size: var(--default-font-size);
+    // Matches .location-status-name's size.
+    font-size: calc(0.95 * var(--default-font-size));
     padding-block: calc(0.5 * var(--default-line-height));
 
     @media (max-width: 600px) {
-      font-size: calc(1 * var(--default-font-size));
-      padding-block: 0;
+      font-size: calc(0.95 * var(--default-font-size));
+      padding-block: 4px;
       padding-inline: 0.3rem;
-      height: 15px;
     }
   }
-  
+
   .v-slider-thumb__label::before {
     color: var(--accent-color);
   }
@@ -6293,62 +6200,6 @@ video, #info-video {
     align-items: center;
     justify-content: center;
 
-    .show-after {
-      display:flex;
-      width: auto;
-      min-height: 2.5em;
-      height: max-content;
-      align-items: center;
-      justify-content: center;
-      font-size: calc(0.9 * var(--default-font-size));
-      padding: 0;
-      position: absolute;
-      top: var(--map-edge-gap);
-      left: var(--map-edge-gap);
-      right: var(--map-edge-gap);
-
-      @media (max-width: 600px) {
-        font-size: calc(1.1 * var(--default-font-size));
-      }
-      
-      color: black;
-      background-color: #cccccc77;
-      z-index: 500;
-      
-      backdrop-filter: blur(5px) saturate(50%);
-      
-      
-      .banner-close {
-        position: absolute;
-        right: 5px;
-        cursor: pointer;
-      }
-      
-    }
-    
-    
-    &.show-after::after {
-      content: attr(data-before-text);
-
-      display:flex;
-      width: auto;
-      min-height: 2.5em;
-      height: max-content;
-      align-items: center;
-      justify-content: center;
-      font-size: calc(0.8 * var(--default-font-size));
-      padding: 0;
-      position: absolute;
-      top: var(--map-edge-gap);
-      left: var(--map-edge-gap);
-      right: var(--map-edge-gap);
-
-      color: black;
-      background-color: #cccccc77;
-      z-index: 500;
-      
-      backdrop-filter: blur(5px) saturate(50%);
-    }
 
     .location-search-overmap {
       height: fit-content;
@@ -6774,60 +6625,84 @@ video, #info-video {
 }
 
 #eclipse-percent-chip {
-  // position: absolute;
-  // right: 0.5rem;
-  // top: calc(-1.5 * var(--default-line-height));
     display: flex;
     width: 100%;
-    justify-content: space-between;
-
-  .v-chip.v-chip--density-default {
-    height: var(--default-line-height);
-    padding-inline: 0.8rem;
-    padding-block: 0.8rem;
-    margin-left: auto;
-  }
-
-  .v-chip__content {
-    font-size: calc(0.8 * var(--default-font-size));
-}
-
-
 }
 
 #top-wwt-content {
   position: absolute;
-  top: calc(var(--default-font-size) + 0.5rem);
   right: 0.5rem;
 
-  #location-date-display  {
-  
+  // Same top offsets as #left-buttons-wrapper while the Map & Weather box
+  // is open, so the two stay vertically aligned.
+  @media (max-width: 599px) {
+    top: 2.5rem;
+  }
+
+  @media (min-width: 600px) {
+    top: 0.7rem;
+  }
+
+  // Once it's closed, align with the closed Map & Weather button
+  // (#closed-top-container) instead — #left-buttons-wrapper's own .budge
+  // offset drops further still, to leave a gap below that button.
+  &.budge {
+    top: calc(var(--default-font-size) + 1px);
+  }
+
+  #location-date-display {
     display: flex;
-    justify-content: flex-end;
-    flex-wrap: column;
-    gap:5px;
-    
-    @media (max-width: 600px) {
-      flex-direction: column;
-      align-items: flex-end;
-    }
-    
+    flex-direction: column;
+    align-items: flex-end;
+
     @media (max-width: 250px) {
       padding-top: 3.5em;
     }
-    
-    @media (max-width: 700px) {
-      .v-chip.v-chip--density-default {
-        height: var(--default-line-height);
-        padding-inline: calc(0.6 * var(--default-line-height));
-        padding-block: calc(0.8 * var(--default-line-height));
-      }
+  }
 
-      .v-chip__content {
-        font-size: calc(1.2 * var(--default-font-size));
-      }
+  // Styled to match the "View from" title above the location button in
+  // the Seasons data story.
+  #location-title {
+    font-size: 0.85rem;
+    margin: 0;
+    padding-bottom: 5px;
+    color: var(--accent-color);
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  }
+
+  // Styled to match the location-button box from the Seasons data story:
+  // dark background, accent-colored border, bold location name with
+  // unbolded details underneath.
+  #location-status-box {
+    cursor: pointer;
+    pointer-events: auto;
+    background: black;
+    color: white;
+    border: 1px solid var(--accent-color);
+    border-radius: 5px;
+    padding: 0.5rem;
+    font-size: calc(0.9 * var(--default-font-size));
+    text-align: right;
+    width: fit-content;
+    transition: border-color 0.2s ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: color-mix(in srgb, var(--accent-color) 70%, black);
     }
 
+    .location-status-name {
+      font-size: calc(0.95 * var(--default-font-size));
+      margin-bottom: 0.25rem;
+    }
+
+    .eclipse-status-line {
+      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
+      // actually render as a line break.
+      white-space: pre-line;
+      // Same vertical space as between the location name and this line.
+      margin-block: 0.25rem;
+    }
   }
 
   .icon-wrapper {
