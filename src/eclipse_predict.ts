@@ -1119,7 +1119,7 @@ function recalculate() {
   const result = calculatefor(SE2026());
 }
 
-const DEBUG = false;
+const DEBUG = true;
 // create a wrapper for console.log with
 function consoleDebug(...data: any[]) {
   if (DEBUG) {
