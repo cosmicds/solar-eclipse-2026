@@ -781,41 +781,40 @@
     ></WorldWideTelescope>
     <div>
       <div id="left-buttons-wrapper" :class="[!showGuidedContent ?'budge' : '']">
-        <div id='geocoding-row' class="d-flex align-center ga-1">
-          <icon-button
-            v-if="getMyLocation"
-            class="geolocation-button"
-            id="my-location"
-            fa-icon="location-crosshairs"
-            :color="myLocationColor"
-            :focus-color="myLocationColor"
-            :box-shadow="false"
-            :tooltip-text="myLocationToolTip"
-            :show-tooltip="!mobile"
-            @update:modelValue="(value: boolean) => {
-              if(value) {
-                ($refs.geolocation as any).getLocation();
-                showMyLocationDialog = true;
-                learnerPath = 'Location';
-              }
-              else {
-                console.log('geolocation button pressed = false');
-              }
+        <location-search
+          class="location-search-overwwt"
+          v-model="searchOpen"
+          :search-provider="geocodingInfoForSearch"
+          :accentColor="accentColor"
+          @set-location="setLocationFromSearchFeature"
+          @error="searchErrorMessage = $event"
+          small
+          buttonSize="lg"
+        />
 
-            }"
-            faSize="lg"
-          ></icon-button>
-          <location-search
-            class="location-search-overwwt"
-            v-model="searchOpen"
-            :search-provider="geocodingInfoForSearch"
-            :accentColor="accentColor"
-            @set-location="setLocationFromSearchFeature"
-            @error="searchErrorMessage = $event"
-            small
-            buttonSize="lg"
-          />
-        </div>
+        <icon-button
+          v-if="getMyLocation"
+          class="geolocation-button"
+          id="my-location"
+          fa-icon="location-crosshairs"
+          :color="myLocationColor"
+          :focus-color="myLocationColor"
+          :box-shadow="false"
+          :tooltip-text="myLocationToolTip"
+          :show-tooltip="!mobile"
+          @update:modelValue="(value: boolean) => {
+            if(value) {
+              ($refs.geolocation as any).getLocation();
+              showMyLocationDialog = true;
+              learnerPath = 'Location';
+            }
+            else {
+              console.log('geolocation button pressed = false');
+            }
+
+          }"
+          faSize="lg"
+        ></icon-button>
         <div id="location-progress" :class="[!showGuidedContent ?'budge' : '']">
           <geolocation-button
             :color="accentColor"
@@ -864,6 +863,18 @@
           ></geolocation-button>
         </div>
 
+        <icon-button
+          id="share"
+          fa-icon="share-nodes"
+          :color="accentColor"
+          :focus-color="accentColor"
+          :box-shadow="false"
+          tooltip-text="Share view of this location"
+          :show-tooltip="!mobile"
+          @activate="copyShareURL"
+          faSize="lg"
+        ></icon-button>
+
         <div
           id="controls"
           class="control-icon-wrapper"
@@ -877,7 +888,7 @@
               @click="showControls = !showControls"
               @keyup.enter="showControls = !showControls"
               tabindex="0"
-            /> 
+            />
           </div>
 
           <div v-if="showControls" id="control-checkboxes">
@@ -888,14 +899,14 @@
               @change="centerSun()"
               label="Center Sun"
               :disabled="sunCenteredTracking"
-              hide-details 
+              hide-details
             />
             <v-checkbox
               :color="accentColor"
               v-model="showAltAzGrid"
               @keyup.enter="showAltAzGrid = !showAltAzGrid"
               label="Sky Grid"
-              hide-details 
+              hide-details
             />
             <v-checkbox
               :color="accentColor"
@@ -963,18 +974,6 @@
             />
           </div>
       </div>
-
-        <icon-button
-          id="share"
-          fa-icon="share-nodes"
-          :color="accentColor"
-          :focus-color="accentColor"
-          :box-shadow="false"
-          tooltip-text="Share view of this location"
-          :show-tooltip="!mobile"
-          @activate="copyShareURL"
-          faSize="lg"
-        ></icon-button>
     </div>
       <!-- <div id="mobile-zoom-control"> -->
         <!-- {{ Math.round(Math.pow(10, userZoom)*100)/100 }} -->
@@ -1097,6 +1096,7 @@
       opacity="1"
       :scrim="false"
       :close-on-content-click="true"
+      :style="cssVars"
       >
       <div id="instruction-overlay">
         <div id="overlay-close">
@@ -1363,7 +1363,7 @@
       <icon-button
         id="eclipse-details-button"
         md-icon="sun-clock"
-        :md-size="showNewMobileUI ? '16' : '24'"
+        :md-size="showNewMobileUI ? '20' : '24'"
         :color="accentColor"
         :focus-color="accentColor"
         tooltip-text="View eclipse timing details"
@@ -1376,7 +1376,7 @@
         v-if="withinForecastRange"
         v-model="showForecastSheet"
         md-icon="mdi-cloud-clock"
-        :md-size="showNewMobileUI ? '16' : '24'"
+        :md-size="showNewMobileUI ? '20' : '24'"
         :color="accentColor"
         :focus-color="accentColor"
         :tooltip-text="showForecastSheet ? null : 'August 12 Weather Forecast'"
@@ -1420,21 +1420,6 @@
           <div style="position: relative">
             <div id="speed-control">
               <icon-button
-                id="reverse-speed"
-                :md-icon="playbackRate < 0 ? 'mdi-step-forward-2' : 'mdi-step-backward-2'"
-                @activate="() => {
-                      reversePlaybackRate();
-                      // playing = true;
-                    }"
-                :color="accentColor"
-                :focus-color="accentColor"
-                :tooltip-text="playbackRate < 0 ? 'Play time forwards' : 'Play time backwards'"
-                tooltip-location="top"
-                tooltip-offset="5px"
-                mdSize="18"
-                :show-tooltip="!mobile"
-              ></icon-button>
-              <icon-button
                 id="play-pause-icon"
                 :fa-icon="!(playing) ? 'play' : 'pause'"
                 @activate="() => {
@@ -1445,7 +1430,7 @@
                 tooltip-text="Play/Pause"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1460,7 +1445,7 @@
                 :tooltip-text="'Slower'"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1475,7 +1460,23 @@
                 :tooltip-text="'Faster'"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
+                :show-tooltip="!mobile"
+              ></icon-button>
+              <icon-button
+                v-if="!xSmallSize"
+                id="reverse-speed"
+                :md-icon="playbackRate < 0 ? 'mdi-step-forward-2' : 'mdi-step-backward-2'"
+                @activate="() => {
+                      reversePlaybackRate();
+                      // playing = true;
+                    }"
+                :color="accentColor"
+                :focus-color="accentColor"
+                :tooltip-text="playbackRate < 0 ? 'Play time forwards' : 'Play time backwards'"
+                tooltip-location="top"
+                tooltip-offset="5px"
+                mdSize="22"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1494,15 +1495,15 @@
                 tooltip-text="Reset"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
                 :show-tooltip="!mobile"
               ></icon-button>
-                    
-              <v-dialog 
-                v-if="!xSmallSize" 
-                v-model="playbackVisible" 
+
+              <v-dialog
+                v-if="!xSmallSize"
+                v-model="playbackVisible"
                 :scrim="false"
-                location="top"
+                location="top end"
                 offset="40"
                 location-strategy="connected"
                 persistent
@@ -1521,7 +1522,7 @@
                     tooltip-text="Speed Controls"
                     tooltip-location="top"
                     tooltip-offset="5px"
-                    faSize="1x"
+                    faSize="lg"
                     :show-tooltip="!mobile"
                     v-bind="props"
                   ></icon-button>
@@ -1534,17 +1535,11 @@
                         forceRate = false;
                         playbackRate = value;
                       }"
-                      :paused="!playing"
-                      @paused="playing = !$event"
                       :max-power="3"
                       :max="Math.log10(1000) + 1"
                       :color="accentColor"
                       :inline="false"
-                      show-close-button
-                      @close="() => {
-                        playbackVisible = false;
-                      }"
-                    /> 
+                    />
               </v-dialog>
       
 
@@ -1560,7 +1555,7 @@
                     tooltip-text="Time Controls"
                     tooltip-location="top"
                     tooltip-offset="5px"
-                    faSize="1x"
+                    faSize="lg"
                     :show-tooltip="!mobile"
                   ></icon-button>
 
@@ -1572,17 +1567,11 @@
                         forceRate = false;
                         playbackRate = value;
                       }"
-                      :paused="!playing"
-                      @paused="playing = !$event"
                       :max-power="3"
                       :max="Math.log10(1000) + 1"
                       :color="accentColor"
                       :inline="true"
-                      inline-button
-                      @close="() => {
-                        playbackVisible = false;
-                      }"
-                    /> 
+                    />
 
                 </div>
             </div>
@@ -2213,6 +2202,8 @@ export default defineComponent({
       
       accentColor: "#eac402",
       moonColor: "#CFD8DC",
+      normalBorderRadius: "10px",
+      tightBorderRadius: "5px",
       guidedContentHeight: "300px",
       showGuidedContent: true,
       topContainerCustomHeight: null as number | null,
@@ -2649,6 +2640,8 @@ export default defineComponent({
         '--app-content-height': this.showInfoSheet ? '100%' : '100%',
         '--top-content-height': this.showGuidedContent? this.guidedContentHeight : this.guidedContentHeight,
         '--moon-color': this.moonColor,
+        '--normal-border-radius': this.normalBorderRadius,
+        '--tight-border-radius': this.tightBorderRadius,
       };
     },
     topContainerStyle() {
@@ -4702,7 +4695,7 @@ export default defineComponent({
 }
 
 :root {
-  --default-font-size: clamp(0.7rem, min(1.7vh, 1.7vw), 1.1rem);
+  --default-font-size: clamp(0.8rem, min(1.7vh, 1.7vw), 1rem);
   --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem);
   --time-content-max-width: 700px;
 }
@@ -4795,9 +4788,6 @@ body {
     user-select: none;
   }
 
-  #my-location-button {
-    border-width: 2px;
-  }
 
   .location-search-overwwt {
     z-index: 600;
@@ -4820,7 +4810,7 @@ body {
     font-weight: bold;
     color: #888888;
     text-align: center;
-    border-radius: 10px;
+    border-radius: var(--normal-border-radius);
 
     @media (max-width: 600px) {
       width: 35%;
@@ -4959,7 +4949,7 @@ body {
   left: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
   width: fit-content;
   align-items: flex-start;
   
@@ -4986,19 +4976,7 @@ body {
     }
   }
   
-  .icon-wrapper {
-    padding-inline: 0.5em;
-    padding-block: 0.6em;
-  }
-
-  .icon-wrapper {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-  }
-  
-  .icon-wrapper:not(#my-location-button) {
-    border: 2px solid var(--accent-color);
-  }
+  // Sizing/border now come from the unified .icon-wrapper rule.
 }
 
 
@@ -5012,12 +4990,6 @@ body {
 
 }
 
-#geocoding-row {
-  @media (max-width: 599px) {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-  }
-}
 
 .url-notification {
   margin-top: 45vh;
@@ -5108,11 +5080,7 @@ body {
     align-items: stretch;
   }
 
-  div.icon-wrapper {
-    padding: 5px 5px;
-    min-width: 30px;
-  }
-  
+  // Sizing now comes from the unified .icon-wrapper rule.
 }
 
 #left-buttons-wrapper {
@@ -5125,7 +5093,7 @@ body {
   background: black;
   padding-block: 0.5em;
   padding-right: 0.5em;
-  border-radius: 5px;
+  border-radius: var(--tight-border-radius);
   border: solid 1px var(--accent-color);
   display: flex;
   flex-direction: column;
@@ -5349,14 +5317,8 @@ body {
     bottom: 3rem;
   }
 
-  @media (min-width: 700px) {   
+  @media (min-width: 700px) {
     bottom: 6rem;
-  }
-
-  .icon-wrapper {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-    border: 2px solid var(--accent-color);
   }
 }
 
@@ -5745,8 +5707,22 @@ video, #info-video {
     }
   }
 
-  .v-slider-thumb__label::before {
-    color: var(--accent-color);
+  // Vuetify's pointer/wedge is a real child element (.v-slider-thumb__label-wedge),
+  // not a ::before pseudo-element, and it just inherits the label's background.
+  // Give it the accent-color border by stacking a smaller dark triangle over a
+  // solid accent-color one, mimicking a mitered continuation of the label's border.
+  .v-slider-thumb__label-wedge {
+    background: var(--accent-color);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      clip-path: inherit;
+      background: rgba(0, 0, 0, 0.5);
+      transform: scale(0.7);
+      transform-origin: top center;
+    }
   }
 }
 
@@ -5754,36 +5730,31 @@ video, #info-video {
   width: 100% !important;
   margin-left: 5px;
   margin-right: 0;
-  position: relative
-  
+  position: relative;
 }
 
 .v-container {
   max-width: 100%;
 }
 
-// Only ever shown while the top content box is hidden (see v-show above),
-// to reopen it.
 #closed-top-container {
     position: absolute;
     left: 0.5rem;
     z-index: 500;
     top: calc(var(--default-font-size) + 1px);
-    // Match the open-state title's size (1.3em over --default-font-size);
-    // this button sits outside #guided-content-container so it doesn't
-    // inherit that sizing on its own.
-    font-size: calc(1.3 * var(--default-font-size));
+    font-size: calc(1.2 * var(--default-font-size));
     font-weight: bold;
+
+    #show-guided-content-button {
+      width: fit-content;
+      height: fit-content;
+      padding: 6px 12px;
+      border-radius: var(--normal-border-radius);
+    }
   }
 
 #guided-content-container {
   --top-content-max-height: max(30vmin, 35vh);
-  // fit-content (rather than a fixed px floor) means the default,
-  // un-resized height always accommodates the title/instructions/buttons
-  // without needing to scroll — min-height wins over max-height when they
-  // conflict, so this only grows past --top-content-max-height for
-  // content that genuinely needs more room. Scrolling only kicks in once
-  // the user explicitly drags the container shorter than this.
   --top-content-min-height: fit-content;
   z-index: 400;
 
@@ -5817,12 +5788,6 @@ video, #info-video {
   
   line-height: var(--default-line-height);
   .thin-scrollbar();
-  // Content is now fully contained by #non-map-container's own internal
-  // scroll and #map-column's sizing, so this outer container practically
-  // never overflows — scrollbar-gutter: stable was permanently reserving
-  // space on the right for a scrollbar that's essentially never shown,
-  // which looked like doubled right-side padding. Drop the reservation
-  // here; overflow-y: auto above still lets it scroll in a pinch.
   scrollbar-gutter: auto;
 
   transition: height 0.5s ease-in-out;
@@ -5832,9 +5797,6 @@ video, #info-video {
   
   @media (max-width: 600px) {
     flex-direction: column;
-    // This gap sits directly above/below #mobile-map-height-resize-handle
-    // (the only other flex child on mobile), so it reads as dead space
-    // around the handle rather than breathing room between sections.
     gap: 0.25rem;
   }
   
@@ -5856,10 +5818,6 @@ video, #info-video {
     flex-basis: 100%;
     min-width: 0;
     @media (max-width: 600px) {
-      // Always its natural content height on mobile — never grows, never
-      // shrinks — so the title/instructions/buttons are never forced to
-      // scroll by default; #map-column (below) is the one that gives up
-      // height to make room for it.
       flex: 0 0 auto;
     }
     @media (min-width: 960px) {
@@ -5876,9 +5834,6 @@ video, #info-video {
     align-items: center;
 
     @media (max-width: 600px) {
-      // Fills whatever vertical space #non-map-container's content
-      // doesn't need, instead of being pinned to a fixed aspect ratio
-      // that could force it (and the box as a whole) taller than needed.
       flex: 1 1 auto;
       min-height: 120px;
     }
@@ -5948,12 +5903,6 @@ video, #info-video {
   #non-map-container { // Keep content away from the x to close
     height: 100%;
     @media (max-width: 600px) {
-      // On mobile, height is this element's flex *main* axis (the layout
-      // is a column). flex-basis: auto (set below) defers to the height
-      // property when present, so leaving height: 100% here made this
-      // element claim the container's entire height, leaving nothing for
-      // #map-column. Content-based height lets it size to its own
-      // natural content instead.
       height: auto;
     }
     --padding-left: 0.5rem;
@@ -5965,16 +5914,7 @@ video, #info-video {
     
     display: flex;
     flex-direction: column;
-    // Center the title/instructions/buttons group when it doesn't fill
-    // the (possibly resized-tall) container; #instructions-row still
-    // shrinks (and scrolls internally) rather than overflowing if the
-    // container is too short for everything to fit at natural size.
     justify-content: center;
-    // "safe" falls back to start-alignment once content overflows, so the
-    // top of an overflowing group stays reachable by scrolling instead of
-    // being clipped off — plain "center" leaves start-side overflow
-    // unreachable even with a scrollbar. (Ignored by browsers that don't
-    // support safe/unsafe alignment, which keep the plain "center" above.)
     justify-content: safe center;
     align-items: stretch;
     gap: 0.5em;
@@ -5986,7 +5926,6 @@ video, #info-video {
     .non-map-row {
       margin: 0;
       padding: 0;
-      // Title and button rows stay at their natural content height.
       flex: 0 0 auto;
     }
 
@@ -6010,10 +5949,6 @@ video, #info-video {
 
     #hide-guided-content-button {
       flex: 0 0 auto;
-      // The icon-button's border prop is a no-op in the installed
-      // @cosmicds/vue-toolkit version — its .icon-wrapper always renders
-      // a border — so it has to be overridden directly here to match the
-      // borderless chevron used for the controls box.
       border: none;
     }
   }
@@ -6028,9 +5963,6 @@ video, #info-video {
     
     // .v-row.non-map-row#instructions-row
   #instructions-row {
-    // Size to content (don't force-grow to fill leftover space — that's
-    // what let the whole group get vertically centered above), but still
-    // allow shrinking so it scrolls internally instead of overflowing.
     flex: 0 1 auto;
     min-height: 0;
     display: flex;
@@ -6100,6 +6032,7 @@ video, #info-video {
         padding-block: 4px;
         // be as large as you can but shrink if needed
         width: 100%;
+        height: auto;
         min-width: 0;
         flex-shrink: 1;
 
@@ -6155,10 +6088,6 @@ video, #info-video {
   width: 100%;
   min-height: 0;
   // outline: 1px solid red;
-  // (No mobile aspect-ratio here anymore — it forced a minimum height via
-  // the flex "automatic minimum size" mechanism, which is what was
-  // squeezing #non-map-container. #map-column's height on mobile is now
-  // driven purely by the flex-basis/min-height set above instead.)
 
   #map-container {
     height: 100%;
@@ -6190,27 +6119,20 @@ video, #info-video {
     }
 
     #my-location-overmap-button {
-      height: fit-content;
       position: absolute;
       z-index: 550;
       right: 1.25em;
       bottom: 1rem;
-      
     }
-    
+
     #my-location-overmap-budge-button {
-      height: fit-content;
       position: absolute;
       z-index: 550;
       right: 4.5em;
       bottom: 1rem;
-      
     }
-    
 
-    
     #eclipse-details-overmap-button {
-      height: fit-content;
       position: absolute;
       z-index: 600;
       bottom: 1rem;
@@ -6318,7 +6240,7 @@ video, #info-video {
   border: 2px solid white;
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
-  border-radius: 24px;
+  border-radius: var(--tight-border-radius);
   
   
   
@@ -6435,7 +6357,7 @@ video, #info-video {
   transform: translateX(-50%) translateY(-50%);
   height: fit-content;
   // outline: 5px solid var(--accent-color);
-  border-radius: 1em;
+  border-radius: var(--normal-border-radius);
 
   @media (max-width: 700px) {
     width: 95%;
@@ -6511,55 +6433,43 @@ video, #info-video {
   align-items: flex-end;
   gap: 5px;
   margin-left: 10px;
-  
+
   @media (orientation: landscape) {
     margin-left: 3rem;
   }
-  
+
   @media (max-width: 370px) {
     justify-content: center;
   }
 
-  .icon-wrapper {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-    border: 2px solid var(--accent-color);
+  @media (max-width: 600px) {
+    .icon-wrapper {
+      width: 30px;
+      height: 34px;
+    }
+    margin-bottom: 10px;
   }
-
 }
 
 #enclosing-playback-container.desktop-playback-control {
   --tick-font-size: 12px;
   margin-bottom: calc(2.5rem + 5px);
+  margin-left: 5px;
   padding-right: 1rem;
-  
+  max-width: 235px;
 }
 
 #enclosing-playback-container.inset.mobile-playback-control {
   padding-right: 1rem;
 }
 
-#enclosing-playback-container > #playback-play-pause-button {
-  pointer-events: auto!important;
-}
-
 #inline-speed-control {
-  display: flex; 
-  flex-grow:1; 
-  align-items: flex-end; 
-  position: relative; 
+  display: flex;
+  flex-grow:1;
+  align-items: flex-end;
+  position: relative;
   gap: 5px;
-  
-  // when the screen is small enough we want to hide the buttons in inline mode
-  @media (min-width: 369px) {
-    #enclosing-playback-container > #playback-play-pause-button {
-      display: none;
-    }
-    
-    #enclosing-playback-container > #playback-close-button {
-      display: none;
-    }
-  }
+
   // when small enough we want to cover the controls
   @media (max-width: 370px) {
     // position: absolute;
@@ -6639,8 +6549,8 @@ video, #info-video {
     pointer-events: auto;
     background: black;
     color: white;
-    border: 1px solid var(--accent-color);
-    border-radius: 5px;
+    border: 2px solid var(--accent-color);
+    border-radius: var(--tight-border-radius);
     padding: 0.5rem;
     font-size: calc(0.9 * var(--default-font-size));
     text-align: center;
@@ -6749,10 +6659,15 @@ video, #info-video {
     right: 0.5rem;
   }
   
+  // Deliberately excluded from the unified icon-button size — this one
+  // stays small.
   .icon-wrapper {
+    width: auto;
+    height: auto;
     margin: 0;
     padding: 0.15em;
     border: none;
+    border-radius: 4px;
     min-width: 0;
   }
 }
@@ -6786,13 +6701,6 @@ a {
     color: #7996DA; // lighter variant of CosmicDS logo blue
     pointer-events: auto;
   }
-
-#inline-open-icon {
-  background-color: var(--accent-color);
-  border-radius: 50%;
-  border: 1.5px solid var(--accent-color);
-}
-
 
 #mobile-zoom-control {
   position: absolute;
@@ -6837,71 +6745,14 @@ a {
 }
 
 .icon-wrapper {
-  width: fit-content;
+  box-sizing: border-box;
+  width: 35px;
+  height: 37px;
+  padding: 0;
+  border-radius: var(--normal-border-radius);
+  border: 2px solid var(--color);
 }
 
-#forward-geocoding-container {
-  position: relative;
-  width: fit-content;
-  color: var(--accent-color);
-  background-color: black;
-  border: 2px solid var(--accent-color);
-  border-radius: 20px;
-  padding: var(--fg-container-padding);
-
-  .v-text-field {
-    min-width: 150px;
-    width: min(200px, 20vw);
-  }
-  
-  .forward-geocoding-input.geocode-success label {
-    color: var(--accent-color);
-    opacity: 1;
-  }
-
-  #forward-geocoding-input-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    gap: 10px;
-    align-items: center;
-  }
-
-  #geocoding-search-icon {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-  }
-
-  #geocoding-search-icon:hover, #geocoding-close-icon:hover {
-    cursor: pointer;
-  }
-
-  // For some reason setting width: 100% makes the search results 2px too small
-  // It's probably some Vuetify styling thing
-  // Maybe there's a better workaround, but this gets the job done for now
-  #forward-geocoding-results {
-    position: absolute;
-    top: 42px;
-    left: -1px;
-    width: calc(100% + 2px);
-    background: black;
-    border: 1px solid var(--accent-color);
-    border-top: 0px;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    padding: 0px 10px;
-
-    .forward-geocoding-result {
-      border-top: 1px solid var(--accent-color);
-      font-size: 12pt;
-      pointer-events: auto;
-
-      &:hover {
-        cursor: pointer;
-      }
-    }
-  }
-}
 
 
 .rating-root {
@@ -6914,7 +6765,7 @@ a {
   // transform: translateX(-50%);
   gap: 0 !important;
   border: solid 1px #EFEFEF !important;
-  border-radius: 10px !important;
+  border-radius: var(--tight-border-radius) !important;
   background-color: #222222 !important;
   opacity: 0.95 !important;
   z-index: 20000 !important;

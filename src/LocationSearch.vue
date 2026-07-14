@@ -23,11 +23,8 @@
         @click:clear="searchResults = null"
         :error-messages="searchErrorMessage"
       ></v-text-field>
-      <font-awesome-icon
-        class="geocoding-search-icon"
-        icon="magnifying-glass"
-        :size="searchOpen ? 'xl' : buttonSize"
-        :color="!searchOpen || (searchText && searchText.length > 2) ? accentColor : 'gray'"
+      <div
+        class="icon-wrapper geocoding-search-icon"
         @click="() => {
           if (searchOpen) {
             performForwardGeocodingSearch();
@@ -35,7 +32,13 @@
             searchOpen = true;
           }
         }"
-      ></font-awesome-icon>
+      >
+        <font-awesome-icon
+          icon="magnifying-glass"
+          :size="searchOpen ? 'xl' : buttonSize"
+          :color="!searchOpen || (searchText && searchText.length > 2) ? accentColor : 'gray'"
+        ></font-awesome-icon>
+      </div>
       
       <slot name="append-icon" class="geocode-icon"></slot>
       
@@ -169,7 +172,12 @@ export default defineComponent({
         '--accent-color': this.accentColor,
         '--bg-color': 'black',
         '--fg-container-padding': this.searchOpen ? (this.small ? '0px 5px 0px 0px' : '5px 10px 12px 10px') : '0px',
-        '--border-radius': this.searchOpen ? '7px' : '20px',
+        // --tight-border-radius/--normal-border-radius come from the app
+        // itself (set on <v-app>, which is an ancestor of every
+        // location-search instance) — CSS custom properties inherit
+        // through the DOM regardless of component boundaries, so they're
+        // already available here with no extra wiring needed.
+        '--border-radius': this.searchOpen ? 'var(--tight-border-radius, 5px)' : 'var(--normal-border-radius, 10px)',
       };
     },
   },
@@ -241,9 +249,9 @@ export default defineComponent({
 
 // https://vue-loader.vuejs.org/guide/scoped-css.html#deep-selectors
 .forward-geocoding-container {
-  --border-radius: 20px;
   position: relative;
   width: fit-content;
+  height: fit;
   color: var(--accent-color);
   background-color: var(--bg-color);
   border: 2px solid var(--accent-color);
@@ -278,8 +286,9 @@ export default defineComponent({
   }
   
   .geocoding-search-icon {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
+    --color: var(--accent-color);
+    background: none;
+    border: none;
   }
 
   .geocoding-search-icon:hover, #geocoding-close-icon:hover {
@@ -297,8 +306,11 @@ export default defineComponent({
     background: var(--bg-color);
     border: 2px solid var(--accent-color);
     border-top: 0px;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
+    // Results only ever show while searchOpen (the container itself is
+    // using --tight-border-radius then), so match that instead of a
+    // separately hardcoded value.
+    border-bottom-left-radius: var(--tight-border-radius, 5px);
+    border-bottom-right-radius: var(--tight-border-radius, 5px);
     padding: 0px 10px;
     
     &.results-small {
