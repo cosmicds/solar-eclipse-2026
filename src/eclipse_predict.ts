@@ -161,7 +161,10 @@ let eclipseform = {
   loc_name: "San Diego",
 } as EclipseForm;
 
-
+// default in code is -0.00524 or -0.3 Degrees. 
+const SUN_REFRACTION_CORRECTION = 0; // radians 
+// if these were 0, sunrise/sunset would be the moment the sun's center cross altitude = 0
+// so setting this to -0.5 * Math.PI / 180.0 would make sunrise/sunset the moment the top of the sun crosses altitude = 0
 
 
 //
@@ -447,7 +450,7 @@ function observational(circumstances: any[]) {
     circumstances[5] * coslat - circumstances[18] * sinlat * circumstances[6]
   );
   // Calculate visibility
-  if (circumstances[32] > -0.00524) {
+  if (circumstances[32] > SUN_REFRACTION_CORRECTION) {
     circumstances[40] = 0;
   } else {
     circumstances[40] = 1;
@@ -496,7 +499,7 @@ function getsunriset(elements: any, circumstances: number[], riset: number) {
     iter++;
     if (iter == 4) return;
     h0 = Math.acos(
-      (Math.sin(-0.00524) - Math.sin(obsvconst[0]) * circumstances[5]) /
+      (Math.sin(SUN_REFRACTION_CORRECTION) - Math.sin(obsvconst[0]) * circumstances[5]) /
         Math.cos(obsvconst[0]) /
         circumstances[6]
     );
@@ -868,7 +871,7 @@ function getalt(circumstances: any[]): [number, SunBSR]{
   // if (circumstances[40] == 3) {
   //   return [0,'s'];
   // }
-  if (circumstances[32] < 0.0 && circumstances[32] >= -0.00524) {
+  if (circumstances[32] < 0.0 && circumstances[32] >= SUN_REFRACTION_CORRECTION) {
     // Crude correction for refraction (and for consistency's sake)
     t = 0.0;
   } else {
