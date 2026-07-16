@@ -178,6 +178,14 @@ export default defineComponent({
         // through the DOM regardless of component boundaries, so they're
         // already available here with no extra wiring needed.
         '--border-radius': this.searchOpen ? 'var(--tight-border-radius, 5px)' : 'var(--normal-border-radius, 10px)',
+        // When open, the container's own border wraps the whole input row.
+        // When closed, it collapses to hug just the icon — if it kept its
+        // own border on top of the icon's, the closed button would be 4px
+        // bigger in each dimension than every other icon-wrapper button.
+        // So the border moves onto the icon itself instead while closed.
+        '--container-border': this.searchOpen ? '2px solid var(--accent-color)' : 'none',
+        '--search-icon-border': this.searchOpen ? 'none' : '2px solid var(--accent-color)',
+        '--search-icon-background': this.searchOpen ? 'none' : 'black',
       };
     },
   },
@@ -254,7 +262,7 @@ export default defineComponent({
   height: fit;
   color: var(--accent-color);
   background-color: var(--bg-color);
-  border: 2px solid var(--accent-color);
+  border: var(--container-border);
   border-radius: var(--border-radius);
   padding: var(--fg-container-padding);
 
@@ -265,8 +273,13 @@ export default defineComponent({
   
   .forward-geocoding-input > .v-input__control > .v-field {
     border-radius: var(--border-radius);
+    // The solo variant's default elevation shadow extends a few pixels
+    // past the field's own box. The container has no top/bottom padding
+    // around it, so that shadow bled over the container's own border,
+    // making it look discontinuous.
+    box-shadow: none;
   }
-  
+
   .forward-geocoding-input.geocode-success label {
     color: var(--accent-color);
     opacity: 1;
@@ -287,8 +300,8 @@ export default defineComponent({
   
   .geocoding-search-icon {
     --color: var(--accent-color);
-    background: none;
-    border: none;
+    background: var(--search-icon-background);
+    border: var(--search-icon-border);
   }
 
   .geocoding-search-icon:hover, #geocoding-close-icon:hover {
