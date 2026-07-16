@@ -348,7 +348,7 @@
           @keyup.enter="showInfoSheet = false"
           tabindex="0"
         >
-          <font-awesome-icon icon="square-xmark" size="xl" :color="accentColor"></font-awesome-icon>
+          <font-awesome-icon icon="xmark" size="xl" :color="accentColor"></font-awesome-icon>
         </div>
         <v-window v-model="infoTab" id="tab-items" class="no-bottom-border-radius">
           <v-window-item>
@@ -810,11 +810,23 @@
         <div
           id="controls"
           class="control-icon-wrapper"
+          :class="{ 'controls-panel-open': showControls }"
         >
           <div id="controls-top-row">
+            <font-awesome-icon
+              v-if="showControls"
+              class="controls-chevron"
+              icon="chevron-up"
+              size="lg"
+              :color="accentColor"
+              @click="showControls = false"
+              @keyup.enter="showControls = false"
+              tabindex="0"
+            />
             <icon-button
+              v-else
               v-model="showControls"
-              :fa-icon="showControls ? 'chevron-up' : 'sliders'"
+              fa-icon="sliders"
               fa-size="lg"
               :color="accentColor"
               :focus-color="accentColor"
@@ -979,14 +991,14 @@
       >
       <div id="instruction-overlay">
         <div id="overlay-close">
-          <v-icon
+          <font-awesome-icon
             class="overlay-close-icon"
-            icon="mdi-close-box"
-            color="gray"
+            icon="xmark"
+            :color="accentColor"
             @click="inIntro = !inIntro"
             @keyup.enter="inIntro = !inIntro"
             tabindex="0"
-          ></v-icon>
+          ></font-awesome-icon>
         </div>
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
@@ -1033,13 +1045,13 @@
             <font-awesome-icon
               size="xl"
               class="ma-1"
-              color="#b3d5e6"
-              icon='square-xmark'
+              :color="accentColor"
+              icon='xmark'
               @click="inIntro = !inIntro"
               @keyup.enter="inIntro = !inIntro"
               tabindex="0"
               tooltip-location="start"
-            /> 
+            />
           </div>
           </template>
           <v-window-item :value="1">
@@ -1209,7 +1221,7 @@
               @keyup.enter="showEclipsePredictionSheet = false"
               tabindex="0"
             >
-              <font-awesome-icon icon="square-xmark" size="xl"></font-awesome-icon>
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor"></font-awesome-icon>
             </div>
             <eclipse-timer show-timer :prediction="eclipsePrediction" :timezone="selectedTimezone" :color="accentColor" :location="selectedLocationText"/>
           </v-card-text>
@@ -4884,14 +4896,23 @@ body {
 }
 
 #controls {
-  background: black;
-  padding-block: 0.5em;
-  padding-right: 0.5em;
-  border-radius: var(--tight-border-radius);
-  border: solid 1px var(--accent-color);
+  // Closed, this is just the sliders icon-button -- its own icon-wrapper
+  // box is the only visible box. Open, this becomes a real panel holding
+  // the checkboxes, so it gets its own background/border/padding, and the
+  // close chevron is drawn bare (no separate icon-wrapper box) since the
+  // panel border already wraps it.
   display: flex;
   flex-direction: column;
   pointer-events: auto;
+
+  &.controls-panel-open {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    padding-block: 0.5em;
+    padding-right: 0.5em;
+    border-radius: var(--tight-border-radius);
+    border: solid 1px var(--accent-color);
+  }
 
   .v-label {
     color: var(--accent-color);
@@ -4940,7 +4961,6 @@ body {
     }
   }
   #controls-top-row {
-    padding-left: 0.5em;
     display: flex;
     width: 100%;
     flex-direction: row;
@@ -4949,6 +4969,14 @@ body {
     @media (max-width: 599px) {
       justify-content: flex-start;
     }
+  }
+
+  &.controls-panel-open #controls-top-row {
+    padding-left: 0.5em;
+  }
+
+  .controls-chevron {
+    cursor: pointer;
   }
 }
 
@@ -5121,7 +5149,14 @@ body {
   left: 50%;
   transform: translateX(-50%);
   font-size: calc(2.5*var(--default-font-size));
-  color: #888888;
+}
+
+// Vuetify assigns each opened overlay an incrementing z-index, so whichever
+// of the Information dialog / speed control popup was opened more recently
+// would otherwise win. Pin the Information dialog above regardless of
+// open order.
+#text-bottom-sheet {
+  z-index: 9999 !important;
 }
 
 .bottom-sheet {
@@ -6225,7 +6260,8 @@ body {
   // unbolded details underneath.
   #location-status-box {
     pointer-events: auto;
-    background: black;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
     color: white;
     border: 2px solid var(--accent-color);
     border-radius: var(--tight-border-radius);
@@ -6369,6 +6405,8 @@ a {
   padding: 0;
   border-radius: var(--normal-border-radius);
   border: 2px solid var(--color);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
 }
 
 
