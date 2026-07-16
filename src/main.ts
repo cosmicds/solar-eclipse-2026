@@ -74,6 +74,7 @@ import {
   faHouse,
   faAnglesUp,
   faAnglesDown,
+  faSliders,
 
 } from "@fortawesome/free-solid-svg-icons";
 
@@ -112,6 +113,7 @@ library.add(faLocationCrosshairs);
 library.add(faHouse);
 library.add(faAnglesUp);
 library.add(faAnglesDown);
+library.add(faSliders);
 
 
 /** v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */

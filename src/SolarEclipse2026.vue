@@ -828,14 +828,14 @@
           class="control-icon-wrapper"
         >
           <div id="controls-top-row">
-            <font-awesome-icon
-              size="lg"
+            <icon-button
+              v-model="showControls"
+              :fa-icon="showControls ? 'chevron-up' : 'sliders'"
+              fa-size="lg"
               :color="accentColor"
-              :icon="showControls ? `chevron-down` : `gear`"
-              @click="showControls = !showControls"
-              @keyup.enter="showControls = !showControls"
-              tabindex="0"
-            />
+              :focus-color="accentColor"
+              :box-shadow="false"
+            ></icon-button>
           </div>
 
           <div v-if="showControls" id="control-checkboxes">
@@ -1430,19 +1430,7 @@
                 </div>
             </div>
             <div id="speed-text">
-              Time rate: 
-              <span v-if="playbackRate===1 && playing">
-                Real time
-              </span>
-              <span v-if="playbackRate!=1 && playing">
-                {{ niceRound(playbackRate) }}&times;
-              </span>
-              <span v-if="!playing">
-                ({{ niceRound(playbackRate) }}&times;) Paused
-              </span>
-              <span v-if="playing && forceRate">
-                (Slowed for totality)
-              </span>
+              Speed: {{ niceRound(playbackRate) }}x real time<span v-if="!playing"> (paused)</span>
             </div>
           </div>
           <div id="slider">
@@ -2100,7 +2088,7 @@ export default defineComponent({
       playbackVisible: false,
       maxPlaybackRate: MAX_PLAYBACK_RATE,
       
-      horizonRate: 625, 
+      horizonRate: 500,
       scopeRate: 100, 
 
       startPaused: false,
@@ -4070,7 +4058,7 @@ export default defineComponent({
         const ew = this.locationDeg.longitudeDeg >= 0 ? 'E' : 'W';
         const lat = Math.abs(this.locationDeg.latitudeDeg).toFixed(3);
         const lon = Math.abs(this.locationDeg.longitudeDeg).toFixed(3);
-        return `${lat}° ${ns}, ${lon}° ${ew}`;
+        return `${lat}° ${ns}\n${lon}° ${ew}`;
       }
     },
 
@@ -6156,6 +6144,15 @@ body {
   margin-left: 5px;
   padding-right: 1rem;
   max-width: 235px;
+
+  // The popup is positioned via Vuetify's "connected" location strategy,
+  // which doesn't reactively re-track the activator button's position
+  // after a CSS media query (not a prop/data change) shifts it. #speed-control
+  // gets a 3rem left margin in landscape orientation, so mirror it here to
+  // keep the popup aligned above the button row instead of stuck 38px left.
+  @media (orientation: landscape) {
+    margin-left: 3rem;
+  }
 }
 
 #enclosing-playback-container.inset.mobile-playback-control {
@@ -6169,16 +6166,21 @@ body {
   position: relative;
   gap: 5px;
 
-  // when small enough we want to cover the controls
+  // Below this width there isn't room for the popup to sit to the right of
+  // the toggle button without overlapping the play/pause row (and blocking
+  // it). Instead, stack the popup above the whole row with a 5px gap.
+  // position:static here (overriding the relative above) lets the popup's
+  // absolute positioning resolve against the play/pause row's own wrapper,
+  // not just this toggle button, so it centers over the full row.
   @media (max-width: 370px) {
-    // position: absolute;
     flex-grow: 0;
+    position: static;
     #enclosing-playback-container.mobile-playback-control {
-      position: fixed;
+      position: absolute;
       width: calc(90% - 1rem);
       left: 50%;
-      --off: calc(50% - 5px);
-      transform: translateX(-50%) translateY(var(--off)) !important;
+      bottom: calc(100% + 5px);
+      transform: translateX(-50%);
     }
   }
 }
@@ -6245,7 +6247,6 @@ body {
   // dark background, accent-colored border, bold location name with
   // unbolded details underneath.
   #location-status-box {
-    cursor: pointer;
     pointer-events: auto;
     background: black;
     color: white;
@@ -6273,6 +6274,10 @@ body {
     .location-status-name {
       font-size: calc(0.95 * var(--default-font-size));
       margin-bottom: 0.25rem;
+      // Lets the "\n" in the plain lat/long fallback (no place name found)
+      // render as an actual line break: latitude on one line, longitude
+      // on the next, instead of one long wrapped/truncated line.
+      white-space: pre-line;
     }
 
     .eclipse-status-line {
