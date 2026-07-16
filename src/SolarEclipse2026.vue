@@ -196,22 +196,11 @@
               
               <icon-button
                 v-model="showInfoSheet"
-                fa-icon="book-open"
-                fa-size="xl"
-                :color="accentColor"
-                :focus-color="accentColor"
-                :tooltip-text="showInfoSheet ? null : 'More on Eclipses'"
-                :tooltip-location="'bottom'"
-                :show-tooltip="!mobile"
-                :box-shadow="false"
-              ></icon-button>
-              <icon-button
-                v-model="showWWTGuideSheet"
                 fa-icon="circle-info"
                 fa-size="xl"
                 :color="accentColor"
                 :focus-color="accentColor"
-                :tooltip-text="showWWTGuideSheet ? null : 'User Guide'"
+                :tooltip-text="showInfoSheet ? null : 'Information & User Guide'"
                 :tooltip-location="'bottom'"
                 :show-tooltip="!mobile"
                 :box-shadow="false"
@@ -342,7 +331,17 @@
     >
       <v-card
         class="bottom-sheet-card">
-        <v-card-title tabindex="0"><h3 class="v-btn tab-title">Information</h3></v-card-title>
+        <v-tabs
+          v-model="infoTab"
+          height="32px"
+          :color="accentColor"
+          :slider-color="accentColor"
+          id="tabs"
+          dense
+        >
+          <v-tab class="info-tabs" tabindex="0"><h3>Information</h3></v-tab>
+          <v-tab class="info-tabs" tabindex="0"><h3>User Guide</h3></v-tab>
+        </v-tabs>
         <div
           class="dialog-close-button"
           @click="showInfoSheet = false"
@@ -351,6 +350,8 @@
         >
           <font-awesome-icon icon="square-xmark" size="xl" :color="accentColor"></font-awesome-icon>
         </div>
+        <v-window v-model="infoTab" id="tab-items" class="no-bottom-border-radius">
+          <v-window-item>
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container id="learn-more-content">
@@ -433,27 +434,8 @@
             </v-container>
           </v-card-text>
         </v-card>
-      </v-card>
-    </v-dialog>
-    
-    <v-dialog
-      scrim="false"
-      transition="slide-y-transition"
-      v-model="showWWTGuideSheet" 
-      class="bottom-sheet"
-      id="wwt-guide-sheet"
-      :style="cssVars"
-    >
-      <v-card class="bottom-sheet-card">
-        <v-card-title tabindex="0"><h3 class="v-btn tab-title">User Guide</h3></v-card-title>
-        <div
-          class="dialog-close-button"
-          @click="showWWTGuideSheet = false"
-          @keyup.enter="showWWTGuideSheet = false"
-          tabindex="0"
-        >
-          <font-awesome-icon icon="square-xmark" size="xl" :color="accentColor"></font-awesome-icon>
-        </div>
+          </v-window-item>
+          <v-window-item>
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container  id="user-guide">
@@ -596,9 +578,9 @@
                         {{ touchscreen ? "Tap" : "Click" }}
                         <font-awesome-icon
                           class="bullet-icon"
-                          icon="book-open"
-                          size="lg" 
-                        ></font-awesome-icon> to open <span class="user-guide-emphasis-white">Information Guide</span> on why eclipses happen and more.
+                          icon="circle-info"
+                          size="lg"
+                        ></font-awesome-icon> to open <span class="user-guide-emphasis-white">Information &amp; User Guide</span> on why eclipses happen and more.
                       </li>
                       <li class="mb-2">
                         {{ touchscreen ? "Tap" : "Click" }}
@@ -707,9 +689,11 @@
               
               <funding-acknowledgment/>
 
-            </v-container>              
+            </v-container>
           </v-card-text>
         </v-card>
+          </v-window-item>
+        </v-window>
       </v-card>
     </v-dialog>
 
@@ -1099,15 +1083,9 @@
                 </v-list-item>
                 <v-list-item density="compact">
                   <template v-slot:prepend>
-                    <font-awesome-icon icon="book-open" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>Learn more</strong> about solar eclipses. 
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
                     <font-awesome-icon icon="circle-info" size="xl" class="bullet-icon"></font-awesome-icon>
                   </template>
-                    Access <strong>User Guide</strong> on how to navigate this app. 
+                    <strong>Learn more</strong> about solar eclipses, and access the <strong>User Guide</strong> on how to navigate this app.
                 </v-list-item>
               </ul>
             </div>
@@ -1178,11 +1156,11 @@
         <icon-button
           v-if="showNewMobileUI"
           v-model="showInfoSheet"
-          fa-icon="book-open"
+          fa-icon="circle-info"
           fa-size="lg"
           :color="accentColor"
           :focus-color="accentColor"
-          :tooltip-text="showInfoSheet ? null : 'More on Eclipses'"
+          :tooltip-text="showInfoSheet ? null : 'Information & User Guide'"
           :tooltip-location="'left'"
           :show-tooltip="!mobile"
           :box-shadow="false"
@@ -1957,7 +1935,9 @@ export default defineComponent({
       myLocation: null as LocationDeg | null,
       geolocationPermission: '' as 'granted' | 'denied' | 'prompt',
       
-      showWWTGuideSheet: false,
+      // Information and User Guide are now tabs (0/1) within one dialog
+      // (showInfoSheet), rather than two separately-toggled sheets.
+      infoTab: 0,
       showAdvancedWeather: queryData.awv ?? false,
       showAWVMapByDefault: queryData.awv ?? false,
       showAWVChartsByDefault: queryData.awv ?? false,
@@ -3303,8 +3283,8 @@ export default defineComponent({
       this.cloudCoverSelectedCount = 0;
       const now = Date.now();
       this.appStartTimestamp = now;
-      this.infoStartTimestamp = this.showInfoSheet ? now : null;
-      this.userGuideStartTimestamp = this.showWWTGuideSheet ? now : null;
+      this.infoStartTimestamp = (this.showInfoSheet && this.infoTab === 0) ? now : null;
+      this.userGuideStartTimestamp = (this.showInfoSheet && this.infoTab === 1) ? now : null;
       this.weatherStartTimestamp = this.showAdvancedWeather ? now : null;
       this.weatherInfoStartTimestamp = this.weatherInfoOpen ? now : null;
       this.eclipseTimerStartTimestamp = this.showEclipsePredictionSheet ? now : null;
@@ -3319,8 +3299,8 @@ export default defineComponent({
         return;
       }
       const now = Date.now();
-      const infoTime = (this.showInfoSheet && this.infoStartTimestamp !== null) ? now - this.infoStartTimestamp : this.infoTimeMs;
-      const userGuideTime = (this.showWWTGuideSheet && this.userGuideStartTimestamp !== null) ? now - this.userGuideStartTimestamp : this.userGuideTimeMs;
+      const infoTime = (this.showInfoSheet && this.infoTab === 0 && this.infoStartTimestamp !== null) ? now - this.infoStartTimestamp : this.infoTimeMs;
+      const userGuideTime = (this.showInfoSheet && this.infoTab === 1 && this.userGuideStartTimestamp !== null) ? now - this.userGuideStartTimestamp : this.userGuideTimeMs;
       const weatherTime = (this.showAdvancedWeather && this.weatherStartTimestamp !== null) ? now - this.weatherStartTimestamp : this.weatherTimeMs;
       const weatherInfoTime = (this.weatherInfoOpen && this.weatherInfoStartTimestamp !== null) ? now - this.weatherInfoStartTimestamp : this.weatherInfoTimeMs;
       const eclipseTimerTime = (this.showEclipsePredictionSheet && this.eclipseTimerStartTimestamp !== null) ? now - this.eclipseTimerStartTimestamp : this.eclipseTimerTimeMs;
@@ -4321,19 +4301,44 @@ export default defineComponent({
     },
 
     showInfoSheet(show: boolean) {
-      // Keep track of how long the user has the book open/closed
+      // Keep track of how long the user has the Information/User Guide
+      // dialog open, split between whichever tab is active.
       if (show) {
+        this.infoTab = 0;
         this.infoStartTimestamp = Date.now();
         this.pauseForOverlay();
-      } else if (this.infoStartTimestamp !== null) {
-        this.infoTimeMs += (Date.now() - this.infoStartTimestamp);
-        this.infoStartTimestamp = null;
-      }
-      
-      if (!show) {
+      } else {
+        const now = Date.now();
+        if (this.infoStartTimestamp !== null) {
+          this.infoTimeMs += (now - this.infoStartTimestamp);
+          this.infoStartTimestamp = null;
+        }
+        if (this.userGuideStartTimestamp !== null) {
+          this.userGuideTimeMs += (now - this.userGuideStartTimestamp);
+          this.userGuideStartTimestamp = null;
+        }
         this.playForOverlay();
       }
-      
+    },
+
+    infoTab(tab: number) {
+      if (!this.showInfoSheet) {
+        return;
+      }
+      const now = Date.now();
+      if (this.infoStartTimestamp !== null) {
+        this.infoTimeMs += (now - this.infoStartTimestamp);
+        this.infoStartTimestamp = null;
+      }
+      if (this.userGuideStartTimestamp !== null) {
+        this.userGuideTimeMs += (now - this.userGuideStartTimestamp);
+        this.userGuideStartTimestamp = null;
+      }
+      if (tab === 0) {
+        this.infoStartTimestamp = now;
+      } else {
+        this.userGuideStartTimestamp = now;
+      }
     },
 
     showAdvancedWeather(show: boolean) {
@@ -4343,20 +4348,6 @@ export default defineComponent({
       } else if (this.weatherStartTimestamp !== null) {
         this.weatherTimeMs += (Date.now() - this.weatherStartTimestamp);
         this.weatherStartTimestamp = null;
-      }
-      
-      if (!show) {
-        this.playForOverlay();
-      }
-    },
-
-    showWWTGuideSheet(show: boolean) {
-      if (show) {
-        this.userGuideStartTimestamp = Date.now();
-        this.pauseForOverlay();
-      } else if (this.userGuideStartTimestamp !== null) {
-        this.userGuideTimeMs += (Date.now() - this.userGuideStartTimestamp);
-        this.userGuideStartTimestamp = null;
       }
       
       if (!show) {
@@ -5135,10 +5126,6 @@ body {
 
 .bottom-sheet {
 
-  .tab-title {
-    font-size: calc(1.2 * var(--default-font-size));
-  }
-
   #learn-more-content{
     display: flex;
 
@@ -5252,20 +5239,6 @@ body {
     align-self: left;
   }
   
-  .v-card-title {
-    display: flex;
-    justify-content: center;
-    align-self: stretch;
-    border-bottom: 2px solid var(--accent-color);
-    
-    h3 {
-      color: var(--accent-color);
-      align-self: center;
-      text-transform: uppercase;
-      font-weight: bold;
-    }
-  }
-
   .v-card-text {
     height: 40vh;
   }
