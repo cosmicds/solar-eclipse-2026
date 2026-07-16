@@ -160,6 +160,16 @@ export default defineComponent({
     }
     this.setup(true);
 
+    // Leaflet caches the container's pixel size at creation time in
+    // setup() above, but #guided-content-container's fit-content height
+    // (driven by sibling content still laying out) can still be settling
+    // at that exact instant -- the map then renders blank until
+    // something changes the container's size *again* later (dragging
+    // the resize handle, a window resize) for the ResizeObserver below
+    // to catch. Force one more measurement after layout has truly
+    // settled, independent of whether the size actually changed.
+    requestAnimationFrame(() => requestAnimationFrame(() => this.map?.invalidateSize()));
+
     // We shouldn't need to ever reset this,
     // unlike the regular setup which can get called again
     this.setupResizeObserver();
@@ -186,11 +196,15 @@ export default defineComponent({
   methods: {
 
     setupResizeObserver() {
-      const container = document.querySelector("#map-container") as HTMLDivElement;
+      // Observe this component's own root -- the exact node passed to
+      // L.map() in setup() -- rather than the app-owned #map-container
+      // wrapper it happens to sit inside. Watching the node Leaflet
+      // actually measures is correct regardless of how the two are
+      // related by CSS.
       this.resizeObserver = new ResizeObserver(() => {
         this.map?.invalidateSize();
       });
-      this.resizeObserver.observe(container);
+      this.resizeObserver.observe(this.$el as HTMLDivElement);
     },
     
     // eslint-disable-next-line @typescript-eslint/naming-convention
