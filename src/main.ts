@@ -39,8 +39,8 @@ import { WWTComponent, wwtPinia } from "@wwtelescope/engine-pinia";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
-  faBookOpen,
   faTimes,
+  faXmark,
   faGear,
   faChevronDown,
   faClock,
@@ -68,7 +68,6 @@ import {
   faAnglesLeft,
   faAnglesRight,
   faMagnifyingGlass,
-  faCircleXmark,
   faChartColumn,
   faLocationCrosshairs,
   faHouse,
@@ -78,8 +77,8 @@ import {
 
 } from "@fortawesome/free-solid-svg-icons";
 
-library.add(faBookOpen);
 library.add(faTimes);
+library.add(faXmark);
 library.add(faGear);
 library.add(faChevronDown);
 library.add(faClock);
@@ -107,7 +106,6 @@ library.add(faGaugeHigh);
 library.add(faAnglesLeft);
 library.add(faAnglesRight);
 library.add(faMagnifyingGlass);
-library.add(faCircleXmark);
 library.add(faChartColumn);
 library.add(faLocationCrosshairs);
 library.add(faHouse);
