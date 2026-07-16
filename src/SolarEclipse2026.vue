@@ -1431,7 +1431,7 @@
                 </div>
             </div>
             <div id="speed-text">
-              Speed: {{ niceRound(playbackRate) }}x real time<span v-if="!playing"> (paused)</span>
+              Speed: {{ niceRound(playbackRate) }}x real time<span v-if="!playing"> (paused)</span><span v-else-if="forceRate"> (slowed for totality)</span>
             </div>
           </div>
           <div id="slider">
