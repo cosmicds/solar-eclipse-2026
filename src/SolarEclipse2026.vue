@@ -1338,7 +1338,7 @@
                 :fa-icon="'house'"
                 @activate="() => {
 
-                  selectedTime = (totalEclipseTimeUTC.getTime() - 60*60*1000*1.5);
+                  selectedTime = initialSelectedTime;
                   playbackRate = 500;
                   playing = false;
                   toggleTrackSun = true;
@@ -1973,6 +1973,10 @@ export default defineComponent({
 
       // "Greatest Eclipse"
       totalEclipseTimeUTC,
+      // Captured once here so the reset button can return to this exact
+      // value later, rather than independently recomputing the same
+      // formula (and risking the two silently drifting apart).
+      initialSelectedTime: totalEclipseTimeUTC.getTime() - 60*60*1000*1.5,
       selectedTime:  totalEclipseTimeUTC.getTime() - 60*60*1000*1.5,
       selectedTimezone: "Europe/Madrid",
       location,
