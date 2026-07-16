@@ -6025,7 +6025,18 @@ body {
   position: relative;
   --map-max-height: calc(var(--top-content-max-height) - 2*var(--margin) - 2*var(--container-padding));
   --map-edge-gap: 4px;
-  height: 100%;
+  // #guided-content-container has no explicit `height` (only min/max, to
+  // stay fit-content-sized) and uses align-items: center rather than
+  // stretch, so this column's own `height: 100%` had no definite parent
+  // height to resolve against -- it (and, cascading down, the Leaflet map
+  // inside it) collapsed to 0 until something else (dragging the resize
+  // handle) happened to hand the row an explicit height. align-self:
+  // stretch sizes this one item to the row's actual (content-determined)
+  // cross size directly, independent of that -- but only takes effect
+  // if this item's own cross-size property is auto, not an (even if
+  // unresolvable) explicit value, hence dropping `height: 100%` entirely
+  // rather than just adding align-self alongside it.
+  align-self: stretch;
   width: 100%;
   min-height: 0;
   // outline: 1px solid red;
