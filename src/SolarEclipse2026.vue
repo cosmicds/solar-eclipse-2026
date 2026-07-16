@@ -768,7 +768,8 @@
   
   <div
     id="main-content"
-  > 
+  >
+    <debug-eclipse-timer :prediction="eclipsePrediction" :timezone="selectedTimezone"/>
     <div id="center-page-banner" v-if="(sunPosition.altRad < -.25 * Math.PI/180)">
       <p>
         The Sun has {{ sunPosition.azRad < Math.PI ? 'not risen yet' : 'set' }}
