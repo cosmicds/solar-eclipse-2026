@@ -1145,6 +1145,9 @@
         <div
           id="location-status-box"
           @click="() => {
+            if (narrow) {
+              return;
+            }
             searchOpen = true;
             learnerPath = 'Location'
             }"
