@@ -1331,8 +1331,17 @@
                   selectedTime = initialSelectedTime;
                   playbackRate = 500;
                   playing = false;
-                  toggleTrackSun = true;
                   forceRate = false;
+                  location = defaultLocation;
+                  selectedLocationText = defaultLocationText;
+                  toggleTrackSun = true;
+                  sunPlace.set_zoomLevel(20);
+                  gotoTarget({
+                    place: sunPlace,
+                    instant: true,
+                    noZoom: false,
+                    trackObject: true
+                  });
                 }"
                 :color="accentColor"
                 :focus-color="accentColor"
@@ -1884,9 +1893,15 @@ export default defineComponent({
     const storedRatingOptOut = window.localStorage.getItem(RATING_OPT_OUT_KEY);
     const ratingOptOut = typeof storedRatingOptOut === "string" ? storedRatingOptOut === "true" : null;
     
+    // Captured once here so the reset button can return to this exact
+    // location later, rather than independently recomputing the same
+    // literal (and risking the two silently drifting apart).
+    const defaultLocation: LocationRad = { latitudeRad: D2R * 41.05651083190793, longitudeRad: D2R * -2.3823344069458017 };
+    const defaultLocationText = "Antiguita, Spain";
+
     const location: LocationRad = (latitudeDeg !== undefined && longitudeDeg !== undefined) ?
       { latitudeRad: D2R * latitudeDeg, longitudeRad: D2R * longitudeDeg } :
-      { latitudeRad: D2R * 41.05651083190793, longitudeRad: D2R * -2.3823344069458017 };
+      defaultLocation;
     return {
 
       showForecastSheet: false,
@@ -1972,7 +1987,9 @@ export default defineComponent({
       selectedTime:  totalEclipseTimeUTC.getTime() - 60*60*1000*1.5,
       selectedTimezone: "Europe/Madrid",
       location,
-      selectedLocationText: "Antiguita, Spain",
+      defaultLocation,
+      selectedLocationText: defaultLocationText,
+      defaultLocationText,
       locationErrorMessage: "",
             
       syncDateTimeWithWWTCurrentTime: true,
