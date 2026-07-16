@@ -2322,6 +2322,10 @@ export default defineComponent({
           }
           return "Total Eclipse";
         }
+        const maxCoverage = this.eclipsePrediction.coverage[0];
+        if (maxCoverage) {
+          return `Partial Eclipse\n(Max amount eclipsed: ${Math.round(maxCoverage * 100)}%)`;
+        }
         return "Partial Eclipse";
       }
 
