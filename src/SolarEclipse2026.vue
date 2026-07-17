@@ -2,6 +2,7 @@
 <v-app
   id="app"
   :style="cssVars"
+  :inert="showSplashScreen"
 >
 
   <!-- Floating button to reopen the top content box once it's hidden.
@@ -27,6 +28,7 @@
     </template>
   </icon-button>
   </div>
+  <div id="guided-content-wrapper">
   <v-container
     id="guided-content-container"
     v-show="showGuidedContent"
@@ -125,7 +127,6 @@
                 hide-details
                 :color="accentColor"
                 @click="infoPage++"
-                @keyup.enter="infoPage++"
                 elevation="0"
                 >
                 More
@@ -136,7 +137,6 @@
                 density="compact"
                 :color="accentColor"
                 @click="infoPage--"
-                @keyup.enter="infoPage--"
                 elevation="0"
                 >
                 Back
@@ -218,6 +218,7 @@
         tabindex="0"
         @mousedown="startMapWidthResize"
         @touchstart="startMapWidthResize"
+        @keydown="onMapWidthResizeKeydown"
       ></div>
       <div
         v-if="!smAndUp"
@@ -228,6 +229,7 @@
         tabindex="0"
         @mousedown="startMobileNonMapHeightResize"
         @touchstart="startMobileNonMapHeightResize"
+        @keydown="onMobileNonMapHeightResizeKeydown"
       ></div>
       <div id="map-column">
       <v-hover v-slot="{isHovering, props}">
@@ -309,7 +311,9 @@
         </v-slide-y-transition>
       </v-hover>
     </div>
+  </v-container>
     <div
+      v-show="showGuidedContent"
       id="top-container-resize-handle"
       role="separator"
       aria-orientation="horizontal"
@@ -317,9 +321,10 @@
       tabindex="0"
       @mousedown="startTopContainerResize"
       @touchstart="startTopContainerResize"
+      @keydown="onTopContainerResizeKeydown"
     ></div>
-  </v-container>
-  
+  </div>
+
 
     <v-dialog
       scrim="false"
@@ -922,7 +927,9 @@
         >
           <div
             id="close-splash-button"
+            tabindex="0"
             @click="closeSplashScreen"
+            @keyup.enter="closeSplashScreen"
             >&times;</div>
           <div id="splash-screen-text">
             <p>See how the </p>
@@ -984,6 +991,7 @@
     <v-overlay
       v-if="showNewMobileUI"
       v-model="inIntro"
+      id="intro-overlay-mobile"
       opacity="1"
       :scrim="false"
       :close-on-content-click="true"
@@ -1034,6 +1042,7 @@
     <v-dialog
       v-if="!showNewMobileUI"
       v-model="inIntro"
+      id="intro-dialog"
       :style="cssVars"
       :scrim="false"
       :persistent="false"
@@ -1108,21 +1117,19 @@
           <div>
             <v-btn
               v-if="(introSlide > 1) && (!showNewMobileUI)"
-              id="intro-next-button"
+              id="intro-back-button"
               :color="accentColor"
               @click="introSlide--"
-              @keyup.enter="introSlide--"
               elevation="0"
               >
               Back
             </v-btn>
           </div>
-          
+
           <v-btn
             id="intro-next-button"
             :color="accentColor"
             @click="introSlide++"
-            @keyup.enter="introSlide++"
             elevation="0"
             >
             {{ introSlide < 2 ? 'Next' : 'Get Started' }}
@@ -1137,12 +1144,7 @@
       <div id="location-date-display">
         <div
           id="location-status-box"
-          tabindex="0"
           @click="() => {
-            searchOpen = true;
-            learnerPath = 'Location'
-            }"
-          @keyup.enter="() => {
             searchOpen = true;
             learnerPath = 'Location'
             }"
@@ -1558,7 +1560,6 @@
             class="privacy-button"
             color="#BDBDBD"
             @click="showRatingPrivacyPolicy = true"
-            @keyup.enter="showRatingPrivacyPolicy = true"
             size="small"
             target="_blank"
             rel="noopener noreferrer"
@@ -2283,6 +2284,8 @@ export default defineComponent({
       window.addEventListener('resize', this.onResize);
       this.onResize();
     });
+
+    document.addEventListener('keydown', this.onSpeedControlTabKeydown);
 
     this.applyLayoutDefaults(this.narrow);
 
@@ -3192,7 +3195,43 @@ export default defineComponent({
     },
 
     closeSplashScreen() {
-      this.showSplashScreen = false; 
+      this.showSplashScreen = false;
+    },
+
+    // While the speed control popup is open, Tab should cycle through
+    // exactly this set, in this order, rather than the page's normal
+    // DOM-based tab order -- which otherwise either escapes the popup
+    // entirely (its slider lives in a teleported dialog, so tabbing off
+    // it wraps around to the very start of the page) or skips over the
+    // popup's slider altogether (it sits outside the toolbar's own
+    // normal DOM position).
+    speedControlTabStops(): HTMLElement[] {
+      const stops = [
+        document.querySelector('.desktop-playback-control .v-slider-thumb'),
+        document.getElementById('play-pause-icon-button'),
+        document.getElementById('backward-speed-button'),
+        document.getElementById('forward-speed-button'),
+        document.getElementById('reverse-speed-button'),
+        document.getElementById('reset-button'),
+        document.getElementById('speed-control-icon-button'),
+        document.querySelector('#slider .v-slider-thumb'),
+      ];
+      return stops.filter((el): el is HTMLElement => el !== null);
+    },
+
+    onSpeedControlTabKeydown(event: KeyboardEvent) {
+      if (!this.playbackVisible || event.key !== 'Tab') {
+        return;
+      }
+      const stops = this.speedControlTabStops();
+      const currentIndex = stops.indexOf(document.activeElement as HTMLElement);
+      if (currentIndex === -1) {
+        return;
+      }
+      event.preventDefault();
+      const delta = event.shiftKey ? -1 : 1;
+      const nextIndex = (currentIndex + delta + stops.length) % stops.length;
+      stops[nextIndex].focus();
     },
 
     updateWWTLocation() {
@@ -3697,6 +3736,28 @@ export default defineComponent({
       window.removeEventListener('blur', this.endTopContainerResize);
     },
 
+    onTopContainerResizeKeydown(event: KeyboardEvent) {
+      const step = 20;
+      let delta = 0;
+      if (event.key === 'ArrowUp') {
+        delta = -step;
+      } else if (event.key === 'ArrowDown') {
+        delta = step;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const container = document.getElementById('guided-content-container');
+      if (!container) {
+        return;
+      }
+      const currentHeight = container.getBoundingClientRect().height;
+      const minHeight = 150;
+      const maxHeight = window.innerHeight - 100;
+      this.topContainerCustomHeight = Math.min(Math.max(currentHeight + delta, minHeight), maxHeight);
+      this.updateGuidedContentHeight();
+    },
+
     startMapWidthResize(event: MouseEvent | TouchEvent) {
       const nonMapContainer = document.getElementById('non-map-container');
       if (!nonMapContainer) {
@@ -3753,6 +3814,30 @@ export default defineComponent({
       window.removeEventListener('blur', this.endMapWidthResize);
     },
 
+    onMapWidthResizeKeydown(event: KeyboardEvent) {
+      const step = 20;
+      let delta = 0;
+      if (event.key === 'ArrowLeft') {
+        delta = -step;
+      } else if (event.key === 'ArrowRight') {
+        delta = step;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const nonMapContainer = document.getElementById('non-map-container');
+      const container = document.getElementById('guided-content-container');
+      if (!nonMapContainer || !container) {
+        return;
+      }
+      const currentWidth = nonMapContainer.getBoundingClientRect().width;
+      const containerWidth = container.clientWidth;
+      const minWidth = 150;
+      const maxWidth = containerWidth - 150;
+      const newWidth = Math.min(Math.max(currentWidth + delta, minWidth), maxWidth);
+      this.nonMapContainerWidthPercent = (newWidth / containerWidth) * 100;
+    },
+
     startMobileNonMapHeightResize(event: MouseEvent | TouchEvent) {
       const nonMapContainer = document.getElementById('non-map-container');
       if (!nonMapContainer) {
@@ -3807,6 +3892,30 @@ export default defineComponent({
       window.removeEventListener('touchend', this.endMobileNonMapHeightResize);
       window.removeEventListener('touchcancel', this.endMobileNonMapHeightResize);
       window.removeEventListener('blur', this.endMobileNonMapHeightResize);
+    },
+
+    onMobileNonMapHeightResizeKeydown(event: KeyboardEvent) {
+      const step = 20;
+      let delta = 0;
+      if (event.key === 'ArrowUp') {
+        delta = -step;
+      } else if (event.key === 'ArrowDown') {
+        delta = step;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const nonMapContainer = document.getElementById('non-map-container');
+      const container = document.getElementById('guided-content-container');
+      if (!nonMapContainer || !container) {
+        return;
+      }
+      const currentHeight = nonMapContainer.getBoundingClientRect().height;
+      const containerHeight = container.clientHeight;
+      const minHeight = 100;
+      const maxHeight = containerHeight - 100;
+      const newHeight = Math.min(Math.max(currentHeight + delta, minHeight), maxHeight);
+      this.nonMapContainerMobileHeightPercent = (newHeight / containerHeight) * 100;
     },
 
     startHorizonMode() {
@@ -4532,6 +4641,42 @@ export default defineComponent({
   --time-content-max-width: 700px;
 }
 
+// From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
+// checkbox will only get oreo styling when user tabs by keyboard.
+:focus-visible, .v-checkbox .v-selection-control__input:has(:focus-visible) {
+  outline: 9px double white !important;
+  box-shadow: 0 0 0 6px black !important;
+  border-radius: .125rem;
+}
+
+// @cosmicds/vue-toolkit's icon-button bakes in its own pre-oreo focus
+// styling: plain (not focus-visible) rules that swap color/border-color
+// to --focus-color and, while active, the box-shadow to --focus-shadow --
+// e.g. one button binds --focus-color to a leftover blue "skyColor",
+// making it flash blue on focus. Neutralize both so the oreo ring above
+// is the only focus indicator icon-wrapper buttons show.
+.icon-wrapper:focus {
+  color: var(--color) !important;
+  border-color: var(--color) !important;
+}
+
+.icon-wrapper.active:focus {
+  box-shadow: 0 0 10px 3px var(--active-shadow) !important;
+}
+
+// Remove oreo focus styling from the Information/User Guide dialog, and
+// from the intro dialog/overlay -- Vuetify focuses .v-overlay__content
+// itself when either opens (for a11y), but that wrapper collapses to
+// near-zero height (its real content is positioned inside it), so the
+// outline rendered a full-width, few-pixels-tall bar instead of framing
+// anything meaningful.
+#text-bottom-sheet .v-overlay__content:focus-visible,
+#intro-dialog .v-overlay__content:focus-visible,
+#intro-overlay-mobile .v-overlay__content:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 // A thin, subdued scrollbar that only takes up visible space once there's
 // something to scroll (overflow: auto, not scroll), but still reserves its
 // track via scrollbar-gutter so content doesn't reflow when it appears.
@@ -5098,9 +5243,17 @@ body {
     position: absolute;
     top: 0.5rem;
     right: 1.75rem;
-    text-align: end;
     color: var(--accent-color);
     font-size: min(8vw, 5vh);
+    // Sized in em (not just the "x" glyph's own, narrower-than-tall advance
+    // width/line-height) so the box -- and its keyboard focus outline --
+    // is a clean square instead of a tall, skinny rectangle.
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       cursor: pointer;
@@ -5287,10 +5440,28 @@ body {
   }
   
   #tabs {
-    width: calc(100% - 3em);
+    // The tab bar sat flush against the card's own top-left corner, which
+    // clips overflow -- leaving the oreo focus ring no room to render.
+    // Inset the bar slightly and lift it above its sibling; there are
+    // only ever these two short tabs, so there's no visual loss.
+    width: calc(100% - 3em - 12px);
+    margin: 12px 0 12px 12px;
     align-self: left;
+    position: relative;
+    z-index: 1;
+    overflow: visible !important;
+
+    // v-tabs' own slide-group scaffolding also clips overflow at the
+    // bar's own height regardless of the overflow property above --
+    // .v-slide-group__container additionally sets `contain: content`,
+    // and paint containment clips descendant painting (the ring)
+    // independent of `overflow`, so it has to be disabled explicitly too.
+    .v-slide-group__container {
+      overflow: visible !important;
+      contain: none !important;
+    }
   }
-  
+
   .v-card-text {
     height: 40vh;
   }
@@ -5358,8 +5529,11 @@ body {
 // hit-area expansion, so taps near the edge of the icon can miss entirely.
 .dialog-close-button {
   position: absolute;
-  top: 0;
-  right: 0;
+  // Flush against the card's own corner left no room for the oreo focus
+  // ring, which got clipped by the card's own overflow on the top/right
+  // edges. Inset it slightly instead.
+  top: 12px;
+  right: 12px;
   z-index: 1;
   // At least Apple/Google's recommended ~44px minimum touch target —
   // the icon itself is much smaller, but the tap target shouldn't be.
@@ -5498,6 +5672,21 @@ body {
     }
   }
 
+#guided-content-wrapper {
+  // #top-container-resize-handle used to be a child of
+  // #guided-content-container, positioned bottom:0 against it -- but
+  // that container's overflow-y: auto (needed for its own scrollable
+  // text content) clipped the handle's keyboard focus ring right at
+  // the same edge, with no room to render. Moved the handle out to be
+  // a sibling here instead, so it escapes that clipping. This wrapper's
+  // own box includes the container's outer margin (below), so --margin
+  // is hoisted up here for the handle to also offset by, keeping it
+  // flush against the container's actual bottom border rather than the
+  // outer edge of its margin.
+  --margin: 0.5rem;
+  position: relative;
+}
+
 #guided-content-container {
   --top-content-max-height: max(30vmin, 35vh);
   --top-content-min-height: fit-content;
@@ -5508,14 +5697,13 @@ body {
     --top-content-min-height: calc(100% - 1rem);
     box-sizing: border-box;
   }
-  
+
   font-size: var(--default-font-size);
   @media (max-width: 350px) and (max-height: 600px) {
       font-size: min(3vw, 1.75vh);
   }
-  
+
   --map-max-height: var(--top-content-max-height); // Keep this about 3 smaller than above // not used any more
-  --margin: 0.5rem;
   --container-padding: 0.5rem;
   position: relative;
   margin: var(--margin);
@@ -5795,34 +5983,42 @@ body {
     transition: none !important;
   }
 
-  #top-container-resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 10px;
-    z-index: 20;
-    cursor: row-resize;
-    touch-action: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+}
 
-    &::before {
-      content: "";
-      width: 40px;
-      height: 4px;
-      border-radius: 2px;
-      background-color: var(--accent-color);
-      opacity: 0.6;
-    }
+// A sibling of #guided-content-container now (see #guided-content-wrapper
+// above) rather than a child, so its focus ring isn't clipped by that
+// container's own overflow-y: auto.
+#top-container-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  // Offset by the wrapper's --margin so this sits flush against the
+  // container's own bottom border, not the outer edge of its margin.
+  bottom: var(--margin);
+  height: 10px;
+  // Now a sibling of #guided-content-container (z-index: 400) rather
+  // than a child, so it has to outrank that z-index directly to avoid
+  // being painted over and losing pointer events in their overlap area.
+  z-index: 401;
+  cursor: row-resize;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    &:hover::before,
-    &:active::before {
-      opacity: 1;
-    }
+  &::before {
+    content: "";
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--accent-color);
+    opacity: 0.6;
   }
 
+  &:hover::before,
+  &:active::before {
+    opacity: 1;
+  }
 }
 
 #map-column { // v-col
@@ -6137,7 +6333,7 @@ body {
       outline: 1px solid red;
     }
     
-    #intro-next-button {
+    #intro-next-button, #intro-back-button {
       background-color: rgba(18, 18, 18,.5);
     }
   }
@@ -6296,8 +6492,7 @@ body {
       width: 9rem;
     }
 
-    &:hover,
-    &:focus-visible {
+    &:hover {
       border-color: color-mix(in srgb, var(--accent-color) 70%, black);
     }
 
