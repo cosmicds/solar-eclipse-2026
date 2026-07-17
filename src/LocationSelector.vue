@@ -414,6 +414,10 @@ export default defineComponent({
       }
 
       map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JavaScript library for interactive maps" target="_blank" rel="noopener noreferrer" >Leaflet</a>');
+      // Moved out of the bottom-right corner so the small map's own
+      // bottom-anchored overlay buttons (search, "use my location") can
+      // sit flush against the map's edges without overlapping it.
+      map.attributionControl.setPosition('topright');
       
       // show the geojson files
       this.geoJsonFiles.forEach((geojsonrecord) => {
@@ -624,15 +628,21 @@ export default defineComponent({
     position: relative;
   }
   
-  .leaflet-bottom.leaflet-right::before {
+  .leaflet-top.leaflet-right::before {
     content: " Credit: © Leaflet.js";
-    top: 100%;
+    // Anchors the label's top-right corner flush against the control
+    // container's own top-right corner (the container itself already
+    // sits at the map's top-right, moved there via
+    // map.attributionControl.setPosition('topright')), growing
+    // downward-left -- the mirror image of the old bottom-right anchor,
+    // which grew upward-left from the container's bottom-right corner.
+    top: 0;
     left: 100%;
-    transform: translate(-100%, -100%);
+    transform: translate(-100%, 0);
     pointer-events: auto;
   }
 
-  .leaflet-bottom.leaflet-right::before {
+  .leaflet-top.leaflet-right::before {
     /* match formatting for actual attribution */
     color: #0078a8;
     background-color: rgba(255,255,255,0.8);
@@ -641,18 +651,34 @@ export default defineComponent({
     padding-block: 0.3em;
   }
 
-  .leaflet-bottom.leaflet-right:hover::before {
+  .leaflet-top.leaflet-right:hover::before {
     content: "";
     background-color: transparent;
   }
 
-  .leaflet-bottom.leaflet-right:hover > .leaflet-control-attribution {
+  .leaflet-top.leaflet-right:hover > .leaflet-control-attribution {
     display: block;
   }
 
 
   .leaflet-control-attribution {
     display: none;
+  }
+
+  // @cosmicds/vue-toolkit's bundled vendor chunk carries its own stale,
+  // internal copy of this exact CSS (an older revision of this file,
+  // also rooted at .map-container -- a generic enough class name that
+  // it collides directly with ours). Since the toolkit ships as one
+  // eager UMD bundle, importing ANY of its components for unrelated
+  // reasons (icon-button, geolocation-button, etc.) evaluates that
+  // whole bundle and injects its <style> tags regardless -- including
+  // its old .map-container .leaflet-bottom.leaflet-right::before rule,
+  // which still renders "Credit: © Leaflet.js" in the map's bottom-right
+  // corner even though our own copy of this rule moved to top-right.
+  // Can't fix the vendored copy (it's in node_modules), so explicitly
+  // neutralize it here instead.
+  .leaflet-bottom.leaflet-right::before {
+    content: none !important;
   }
 
   path.leaflet-interactive:focus {
