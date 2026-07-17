@@ -8,7 +8,7 @@
   <!-- Floating button to reopen the top content box once it's hidden.
        Stays in the DOM (v-show, not v-if) even while the box is open so
        the ref used below to reset its tooltip/focus keeps working. -->
-  <div id="closed-top-container" v-show="!showGuidedContent" class="budge">
+  <div id="closed-top-container" v-show="!narrow && !showGuidedContent" class="budge">
     <icon-button
       v-model="showGuidedContent"
       id="show-guided-content"
@@ -241,6 +241,8 @@
               buttonSize="xl"
               :search-provider="geocodingInfoForSearch"
               :accentColor="accentColor"
+              :open-upward="narrow"
+              :escape-container="!narrow"
               @set-location="setLocationFromSearchFeature"
               @error="searchErrorMessage = $event"
             >
@@ -316,7 +318,7 @@
     </div>
   </v-container>
     <div
-      v-show="showGuidedContent"
+      v-show="showGuidedContent && !narrow"
       id="top-container-resize-handle"
       role="separator"
       aria-orientation="horizontal"
@@ -356,7 +358,7 @@
           @keyup.enter="showInfoSheet = false"
           tabindex="0"
         >
-          <font-awesome-icon icon="xmark" size="xl" :color="accentColor"></font-awesome-icon>
+          <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
         </div>
         <v-window v-model="infoTab" id="tab-items" class="no-bottom-border-radius">
           <v-window-item>
@@ -731,14 +733,13 @@
         <div id="location-date-display">
           <div
             id="location-status-box"
+            :class="{ 'non-interactive': !narrow }"
             @click="() => {
-              if (narrow) {
-                showGuidedContent = true;
-                onResize();
+              if (!narrow) {
                 return;
               }
-              searchOpen = true;
-              learnerPath = 'Location'
+              showGuidedContent = true;
+              onResize();
               }"
           >
             <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
@@ -954,16 +955,6 @@
       :style="cssVars"
       >
       <div id="instruction-overlay">
-        <div id="overlay-close">
-          <font-awesome-icon
-            class="overlay-close-icon"
-            icon="xmark"
-            :color="accentColor"
-            @click="inIntro = !inIntro"
-            @keyup.enter="inIntro = !inIntro"
-            tabindex="0"
-          ></font-awesome-icon>
-        </div>
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
@@ -1006,18 +997,18 @@
       <div v-if="inIntro" id="introduction-overlay" class="elevation-10">
         <v-window v-model="introSlide">
           <template v-slot:additional>
-            <div id="intro-window-close-button">
-            <font-awesome-icon
-              size="xl"
-              class="ma-1"
-              :color="accentColor"
-              icon='xmark'
+            <div
+              class="dialog-close-button"
               @click="inIntro = !inIntro"
               @keyup.enter="inIntro = !inIntro"
               tabindex="0"
-              tooltip-location="start"
-            />
-          </div>
+            >
+              <font-awesome-icon
+                size="xl"
+                :color="accentColor2"
+                icon='xmark'
+              />
+            </div>
           </template>
           <v-window-item :value="1">
             <div class="intro-text">
@@ -1190,7 +1181,7 @@
               @keyup.enter="showForecastSheet = false"
               tabindex="0"
             >
-              <font-awesome-icon icon="square-xmark" size="xl"></font-awesome-icon>
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
             </div>
             <open-meteo-forecast
               :location="locationDeg"
@@ -1215,7 +1206,7 @@
               @keyup.enter="showEclipsePredictionSheet = false"
               tabindex="0"
             >
-              <font-awesome-icon icon="xmark" size="xl" :color="accentColor"></font-awesome-icon>
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
             </div>
             <eclipse-timer show-timer :prediction="eclipsePrediction" :timezone="selectedTimezone" :color="accentColor" :location="selectedLocationText"/>
           </v-card-text>
@@ -2049,6 +2040,10 @@ export default defineComponent({
       nowOutsideTimeRange: false,
       
       accentColor: "#eac402",
+      // Lighter variant of the CosmicDS logo blue -- used for links and,
+      // to keep them visually distinct from the app's primary yellow
+      // accent, every "x to close" button.
+      accentColor2: "#7996DA",
       moonColor: "#CFD8DC",
       normalBorderRadius: "10px",
       tightBorderRadius: "5px",
@@ -2288,6 +2283,14 @@ export default defineComponent({
 
     document.addEventListener('keydown', this.onSpeedControlTabKeydown);
 
+    // Tracks keyboard vs mouse/touch use so the oreo focus ring can stay
+    // keyboard-only even on text inputs (see the body.keyboard-focus-only
+    // CSS override above -- browsers show :focus-visible for text fields
+    // on click by default, which this needs to suppress explicitly).
+    document.addEventListener('keydown', this.onKeydownForFocusIndicator);
+    document.addEventListener('mousedown', this.onPointerForFocusIndicator);
+    document.addEventListener('touchstart', this.onPointerForFocusIndicator);
+
     this.applyLayoutDefaults(this.narrow);
 
     this.updateSkyOpacityForSunAlt(10 * D2R); // 10 degrees above horizon
@@ -2491,6 +2494,7 @@ export default defineComponent({
     cssVars() {
       return {
         '--accent-color': this.accentColor,
+        '--accent-color-2': this.accentColor2,
         '--sky-color': this.skyColorLight,
         '--app-content-height': this.showInfoSheet ? '100%' : '100%',
         '--top-content-height': this.showGuidedContent? this.guidedContentHeight : this.guidedContentHeight,
@@ -2500,7 +2504,14 @@ export default defineComponent({
       };
     },
     topContainerStyle() {
-      if (this.topContainerCustomHeight === null) {
+      // On mobile the guided-content box is always a full-screen overlay
+      // (see .mobile-fullscreen) -- a custom height dragged in from a
+      // previous desktop session (or an earlier drag of the outer resize
+      // handle) would otherwise pin it to a stale, much shorter height via
+      // this inline style, which outranks the CSS 100% override and left
+      // a visible gap between the box's bottom border and the true bottom
+      // of the screen.
+      if (this.narrow || this.topContainerCustomHeight === null) {
         return {};
       }
       const height = `${this.topContainerCustomHeight}px`;
@@ -3237,6 +3248,19 @@ export default defineComponent({
       const delta = event.shiftKey ? -1 : 1;
       const nextIndex = (currentIndex + delta + stops.length) % stops.length;
       stops[nextIndex].focus();
+    },
+
+    // Only Tab (not every keydown) counts as "using the keyboard to move
+    // focus" -- typing letters into an already-focused field shouldn't
+    // retroactively make that focus "keyboard-visible".
+    onKeydownForFocusIndicator(event: KeyboardEvent) {
+      if (event.key === 'Tab') {
+        document.body.classList.add('keyboard-focus-only');
+      }
+    },
+
+    onPointerForFocusIndicator() {
+      document.body.classList.remove('keyboard-focus-only');
     },
 
     updateWWTLocation() {
@@ -4702,6 +4726,20 @@ export default defineComponent({
   border-radius: .125rem;
 }
 
+// :focus-visible's own browser heuristic carves out an exception for
+// text inputs/textareas: unlike buttons, they're treated as
+// "focus-visible" even when focused via a plain mouse click or tap (the
+// reasoning being that you need to see your cursor to type) -- so the
+// oreo ring above still shows up there on click, unlike everywhere else.
+// #keyboard-focus-only (toggled in mounted()/methods below, tracking
+// Tab presses vs mouse/touch) overrides that carve-out so text fields
+// behave the same as every other oreo-styled element: keyboard only.
+body:not(.keyboard-focus-only) input:focus-visible,
+body:not(.keyboard-focus-only) textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 // @cosmicds/vue-toolkit's icon-button bakes in its own pre-oreo focus
 // styling: plain (not focus-visible) rules that swap color/border-color
 // to --focus-color and, while active, the box-shadow to --focus-shadow --
@@ -4987,7 +5025,10 @@ body {
     left: 0.5rem;
 
     @media (max-width: 599px) {
-      top: 4.8rem;
+      // No standalone Map & Weather button to clear on mobile (it's
+      // hidden there -- see #closed-top-container) -- align with the
+      // top-right button cluster's own closed-state offset instead.
+      top: calc(var(--default-font-size) + 1px);
     }
 
     @media (min-width: 600px) {
@@ -5022,6 +5063,13 @@ body {
   #location-status-box {
     pointer-events: auto;
 
+    // Clickable on mobile (opens the map), not on desktop -- the hover
+    // border-color change below implied clickability there even though
+    // nothing happened, so it's suppressed along with the click handler.
+    &.non-interactive {
+      pointer-events: none;
+    }
+
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(6px);
     color: white;
@@ -5033,7 +5081,7 @@ body {
     // Fixed width so the box doesn't grow/shrink with the length of the
     // location name — long names wrap instead (max-width guards against
     // overflow on very narrow screens).
-    width: 12rem;
+    width: 10rem;
     max-width: 70vw;
     transition: border-color 0.2s ease;
 
@@ -5041,7 +5089,7 @@ body {
       width: 9rem;
     }
 
-    &:hover {
+    &:not(.non-interactive):hover {
       border-color: color-mix(in srgb, var(--accent-color) 70%, black);
     }
 
@@ -5198,11 +5246,12 @@ body {
     color: var(--accent-color);
     opacity: 1;
     font-size: var(--default-font-size);
+    padding-left: 0.5rem;
   }
 
   .v-checkbox .v-selection-control {
     font-size: calc(1.1 * var(--default-font-size));
-    height: calc(1.2 * var(--default-line-height));
+    height: calc(1.5 * var(--default-line-height));
     min-height: calc(1.2 * var(--default-line-height));
   }
 
@@ -5336,7 +5385,7 @@ body {
     position: absolute;
     top: 0.5rem;
     right: 1.75rem;
-    color: var(--accent-color);
+    color: var(--accent-color-2);
     font-size: min(8vw, 5vh);
     // Sized in em (not just the "x" glyph's own, narrower-than-tall advance
     // width/line-height) so the box -- and its keyboard focus outline --
@@ -5392,27 +5441,6 @@ body {
   }
 }
 
-#overlay-close {
-  position: absolute;
-  top: 2%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
-  font-size: calc(1.5 * var(--default-font-size));
-  display: flex;
-  flex-direction: column;
-  color: #888888;
-
-
-}
-
-
-.overlay-close-icon {
-  z-index: 15;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: calc(2.5*var(--default-font-size));
-}
 
 // Vuetify assigns each opened overlay an incrementing z-index, so whichever
 // of the Information dialog / speed control popup was opened more recently
@@ -5522,8 +5550,18 @@ body {
     align-self: center;
     padding: unset;
     margin: unset;
+
+    // Vuetify's own default dialog sizing (width AND max-width both
+    // calc(100% - 48px), a fixed 24px margin per side -- overriding
+    // only width leaves max-width still clamping it right back down)
+    // leaves too little room on very narrow screens for the two tab
+    // labels + close button below to fit without overlapping.
+    @media (max-width: 400px) {
+      width: calc(100% - 16px) !important;
+      max-width: calc(100% - 16px) !important;
+    }
   }
-  
+
   .bottom-sheet-card {
     height: fit-content;
     width: 100%;
@@ -5531,7 +5569,7 @@ body {
     align-self: center;
     border-bottom: solid #212121 0.5em;
   }
-  
+
   #tabs {
     // The tab bar sat flush against the card's own top-left corner, which
     // clips overflow -- leaving the oreo focus ring no room to render.
@@ -5552,6 +5590,22 @@ body {
     .v-slide-group__container {
       overflow: visible !important;
       contain: none !important;
+    }
+
+    // Each v-tab otherwise renders at Vuetify's own default min-width
+    // regardless of how narrow #tabs itself is, which is what actually
+    // overflowed past the card and under the close button -- shrink the
+    // padding/font and let them size to content instead.
+    .info-tabs {
+      min-width: 0;
+      padding-inline: 0.5em;
+      flex: 0 1 auto;
+
+      h3 {
+        margin: 0;
+        font-size: calc(1.05 * var(--default-font-size));
+        white-space: nowrap;
+      }
     }
   }
 
@@ -6195,20 +6249,14 @@ body {
     justify-content: center;
 
 
-    // Small, consistent margin from the small map's own edges for the
+    // Small, consistent margin from the small map's own edges for all
     // overlay buttons below.
     --map-overlay-margin: 0.5em;
-    // Leaflet's own always-visible "Credit: © Leaflet.js" label sits
-    // flush in the map's bottom-right corner (see LocationSelector.vue's
-    // .leaflet-bottom.leaflet-right::before) -- bottom-anchored buttons
-    // need more clearance than the horizontal/top margin to avoid
-    // sitting on top of it.
-    --map-overlay-bottom-margin: 1.75em;
 
     .map-search-bottomleft {
       position: absolute;
       z-index: 600;
-      bottom: var(--map-overlay-bottom-margin);
+      bottom: var(--map-overlay-margin);
       left: var(--map-overlay-margin);
     }
 
@@ -6216,17 +6264,22 @@ body {
     #my-location-overmap-button {
       position: absolute;
       z-index: 600;
-      bottom: var(--map-overlay-bottom-margin);
+      bottom: var(--map-overlay-margin);
       right: var(--map-overlay-margin);
     }
 
     // Eclipse-timer button + "reset to Antiguita, Spain" (below it),
     // stacked in the top-right corner of the small map (mobile only --
     // desktop keeps its own eclipse-timer copy in the top-left cluster).
+    // Leaflet's own attribution control now also lives in that same
+    // top-right corner (see LocationSelector.vue's
+    // map.attributionControl.setPosition('topright')) -- clear its
+    // "Credit: © Leaflet.js" label by the same small margin instead of
+    // sitting flush against the map's top edge.
     .map-topright-stack {
       position: absolute;
       z-index: 600;
-      top: var(--map-overlay-margin);
+      top: calc(1em + var(--map-overlay-margin));
       right: var(--map-overlay-margin);
       display: flex;
       flex-direction: column;
@@ -6289,16 +6342,6 @@ body {
 .bullet-icon {
   color: var(--accent-color);
   width: 1.5em;
-}
-
-#intro-window-close-button {
-    position: absolute;
-    top: 0.25em;
-    right: 0.25em;
-
-    &:hover {
-      cursor: pointer;
-    }
 }
 
 #instruction-overlay {
@@ -6393,8 +6436,10 @@ body {
     grid-area: 1 / 1 / 2 / 2;
     margin-bottom: auto;
     .the-arrow {
-      // flip right to left
-      transform: translateY(-5px) rotateZ(-90deg);
+      // Mirror image of top-right's rotateZ(30deg) -- same angle off
+      // vertical, opposite direction, so it points diagonally toward
+      // this quadrant's own top-left corner instead of straight left.
+      transform: translateY(-5px) rotateZ(-30deg);
     }
   }
   
@@ -6712,7 +6757,7 @@ body {
 a {
     text-decoration: none;
     font-weight: bold;
-    color: #7996DA; // lighter variant of CosmicDS logo blue
+    color: var(--accent-color-2);
     pointer-events: auto;
   }
 
