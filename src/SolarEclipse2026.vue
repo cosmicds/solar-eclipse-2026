@@ -251,40 +251,44 @@
             id="map-container">
 
             <!-- modelValue = false, starts with it closed, use stay-open to keep it open -->
-            <location-search
-              v-model="searchOpen"
-              :class="['location-search-overmap', learnerPath === 'Clouds' ? 'overmap-budge' : '', showNewMobileUI ? '' : 'overmap-low']"
+            <div
+              class="map-search-stack"
+              :class="[learnerPath === 'Clouds' ? 'overmap-budge' : '', showNewMobileUI ? '' : 'overmap-low']"
               v-if="narrow"
-              small
-              buttonSize="xl"
-              :search-provider="geocodingInfoForSearch"
-              :accentColor="accentColor"
-              @set-location="setLocationFromSearchFeature"
-              @error="searchErrorMessage = $event"
             >
-            </location-search>
-            <icon-button
-            v-if="getMyLocation && narrow"
-            :id="'my-location-overmap' + (learnerPath === 'Clouds' ? '-budge' : '')"
-            fa-icon="location-crosshairs"
-            fa-size="2xl"
-            :color="myLocationColor"
-            :focus-color="myLocationColor"
-            :box-shadow="false"
-            :tooltip-text="myLocationToolTip"
-            :show-tooltip="!mobile"
-            @update:modelValue="(value: boolean) => {
-              if(value) {
-                ($refs.geolocation as any).getLocation();
-                showMyLocationDialog = true;
-                learnerPath = 'Location';
-              }
-              else {
-                console.log('geolocation button pressed = false');
-              }
+              <location-search
+                v-model="searchOpen"
+                small
+                buttonSize="xl"
+                :search-provider="geocodingInfoForSearch"
+                :accentColor="accentColor"
+                @set-location="setLocationFromSearchFeature"
+                @error="searchErrorMessage = $event"
+              >
+              </location-search>
+              <icon-button
+                v-if="getMyLocation"
+                id="my-location-overmap"
+                fa-icon="location-crosshairs"
+                fa-size="2xl"
+                :color="myLocationColor"
+                :focus-color="myLocationColor"
+                :box-shadow="false"
+                :tooltip-text="myLocationToolTip"
+                :show-tooltip="!mobile"
+                @update:modelValue="(value: boolean) => {
+                  if(value) {
+                    ($refs.geolocation as any).getLocation();
+                    showMyLocationDialog = true;
+                    learnerPath = 'Location';
+                  }
+                  else {
+                    console.log('geolocation button pressed = false');
+                  }
 
-            }"
-          ></icon-button>
+                }"
+              ></icon-button>
+            </div>
             <icon-button
               v-if="narrow"
               id="eclipse-details-overmap"
@@ -327,32 +331,6 @@
     ></div>
   </v-container>
   
-  <v-dialog
-    id="video-container"
-    v-model="showVideoSheet"
-    transition="slide-y-transition"
-    close-on-back
-    fullscreen
-  >
-    <div class="video-wrapper">
-      <font-awesome-icon
-        id="video-close-icon"
-        class="close-icon"
-        icon="times"
-        size="lg"
-        @click="showVideoSheet = false"
-        @keyup.enter="showVideoSheet = false"
-        tabindex="0"
-      ></font-awesome-icon>
-      <video
-        controls
-        id="info-video"
-      >
-        <source src="./assets/video.mp4" type="video/mp4">
-      </video>
-    </div>
-  </v-dialog>
-  
 
     <v-dialog
       scrim="false"
@@ -365,15 +343,14 @@
       <v-card
         class="bottom-sheet-card">
         <v-card-title tabindex="0"><h3 class="v-btn tab-title">Information</h3></v-card-title>
-          <font-awesome-icon
-          id="close-text-icon"
-          class="control-icon"
-          :icon="`square-xmark`"
-          size="xl"
+        <div
+          class="dialog-close-button"
           @click="showInfoSheet = false"
           @keyup.enter="showInfoSheet = false"
           tabindex="0"
-        ></font-awesome-icon>
+        >
+          <font-awesome-icon icon="square-xmark" size="xl" :color="accentColor"></font-awesome-icon>
+        </div>
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container id="learn-more-content">
@@ -469,15 +446,14 @@
     >
       <v-card class="bottom-sheet-card">
         <v-card-title tabindex="0"><h3 class="v-btn tab-title">User Guide</h3></v-card-title>
-        <font-awesome-icon
-          id="close-text-icon"
-          class="control-icon"
-          :icon="`square-xmark`"
-          size="xl"
+        <div
+          class="dialog-close-button"
           @click="showWWTGuideSheet = false"
           @keyup.enter="showWWTGuideSheet = false"
           tabindex="0"
-        ></font-awesome-icon>
+        >
+          <font-awesome-icon icon="square-xmark" size="xl" :color="accentColor"></font-awesome-icon>
+        </div>
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container  id="user-guide">
@@ -609,34 +585,6 @@
                       <li>
                         Eclipsed: The fraction of the Sun that is eclipsed in the current view (for the selected time and location).
                       </li>
-                      <li v-if="!showNewMobileUI" class="switch-bullets">
-                        <v-switch
-                          class="display-only-switch"
-                          v-model="displaySwitchOn"
-                          density="compact"
-                          hide-details
-                          disabled
-                          :ripple="false"
-                          :color="accentColor"
-                          true-icon="mdi-white-balance-sunny"
-                        >
-                        </v-switch>
-                        <span class="user-guide-emphasis"> Track Sun:</span> Camera follows the Sun.
-                      </li>
-                      <li v-if="!showNewMobileUI" class="switch-bullets mb-5">
-                        <v-switch
-                          class="display-only-switch"
-                          v-model="displaySwitchOff"
-                          density="compact"
-                          hide-details
-                          disabled
-                          :ripple="false"
-                          :color="accentColor"
-                          false-icon="mdi-image"
-                        >
-                        </v-switch>
-                        <span class="user-guide-emphasis"> Don't Track Sun:</span> Camera stays fixed and shows motion of Sun (and Moon) against the sky.
-                      </li>
                     </ul>
 
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
@@ -661,7 +609,7 @@
                         </v-icon> to display detailed <span class="user-guide-emphasis-white">eclipse timing</span> predictions for your selected location.
                       </li>
                       <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Center Sun:</span> Recenter view on Sun.
+                        <span class="user-guide-emphasis-white">Track Sun:</span> Camera follows the Sun. Turn off to keep the camera fixed and show motion of Sun (and Moon) against the sky.
                       </li>
                       <li v-if="!showNewMobileUI">
                         <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
@@ -878,7 +826,6 @@
         <div
           id="controls"
           class="control-icon-wrapper"
-          v-if="showNewMobileUI"
         >
           <div id="controls-top-row">
             <font-awesome-icon
@@ -893,12 +840,10 @@
 
           <div v-if="showControls" id="control-checkboxes">
             <v-checkbox
-              v-if="!showNewMobileUI"
               :color="accentColor"
-              v-model="sunCenteredTracking"
-              @change="centerSun()"
-              label="Center Sun"
-              :disabled="sunCenteredTracking"
+              v-model="toggleTrackSun"
+              @keyup.enter="toggleTrackSun = !toggleTrackSun"
+              label="Track Sun"
               hide-details
             />
             <v-checkbox
@@ -921,56 +866,6 @@
               @keyup.enter="useRegularMoon = !useRegularMoon"
               label="Visible Moon"
               hide-details
-            />
-          </div>
-      </div>
-
-        <div
-          id="controls"
-          class="control-icon-wrapper"
-          v-if="!showNewMobileUI"
-        >
-          <div id="controls-top-row">
-            <font-awesome-icon
-              size="lg"
-              :color="accentColor"
-              :icon="showControls ? `chevron-down` : `gear`"
-              @click="showControls = !showControls"
-              @keyup.enter="showControls = !showControls"
-              tabindex="0"
-            />
-          </div>
-
-          <div v-if="showControls" id="control-checkboxes">
-            <v-checkbox
-              v-if="!showNewMobileUI"
-              :color="accentColor"
-              v-model="sunCenteredTracking"
-              @change="centerSun()"
-              label="Center Sun"
-              :disabled="sunCenteredTracking"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showAltAzGrid"
-              @keyup.enter="showAltAzGrid = !showAltAzGrid"
-              label="Sky Grid"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showHorizon"
-              @keyup.enter="showHorizon = !showHorizon"
-              label="Horizon/Daytime Sky"
-              hide-details
-            />
-            <v-checkbox
-                :color="accentColor"
-                v-model="useRegularMoon"
-                @keyup.enter="useRegularMoon = !useRegularMoon"
-                label="Visible Moon"
-                hide-details
             />
           </div>
       </div>
@@ -1112,25 +1007,20 @@
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Set location + more
+            Set location<br> + more
           </div>
         </div>
         <div class="inst-quad top-right">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Where, when + how much
+            Where, when, <br>+ how much
           </div>
         </div>
         <div class="inst-quad bottom-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            New! Set time to "Now," or control time yourself!
-          </div>
-        </div>
-        <div class="inst-quad bottom-right">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
-          <div class="inst-text">
-            Tell me what will happen and when<span v-if="withinForecastRange">, + new! August 12 weather</span>
+            <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
+            <template v-else>Control time yourself!</template>
           </div>
         </div>
         <!-- <div id="instructions-close-button">
@@ -1272,30 +1162,31 @@
           <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
           <div>{{ percentEclipsedText }}</div>
         </div>
-      </div>
-      <div id="top-switches" v-if="!showNewMobileUI">
-        <div id="track-sun-switch"> 
-          <hover-tooltip
-              location="left"
-              :disabled="mobile"
-            >
-              <template v-slot:target>
-                <v-switch
-                  inset
-                  hide-details
-                  v-model="toggleTrackSun"
-                  :ripple="false"
-                  :color="accentColor"
-                  true-icon="mdi-white-balance-sunny"
-                  false-icon="mdi-image"
-                  @keyup.enter="toggleTrackSun = !toggleTrackSun"
-                  tabindex="0"
-                >
-                </v-switch>
-            </template>
-            {{ toggleTrackSun ? "Stop Tracking Sun" : 'Start Tracking Sun' }}
-          </hover-tooltip>
-        </div>
+
+        <icon-button
+          id="eclipse-details-button"
+          md-icon="sun-clock"
+          :md-size="showNewMobileUI ? '20' : '24'"
+          :color="accentColor"
+          :focus-color="accentColor"
+          tooltip-text="View eclipse timing details"
+          tooltip-location="start"
+          @activate="() => { showEclipsePredictionSheet = true; }"
+          >
+        </icon-button>
+
+        <icon-button
+          v-if="showNewMobileUI"
+          v-model="showInfoSheet"
+          fa-icon="book-open"
+          fa-size="lg"
+          :color="accentColor"
+          :focus-color="accentColor"
+          :tooltip-text="showInfoSheet ? null : 'More on Eclipses'"
+          :tooltip-location="'left'"
+          :show-tooltip="!mobile"
+          :box-shadow="false"
+        ></icon-button>
       </div>
     </div>
     
@@ -1309,15 +1200,15 @@
         >
       <v-card>
           <v-card-text class="pb-8">
-            <font-awesome-icon
-                style="position:absolute;right:12px;cursor:pointer;padding:1em;margin:-1em"
-                icon="square-xmark"
-                size="xl"
-                @click="showForecastSheet = false"
-                @keyup.enter="showForecastSheet = false"
-                tabindex="0"
-              ></font-awesome-icon>
-            <open-meteo-forecast 
+            <div
+              class="dialog-close-button"
+              @click="showForecastSheet = false"
+              @keyup.enter="showForecastSheet = false"
+              tabindex="0"
+            >
+              <font-awesome-icon icon="square-xmark" size="xl"></font-awesome-icon>
+            </div>
+            <open-meteo-forecast
               :location="locationDeg"
               :location-str="selectedLocationText"
               :time="(eclipsePrediction !== null && eclipseType != 'None') ? eclipsePrediction.maxTime[0] : null"
@@ -1328,49 +1219,24 @@
      
       <v-dialog
         v-model="showEclipsePredictionSheet"
-        max-width="fit-content"
+        :max-width="xSmallSize ? '95%' : 'fit-content'"
         transition="slide-y-transition"
         id="eclipse-prediction-sheet"
         >
         <v-card>
           <v-card-text>
-            <font-awesome-icon
-                style="position:absolute;right:12px;cursor:pointer;padding:1em;margin:-1em"
-                icon="square-xmark"
-                size="xl"
-                @click="showEclipsePredictionSheet = false"
-                @keyup.enter="showEclipsePredictionSheet = false"
-                tabindex="0"
-              ></font-awesome-icon>
+            <div
+              class="dialog-close-button"
+              @click="showEclipsePredictionSheet = false"
+              @keyup.enter="showEclipsePredictionSheet = false"
+              tabindex="0"
+            >
+              <font-awesome-icon icon="square-xmark" size="xl"></font-awesome-icon>
+            </div>
             <eclipse-timer show-timer :prediction="eclipsePrediction" :timezone="selectedTimezone" :color="accentColor" :location="selectedLocationText"/>
           </v-card-text>
         </v-card>
       </v-dialog>
-            
-      <icon-button
-        v-if="showNewMobileUI"
-        v-model="showInfoSheet"
-        fa-icon="book-open"
-        fa-size="lg"
-        :color="accentColor"
-        :focus-color="accentColor"
-        :tooltip-text="showInfoSheet ? null : 'More on Eclipses'"
-        :tooltip-location="'left'"
-        :show-tooltip="!mobile"
-        :box-shadow="false"
-      ></icon-button>
-      
-      <icon-button
-        id="eclipse-details-button"
-        md-icon="sun-clock"
-        :md-size="showNewMobileUI ? '20' : '24'"
-        :color="accentColor"
-        :focus-color="accentColor"
-        tooltip-text="View eclipse timing details"
-        tooltip-location="start"
-        @activate="() => { showEclipsePredictionSheet = true; }"
-        >
-      </icon-button>
 
       <icon-button
         v-if="withinForecastRange"
@@ -1403,18 +1269,6 @@
         </v-btn>
       </div>
       
-      <div id="video-icon">
-        <icon-button
-          v-model="showVideoSheet"
-          id="video-icon"
-          fa-icon="video"
-          fa-size="lg"
-          :color="accentColor"
-          tooltip-text="Video guide"
-          tooltip-location="start"
-          :tooltip-offset="smallSize ? 0 : '10px'"
-        ></icon-button>
-      </div>
       <div id="tools">
         <span class="tool-container">
           <div style="position: relative">
@@ -1765,7 +1619,7 @@ interface CloudData {
 
 
 
-type SheetType = "text" | "video" | null;
+type SheetType = "text" | null;
 type LearnerPath = "Location" | "Clouds" | 'CloudDetail' | "Learn";
 type ViewerMode = "Horizon";
 type MoonImageFile = "moon.png" | "moon-dark-gray-overlay.png" | `moon-sky-blue-overlay-${number}.png` | "empty.png";
@@ -2127,7 +1981,7 @@ export default defineComponent({
       selectionProximity: 4,
       pointerMoveThreshold: 6,
       isPointerMoving: false,
-      pointerStartPosition: null as { x: number; y: number } | null,  
+      pointerStartPosition: null as { x: number; y: number } | null,
 
       // "Greatest Eclipse"
       totalEclipseTimeUTC,
@@ -2220,8 +2074,6 @@ export default defineComponent({
       mobileNonMapHeightResizeStartHeight: 0,
 
       inIntro: false,
-      displaySwitchOn: true,
-      displaySwitchOff: false,
       scrollUp: false,
 
       showPrivacyDialog: false,
@@ -2415,12 +2267,6 @@ export default defineComponent({
           this.updateFrontAnnotations(time);
         }
       }, 500);
-      
-      window.addEventListener('keyup', (event: KeyboardEvent) => {
-        if (["Esc", "Escape"].includes(event.key) && this.showVideoSheet) {
-          this.showVideoSheet = false;
-        }
-      });
 
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
@@ -2795,11 +2641,11 @@ export default defineComponent({
           this.sunCenteredTracking = false;
         }
       },
-      
+
       get(): boolean {
         // do something more useful later
         return this.toggleTrackSun;
-      }   
+      }
     },
 
     defaultRate(): number {
@@ -2862,19 +2708,6 @@ export default defineComponent({
       return pointInPolygon(point, poly);
     },
 
-
-    showVideoSheet: {
-      get(): boolean {
-        return this.sheet === "video";
-      },
-      set(_value: boolean) {
-        this.selectSheet('video');
-        // if (!value) {
-        //   // const video = document.querySelector("#info-video") as HTMLVideoElement;
-        //   // video.pause();
-        // }
-      }
-    },
 
   },
 
@@ -2976,18 +2809,6 @@ export default defineComponent({
         instant: true,
         noZoom: true,
         trackObject: true
-      });
-    },
-
-    async centerSun(): Promise<void> {
-      this.sunOffset = null;
-      this.toggleTrackSun = true;
-      this.sunCenteredTracking = true;
-      return this.gotoTarget({
-        place: this.sunPlace,
-        instant: true,
-        noZoom: true,
-        trackObject: this.trackingSun
       });
     },
 
@@ -3267,10 +3088,9 @@ export default defineComponent({
       if (this.showNewMobileUI) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        if (wwtControl._trackingObject !== this.sunPlace) {
+        if (this.toggleTrackSun && wwtControl._trackingObject !== this.sunPlace) {
           this.trackSun();
-          return;
-        } 
+        }
         return;
       } else {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -3747,7 +3567,7 @@ export default defineComponent({
       // @ts-ignore
       Annotation2.clearAll();
       this.clearAnnotations();
-    },    
+    },
 
     onPointerMove(event: PointerEvent) {
       if (!this.isPointerMoving && this.pointerStartPosition !== null) {
@@ -3768,7 +3588,7 @@ export default defineComponent({
     onPointerUp(_event: PointerEvent) {
       this.pointerStartPosition = null;
       this.isPointerMoving = false;
-      
+
       const sunLocation = Planets['_planetLocations'][0];
       const sunPoint = getScreenPosForCoordinates(this.wwtControl, sunLocation.RA, sunLocation.dec);
       this.sunOffset = {
@@ -4481,7 +4301,7 @@ export default defineComponent({
       this.getEclipsePrediction();
       this.updateFrontAnnotations();
 
-      
+
       if (this.trackingSun) {
         //this.centerSun();
       } else {
@@ -4671,7 +4491,7 @@ export default defineComponent({
         return;
       }
     },
-    
+
     playbackRate(val: number) {
       if (Math.abs(val) > 11_000) {
         console.warn('playbackRate too high, setting to maxPlaybackRate');
@@ -4792,7 +4612,7 @@ body {
   .location-search-overwwt {
     z-index: 600;
   }
-  
+
   #center-page-banner {
     position: absolute;
     width: 25%;
@@ -4931,15 +4751,6 @@ body {
 
 .pointer {
   cursor: pointer;
-}
-
-.control-icon {
-  pointer-events: auto;
-
-  &:hover {
-    cursor: pointer;
-  }
-
 }
 
 // these are now in #top-content
@@ -5307,68 +5118,6 @@ body {
   }
 }
 
-#video-icon {
-  display: none;  // ACTION NEEDED - reenable this when we have a video
-  position: absolute;
-  left: 0.5rem;
-  width: 2.2rem;
-
-  @media (max-width: 699px) {
-    bottom: 3rem;
-  }
-
-  @media (min-width: 700px) {
-    bottom: 6rem;
-  }
-}
-
-.video-wrapper {  
-  display: flex;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
-  text-align: center;
-  z-index: 1000;
-}
-
-video, #info-video {
-  margin: auto;
-  height: 85%;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  // aspect-ratio: 9/17;
-  border: 5px solid white;
-}
-
-#video-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  padding: 0px;
-  z-index: 1000;
-}
-
-.close-icon {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 15;
-
-  &:hover {
-    cursor: pointer;
-  }
-
-  &:focus {
-    color: white;
-    border: 2px solid white;
-  }
-}
-
 #overlay-close {
   position: absolute;
   top: 2%;
@@ -5529,22 +5278,6 @@ video, #info-video {
     height: 40vh;
   }
 
-  .close-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 15;
-
-    &:hover {
-      cursor: pointer;
-    }
-
-    &:focus {
-      color: white;
-      border: 2px solid white;
-    }
-  }
-
   .scrollable {
     overflow-y: auto;
   }
@@ -5562,13 +5295,6 @@ video, #info-video {
     
   }
   
-
-  #close-text-icon {
-    position: absolute;
-    top: 0.25em;
-    right: calc((3em - 0.6875em) / 3); // font-awesome-icons have width 0.6875em
-    color: var(--accent-color);
-  }
 
   // This prevents the tabs from having some extra space to the left when the screen is small
   // (around 400px or less)
@@ -5601,48 +5327,42 @@ video, #info-video {
       font-weight: bold;
     }
     
-    li.switch-bullets {
-      margin-top: -1em;
-
-      padding-left: 0.5ch;
-      .v-switch {
-        transform: translateY(15%);
-      }
-
-      .user-guide-emphasis {
-        padding-left: 1ch;
-      }
-    }
-
-    .display-only-switch {
-    
-      display: inline-block;
-      position: relative;
-      bottom: calc(-0.5 * var(--default-line-height));
-
-      .v-selection-control--density-default {
-        --v-selection-control-size:var(--default-line-height);
-      }
-
-      .v-selection-control--disabled {
-      opacity: 100%;
-      pointer-events: none;
-
-        .v-switch__thumb {
-          background-color: black;
-        }
-
-        .v-icon {
-          color: var(--accent-color);
-          background-color: black;
-        }
-      }
-    }
-
     .solid-divider {
       margin-top: 1rem;
       color: var(--sky-color);
       opacity: 0.7;
+    }
+  }
+}
+
+// A real, solidly-sized clickable box rather than a bare icon enlarged via
+// negative margin/padding — some mobile browsers (Safari in particular)
+// only hit-test the icon's painted SVG content, not that kind of CSS-only
+// hit-area expansion, so taps near the edge of the icon can miss entirely.
+.dialog-close-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  // At least Apple/Google's recommended ~44px minimum touch target —
+  // the icon itself is much smaller, but the tap target shouldn't be.
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  // Tells the browser this element is a simple tap target, so it doesn't
+  // wait to see if a second tap is coming (double-tap-to-zoom) before
+  // committing to the click — that wait is a common source of taps that
+  // "look right" but silently don't register on mobile.
+  touch-action: manipulation;
+}
+
+#eclipse-prediction-sheet {
+  @media (max-width: 350px) {
+    .v-card-text {
+      padding-inline: 12px;
     }
   }
 }
@@ -5745,11 +5465,19 @@ video, #info-video {
     font-size: calc(1.2 * var(--default-font-size));
     font-weight: bold;
 
+    @media (max-width: 600px) {
+      font-size: var(--default-font-size);
+    }
+
     #show-guided-content-button {
       width: fit-content;
       height: fit-content;
       padding: 6px 12px;
       border-radius: var(--normal-border-radius);
+
+      @media (max-width: 600px) {
+        padding-left: 6px;
+      }
     }
   }
 
@@ -6101,42 +5829,30 @@ video, #info-video {
     justify-content: center;
 
 
-    .location-search-overmap {
-      height: fit-content;
+    .map-search-stack {
       position: absolute;
       z-index: 600;
       right: 1.25em;
       top: 1em;
-      
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+
       &.overmap-low {
         top: 2em;
       }
-      
-      
+
       &.overmap-budge {
         right: 4.5em;
       }
-    }
-
-    #my-location-overmap-button {
-      position: absolute;
-      z-index: 550;
-      right: 1.25em;
-      bottom: 1rem;
-    }
-
-    #my-location-overmap-budge-button {
-      position: absolute;
-      z-index: 550;
-      right: 4.5em;
-      bottom: 1rem;
     }
 
     #eclipse-details-overmap-button {
       position: absolute;
       z-index: 600;
       bottom: 1rem;
-      left: 1rem;
+      right: 1.25em;
     }
     
     .map-container {
@@ -6317,33 +6033,16 @@ video, #info-video {
   }
   
   div.inst-quad.bottom-left {
-    grid-area: 2 / 1 / 3 / 2;
+    grid-area: 2 / 1 / 3 / 3;
     flex-direction: column-reverse;
+    align-items: center;
     margin-top: auto;
+    text-align: center;
+    .inst-text {
+      justify-content: center;
+    }
     .the-arrow {
       transform: translateY(5px) rotateX(180deg);
-    }
-  }
-  
-  div.inst-quad.bottom-right {
-    grid-area: 2 / 2 / 3 / 3;
-    flex-direction: column-reverse;
-    margin-top: auto;
-    text-align: right;
-    .inst-text {
-      justify-content: flex-end;
-    }
-    .inst-arrow {
-      align-self: end;
-    }
-    .the-arrow {
-      transform: translateY(5px) rotateX(180deg) rotateZ(90deg);
-    } 
-    
-    @media (min-height: 500px) {
-      .the-arrow {
-        transform: translateY(5px) rotateX(180deg) rotateZ(45deg);
-      } 
     }
   }
   
@@ -6535,6 +6234,7 @@ video, #info-video {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    gap: 5px;
 
     @media (max-width: 250px) {
       padding-top: 3.5em;
@@ -6562,7 +6262,7 @@ video, #info-video {
     transition: border-color 0.2s ease;
 
     @media (max-width: 600px) {
-      width: 10rem;
+      width: 9rem;
     }
 
     &:hover,
@@ -6584,71 +6284,7 @@ video, #info-video {
     }
   }
 
-  .icon-wrapper {
-    @media (max-width: 750px) { //SMALL
-      margin-top: 0.5rem;
-    }
-
-    @media (min-width: 751px) { //LARGE
-      margin-top: 0.7rem;
-    }
-  }
-
-  .v-switch__thumb {
-    color: var(--accent-color);
-    background-color: black;
-
-    @media (min-width: 751px) { //LARGE
-      height: 2.1rem;
-      width: 2.2rem;
-    }
-  }
-
-  .v-input--density-default {
-    --v-input-control-height: 0;
-  }
-
-  .v-selection-control--density-default {
-    --v-selection-control-size: auto;
-  } 
-
-  .v-switch__track {
-    background-color: #737373 !important;
-  }
-
-  .v-switch--inset .v-switch__track {
-    @media (min-width: 751px) { //LARGE
-      height: 2.5rem;
-      width: 4.2rem;
-    }
-  }
-
   pointer-events: auto;
-
-  #top-switches {
-    position: absolute;
-    right: 0;
-    text-align: right;
-
-    @media (max-width: 750px) { //SMALL
-      margin-top: 0.5rem;
-    } 
-
-    @media (min-width: 751px) { //LARGE
-      margin-top: 0.7rem;
-    } 
-
-  }
- 
-  #track-sun-switch {
-    @media (max-width: 750px) { //SMALL
-      margin-top: 0.5rem;
-    } 
-
-    @media (min-width: 751px) { //LARGE
-      margin-top: 0.7rem;
-    } 
-  }
 }
 
 #change-optout {
