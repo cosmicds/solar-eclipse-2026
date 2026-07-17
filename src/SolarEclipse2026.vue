@@ -234,19 +234,33 @@
                  and "use my location" controls live over the small map on
                  both, rather than desktop having its own separate copies
                  floating over the WWT canvas. -->
-            <location-search
-              class="map-search-bottomleft"
-              v-model="searchOpen"
-              small
-              buttonSize="xl"
-              :search-provider="geocodingInfoForSearch"
-              :accentColor="accentColor"
-              :open-upward="narrow"
-              :escape-container="!narrow"
-              @set-location="setLocationFromSearchFeature"
-              @error="searchErrorMessage = $event"
-            >
-            </location-search>
+            <div class="map-bottomleft-stack">
+              <!-- On mobile, the top-left location-status-box (in
+                   #left-buttons-wrapper) sits behind this full-screen map
+                   overlay and is never visible while the map is open --
+                   repeat a compact copy of it here (name + eclipse status,
+                   no date) so location context is still visible. -->
+              <div
+                v-if="narrow"
+                id="location-status-box-overmap"
+              >
+                <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
+                <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
+              </div>
+              <location-search
+                class="map-search-bottomleft"
+                v-model="searchOpen"
+                small
+                buttonSize="xl"
+                :search-provider="geocodingInfoForSearch"
+                :accentColor="accentColor"
+                :open-upward="narrow"
+                :escape-container="!narrow"
+                @set-location="setLocationFromSearchFeature"
+                @error="searchErrorMessage = $event"
+              >
+              </location-search>
+            </div>
             <icon-button
               v-if="getMyLocation"
               id="my-location-overmap"
@@ -294,11 +308,25 @@
                   location = defaultLocation;
                   selectedLocationText = defaultLocationText;
                   learnerPath = 'Location';
+                  // The pin resets to Antiguita, Spain, but the map's own
+                  // camera should return to this session's actual
+                  // starting view (which is deliberately NOT centered on
+                  // Antiguita -- see initialMapOptions), not wherever the
+                  // pin ends up. Deferred a tick: the location change
+                  // above also triggers location-selector's own
+                  // modelValue watcher, which re-centers/zooms the map
+                  // on the pin's new position -- calling this after that
+                  // watcher runs, rather than before, is what makes it
+                  // win instead of being immediately undone by it.
+                  $nextTick(() => {
+                    (($refs.locationSelector as any)?.resetToInitialView)?.();
+                  });
                 }"
               ></icon-button>
             </div>
             <!-- :places="places" -->
             <location-selector
+              ref="locationSelector"
               :model-value="locationDeg"
               @update:modelValue="updateLocationFromMap"
               :place-circle-options="placeCircleOptions"
@@ -6253,11 +6281,39 @@ body {
     // overlay buttons below.
     --map-overlay-margin: 0.5em;
 
-    .map-search-bottomleft {
+    // Location details (mobile only, no date -- see the template comment)
+    // stacked directly above the search box, both anchored bottom-left.
+    .map-bottomleft-stack {
       position: absolute;
       z-index: 600;
       bottom: var(--map-overlay-margin);
       left: var(--map-overlay-margin);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    #location-status-box-overmap {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      color: white;
+      border: 2px solid var(--accent-color);
+      border-radius: var(--tight-border-radius);
+      padding: 0.35em 0.5em;
+      font-size: calc(0.8 * var(--default-font-size));
+      max-width: 60vw;
+
+      .location-status-name {
+        font-size: calc(0.9 * var(--default-font-size));
+      }
+
+      .eclipse-status-line {
+        // Lets the "\n" before "(Xm Ys of totality)" in the computed
+        // text actually render as a line break, same as the top-left
+        // cluster's own copy of this text.
+        white-space: pre-line;
+      }
     }
 
     // "Use my location", bottom-right corner of the small map.

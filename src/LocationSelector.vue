@@ -491,6 +491,25 @@ export default defineComponent({
       return [location.latitudeDeg, location.longitudeDeg];
     },
 
+    // Public: re-centers/re-zooms the map back to this session's own
+    // starting view (mapOptions.initialLocation/initialZoom -- either
+    // the app's default map-center-on-the-eclipse-path view, or a
+    // shared-link's query-specified location/zoom). Distinct from the
+    // selected-location pin resetting to Antiguita, Spain: that's the
+    // marker, this is the camera, and they're independent -- the
+    // modelValue watcher's own zoom-to-6-on-change wouldn't fire this
+    // correctly since it always targets the *pin's* location, not the
+    // session's original viewport.
+    resetToInitialView() {
+      if (!this.map || !this.mapOptions.initialLocation) {
+        return;
+      }
+      this.map.setView(
+        this.locationToLatLng(this.mapOptions.initialLocation),
+        this.mapOptions.initialZoom ?? 4
+      );
+    },
+
     updateRectangleIntensity(val: number | null = null): void {
       (this.cloudCoverRectangles as L.LayerGroup<L.Rectangle>).eachLayer((layer) => {
         if (layer instanceof L.Rectangle) {
