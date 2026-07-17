@@ -448,7 +448,8 @@ export default defineComponent({
 <style lang="less">
 
 #eclipse-timer-container {
-  width: max-content;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.5em;
 }
 
@@ -475,6 +476,10 @@ hr.eclipse-timer-dividier {
   aspect-ratio: 1/1;
   width: 10em;
   background-size: contain;
+
+  @media (max-width: 350px) {
+    width: 6em;
+  }
 }
 
 .eclipse-icon-total {
@@ -497,6 +502,10 @@ hr.eclipse-timer-dividier {
   text-align: center;
   margin-bottom: 0.5em;
   min-width: 20em;
+
+  @media (max-width: 350px) {
+    min-width: 0;
+  }
 }
 
 .ec-timer {

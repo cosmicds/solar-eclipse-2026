@@ -41,7 +41,6 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faBookOpen,
   faTimes,
-  faVideo,
   faGear,
   faChevronDown,
   faClock,
@@ -80,7 +79,6 @@ import {
 
 library.add(faBookOpen);
 library.add(faTimes);
-library.add(faVideo);
 library.add(faGear);
 library.add(faChevronDown);
 library.add(faClock);
