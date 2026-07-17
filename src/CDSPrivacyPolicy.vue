@@ -43,7 +43,6 @@
 </template>
 
 <script lang="ts">
-/* eslint-disable @typescript-eslint/no-empty-function */
 import { defineComponent } from 'vue';
 
 export default defineComponent({
@@ -53,10 +52,6 @@ export default defineComponent({
       default: false,
       required: true,
     },
-  },
-  mounted: () => {},
-  data: () => {
-    return {};
   },
   computed: {
     showPrivacyDialog:  {
@@ -68,8 +63,6 @@ export default defineComponent({
       }
     },
   },
-  methods: {},
-  watch: {},
 });
 
 

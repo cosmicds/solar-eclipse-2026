@@ -74,16 +74,6 @@ export default defineComponent({
       type: String,
       default: 'white',
     },
-    debug: {
-      type: Boolean,
-      default: false,
-    },
-
-
-    disabled: {
-      type: Boolean,
-      default: false,
-    },
 
     size: {
       type: String,
@@ -156,12 +146,7 @@ export default defineComponent({
       type: String,
       default: 'mdi-crosshairs',
     },
-    
-    backgroundColor: {
-      type: String,
-      default: 'black',
-    },
-    
+
     showPermissions: {
       type: Boolean,
       default: false,
@@ -174,7 +159,6 @@ export default defineComponent({
     geolocation: (_payload: GeolocationCoordinates) => true,
     error: (_payload: GeolocationPositionError) => true,
     permission: (_payload: boolean | string) => true,
-    permissionDenied: (_payload: boolean) => true,
   },
   
   data() {
@@ -186,7 +170,6 @@ export default defineComponent({
       loading: false,
       loaded: false,
       emitLocation: false,
-      noPermissionsApi: false,
       counter: 0,
       msg: ''
     };
@@ -201,7 +184,6 @@ export default defineComponent({
     // granted the browser permission to access their location
     if (!navigator.permissions) {
       console.error('Permissions API not supported');
-      this.noPermissionsApi = true;
       this.$emit('permission', 'denied');
       return;
     }
@@ -307,12 +289,8 @@ export default defineComponent({
     },
     
     getLocation() {
-      // Get the users location, and emit and event with
-      // the coordinates or the error
-      console.log(this.showTextProgress, this.showTextLabel, this.useTextButton, this.showCoords, this.hideButton);
       this.emitLocation = true;
       this.geolocate();
-      
     },
     
     debugmsg(msg: string) {

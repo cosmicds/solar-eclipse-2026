@@ -11,7 +11,6 @@
       </div>
       
       <div v-else>
-        <!-- <v-icon size="35">{{ cloudIcon(forecastForHour.cloud_cover) }}</v-icon> -->
          <div>{{  forecastForHour.time }}</div>
         <table class="forecast-table">
           <tbody>
@@ -52,14 +51,9 @@
         <p>
           Forecast powered by <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> using <span v-if="openMeteoApi==='gfs'">NOAA GFS
             (<a href="https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast" target="_blank">Global</a>
-              & <a href="https://rapidrefresh.noaa.gov/hrrr/" target="_blank">HRRR</a>) forecast models. </span> 
+              & <a href="https://rapidrefresh.noaa.gov/hrrr/" target="_blank">HRRR</a>) forecast models. </span>
               <span v-else>the <a href="https://www.ecmwf.int/en/forecasts/datasets/open-data" target="_blank">ECMWF</a> <a href="https://open-meteo.com/en/docs/ecmwf-api" target="_blank">3hr</a> forecast model. </span>
-              <!-- create <a> tag to switch between gfs and ecmwf -->
         </p>
-        <!-- we don't want to use GFS for Europe -->
-        <!-- <p class="mt-2">
-              Use the <a href="" @click.prevent="openMeteoApi = openMeteoApi === 'gfs' ? 'ecmwf' : 'gfs'">{{ openMeteoApi === 'gfs' ? 'ECMWF' : 'NOAA GFS' }}</a> forecast model instead.
-        </p> -->
     </div>
 
   </div>
@@ -228,28 +222,8 @@ export default defineComponent({
     celsiusToFahrenheit(celsius: number) {
       return (celsius * 9 / 5 + 32).toFixed(0);
     },
-    
-    cloudIcon(val: number | null) {
-    
-      if (val == null) {
-        return 'mdi-cloud-cancel';
-      } 
-      else if (val < .25) {
-        return 'mdi-weather-sunny';
-      }
-      else if (val < .5) {
-        return 'mdi-weather-partly-cloudy';
-      } 
-      else if (val < 0.9) {
-        return 'mdi-weather-cloudy';
-      } 
-      else {
-        return 'mdi-clouds';
-      } 
-    },
-    
+
     resetMadeCall() {
-      console.log('resetting madeCall');
       this.madeCall = true;
       setTimeout(() => {
         this.madeCall = false;

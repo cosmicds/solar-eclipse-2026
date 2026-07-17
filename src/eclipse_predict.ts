@@ -51,7 +51,6 @@ TODO:
 
 import { EclipseForm, Observer, SunBSR,BSRArray, EclipseData, NoEclipseData, PartialEclipseData, TotalAnnularEclipseData } from "./eclipse_types";
 import { SE2026 } from "./SE2026";
-// export { EclipseForm, Observer, SunBSR,BSRArray, EclipseData, SE2026 };
 //
 // Observer constants -
 // (0) North Latitude (radians)
@@ -666,36 +665,6 @@ function getall(elements: any) {
   }
 }
 
-function parseFloat(value: string | number) {
-  consoleDebug("parseFloat");
-  return Number(value);
-}
-
-// get the latitude
-function getLatitude() {
-  consoleDebug("getLatitude");
-  let o = eclipseform.latd + eclipseform.latm / 60 + eclipseform.lats / 3600;
-  o = o * eclipseform.latx.options[eclipseform.latx.selectedIndex];
-  return o;
-}
-
-// get the longitude
-function getLongitude() {
-  consoleDebug("getLongitude");
-  let o = eclipseform.lond + eclipseform.lonm / 60 + eclipseform.lons / 3600;
-  o = o * eclipseform.lonx.options[eclipseform.lonx.selectedIndex];
-  return o;
-}
-
-// get the timezone
-function getTimezone() {
-  consoleDebug("getTimezone");
-  let o = eclipseform.tzm.options[eclipseform.tzm.selectedIndex];
-  o = eclipseform.tzh.options[eclipseform.tzh.selectedIndex] + o / 60.0;
-  o = eclipseform.tzx.options[eclipseform.tzx.selectedIndex] * o;
-  return o;
-}
-
 // observer type
 
 // set the observer values
@@ -708,39 +677,6 @@ function setObserver(latDeg: number, lonDeg: number, altm: number, tz: number) {
 }
 
 
-
-//
-// Read the data that's in the form, and populate the obsvconst array
-function readform() {
-  consoleDebug("readform");
-
-  // Write back to the form what we are parsing
-  eclipseform.latd = Math.abs(parseFloat(eclipseform.latd));
-  eclipseform.latm = Math.abs(parseFloat(eclipseform.latm));
-  eclipseform.lats = Math.abs(parseFloat(eclipseform.lats));
-  eclipseform.lond = Math.abs(parseFloat(eclipseform.lond));
-  eclipseform.lonm = Math.abs(parseFloat(eclipseform.lonm));
-  eclipseform.lons = Math.abs(parseFloat(eclipseform.lons));
-  eclipseform.alt = Math.abs(parseFloat(eclipseform.alt));
-
-  // Get the latitude
-  const latDeg = getLatitude();
-
-  // Get the longitude
-  const lonDeg = getLongitude();
-
-  // Get the altitude
-  const alt = parseFloat(eclipseform.alt);
-
-  // Get the time zone
-  const tz = getTimezone();
-
-  // Set the observer
-  setObserver(latDeg, lonDeg, alt, tz);
-
-  // The index of the selected eclipse...
-  //obsvconst[6] = 28 * (parseInt(eclipseform.index.options[eclipseform.index.selectedIndex].value) + 65)
-}
 
 //
 // Get the local date of an event
@@ -823,17 +759,8 @@ function gettime(elements: number[], circumstances: any[]): [string, SunBSR] {
     ans = ans + "0";
   }
   ans = ans + Math.floor(t);
-  // return the full time even if circumstances are b, s, r
+  // return the full time even if circumstances are b, s, r --
   // modern js Date requires a seconds value
-  // if (circumstances[40] <= 1) {
-  //   // not sunrise or sunset
-  //   ans = ans + ":";
-  //   t = t * 60.0 - 60.0 * Math.floor(t);
-  //   if (t < 10.0) {
-  //     ans = ans + "0";
-  //   }
-  //   ans = ans + Math.floor(t);
-  // }
   ans = ans + ":";
   t = t * 60.0 - 60.0 * Math.floor(t);
   if (t < 10.0) {
@@ -879,10 +806,6 @@ function getalt(circumstances: any[]): [number, SunBSR]{
     ans = 1;
   }
   t = Math.floor(t + 0.5);
-  if (t < 10.0) {
-    // don't neet to zero pad
-    // ans = ans + "0";
-  }
   ans = ans * t;
   if (circumstances[40] == 1) {
     // below horizon
@@ -907,14 +830,6 @@ function getazi(circumstances: any[]): number {
     t = t - 360.0;
   }
   t = Math.floor(t + 0.5);
-  if (t < 100.0) {
-    // don't need to zero pad
-    // ans = ans + "0";
-  }
-  if (t < 10.0) {
-    // don't need to zero pad
-    // ans = ans + "0";
-  }
   ans = ans + t;
   if (circumstances[40] == 1) {
     // below horizon
@@ -1114,11 +1029,6 @@ function calculatefor(el: number[]) {
 
 
 
-function recalculate() {
-  readform();
-  const result = calculatefor(SE2026());
-}
-
 const DEBUG = false;
 // create a wrapper for console.log with
 function consoleDebug(...data: any[]) {
@@ -1126,8 +1036,6 @@ function consoleDebug(...data: any[]) {
     console.log(...data);
   }
 }
-
-// recalculate();
 
 // the reads in data using the convention of the original form, and returns strings for the time.
 export function recalculateForObserver(latDeg: number, latDir: 'N' | 'S', lonDeg: number, lonDir: 'E' | 'W', alt: number, tz: number = 0, tzDir: 'W' | 'E' = 'W') {

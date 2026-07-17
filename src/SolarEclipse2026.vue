@@ -24,7 +24,7 @@
       @activate="onResize"
     >
     <template v-slot:button>
-      <font-awesome-icon icon="chevron-down" size="lg" class="bullet-icon"/> Map & Weather
+      <font-awesome-icon icon="chevron-down" size="lg" class="bullet-icon"/> Path & Weather
     </template>
   </icon-button>
   </div>
@@ -165,9 +165,7 @@
             
           </div>
         </div>
-      <!-- </toggle-content> -->
         <div id="button-row" class="non-map-row">
-          <!-- <v-col> -->
             <div id="top-container-buttons">
               <icon-button
                 :model-value="learnerPath == 'Location'"
@@ -194,7 +192,6 @@
                 @activate="() => { learnerPath = 'Clouds'}"
               ></icon-button>
             </div>
-          <!-- </v-col> -->
         </div>
       </div>
       <div
@@ -464,7 +461,6 @@
                   </div>
                 </div>
               <figure>
-                <!-- <v-img src="https://www.nasa.gov/sites/default/files/thumbnails/image/tsis_eclipse-1.gif"></v-img> -->
                 <gif-play-pause startPaused :gif='require("./assets/eclipse.gif")' :still='require("./assets/eclipse_static.gif")' alt="Animated schematic of a solar eclipse showing how the Moon moves between the Sun and Earth."/>
                 <figcaption>Image credit: NASA Goddard / Katy Mersmann</figcaption>
                 <div class="disclaimer">Not to scale</div>
@@ -776,7 +772,7 @@
           </div>
 
           <div id="location-secondary-row">
-            <!-- Mobile-only replacement for the old text "Map & Weather"
+            <!-- Mobile-only replacement for the old text "Path & Weather"
                  button -- desktop keeps that button as its own separate
                  standalone control (#closed-top-container). -->
             <icon-button
@@ -856,40 +852,6 @@
           ></geolocation-button>
         </div>
       </div>
-      <!-- <div id="mobile-zoom-control"> -->
-        <!-- {{ Math.round(Math.pow(10, userZoom)*100)/100 }} -->
-        <!-- <div class="slider-padding">
-          <v-icon>mdi-magnify-plus</v-icon>
-        </div>
-        <vue-slider 
-          v-model="userZoom"
-          direction="ttb"
-          :min="1"
-          :max="Math.round(Math.log10(360)*100)/100"
-          :interval=".01"
-          :color="accentColor"
-          :tooltip="'none'"
-          :duration="0"
-          :height="wwtContentHeight ? `${0.5 * wwtContentHeight}px` : '200px'"
-          :process-style="{ backgroundColor: 'rgb(255 193 203)' }"
-          :dot-style="{ backgroundColor: accentColor, borderColor: 'black'}"
-          ></vue-slider>
-        <div class="slider-padding">
-          <v-icon>mdi-magnify-minus</v-icon>
-        </div>
-      </div> -->
-        <!-- <v-dialog
-          scrim="false"
-          v-model="showMyLocationDialog"
-          max-width="400px"
-          id="mylocation-popup-dialog"
-        >
-          <v-card>
-            <v-card-text>
-              Fetching your location...
-            </v-card-text>
-          </v-card>
-        </v-dialog> -->
     </div>
 
 
@@ -1002,15 +964,6 @@
             <template v-else>Control time yourself!</template>
           </div>
         </div>
-        <!-- <div id="instructions-close-button">
-          <v-icon 
-            :size="Math.max(0.1 * $vuetify.display.width, 20)" 
-            @click="inIntro = !inIntro"
-            icon="mdi-gesture-tap-button"
-            >
-          </v-icon>
-          Tap to close
-        </div> -->
       </div>
     </v-overlay>
 
@@ -1059,7 +1012,7 @@
                 <p class="mb-3">
                 Access these features in  
                 </p> 
-                <span class="px-2 py-1 my-2 mr-1" style="border: 1px solid #eac402; border-radius: 1em; color:#eac402; white-space: nowrap">Map & Weather</span>
+                <span class="px-2 py-1 my-2 mr-1" style="border: 1px solid #eac402; border-radius: 1em; color:#eac402; white-space: nowrap">Path & Weather</span>
               </div>
               <p v-else class="mb-3">
                 In this interactive page you can:
@@ -1592,8 +1545,7 @@ import { defineComponent, toRaw, PropType } from "vue";
 import { MiniDSBase, BackgroundImageset, skyBackgroundImagesets, API_BASE_URL, UserExperienceRating } from "@cosmicds/vue-toolkit";
 import { GotoRADecZoomParams } from "@wwtelescope/engine-pinia";
 import { Classification, SolarSystemObjects } from "@wwtelescope/engine-types";
-import { Folder, Grids, LayerManager, Planets, Poly, Settings, WWTControl, Place, Texture, CAAMoon } from "@wwtelescope/engine";
-import { distance } from "@wwtelescope/astro";
+import { Grids, LayerManager, Planets, Poly, Settings, WWTControl, Place, Texture, CAAMoon } from "@wwtelescope/engine";
 import { Annotation2, Poly2 } from "./Annotation2";
 
 import { getTimezoneOffset, formatInTimeZone } from "date-fns-tz";
@@ -1613,12 +1565,6 @@ interface CloudData {
   lon: number;
   cloudCover: number;
 }
-
-// interface CloudCoverData {
-//   [key: string]: CloudData[];
-// }
-
-
 
 type SheetType = "text" | null;
 type LearnerPath = "Location" | "Clouds" | 'CloudDetail' | "Learn";
@@ -1662,16 +1608,10 @@ export interface MapBoxContextItem {
 // instead of eclipse start/end times this shouldj ust be 24 hours
 const eclipseStartTime = Date.UTC(2026, 7, 12, 4, 1); // partial eclipse starts at 15:40 UTC
 const eclipseFinishTime = Date.UTC(2026, 7, 13, 3, 59); // partial eclipse ends at  20:55 UTC
-console.log("Eclipse start time", new Date(eclipseStartTime));
-console.log("Eclipse finish time", new Date(eclipseFinishTime));
 const extraTime = 1000 * 60 * 60 * 0; // add 2 hours to the end time to make sure we get the full eclipse
 const minTime = eclipseStartTime - extraTime;
 const maxTime = eclipseFinishTime + extraTime;
-console.log("Min time",new Date(minTime).toISOString());
-console.log("Max time", new Date(maxTime).toISOString());
-// if current time is between min and max time
 const onDayOfEclipse = (Date.now() >= minTime) && (Date.now() <= maxTime);
-// within 15 days of the start date
 const withinForecastRange = (Date.now() >= (eclipseStartTime - 1000 * 60 * 60 * 24 * 15)) && (Date.now() <= (eclipseStartTime + 1000 * 60 * 60 * 24 * 2));
 const SECONDS_PER_DAY = 60 * 60 * 24;
 const MILLISECONDS_PER_DAY = 1000 * SECONDS_PER_DAY;
@@ -1725,74 +1665,6 @@ const RELEVANT_FEATURE_TYPES = ["postcode", "place", "region", "country"];
 const NA_COUNTRIES = ["United States", "Canada", "Mexico"];
 const NA_ABBREVIATIONS = ["US-", "CA-", "MX-"];
 
-import { dsvFormat } from "d3-dsv";
-import { eclipse } from "./eclipse_path";
-
-function parseLatLon(latD: string, latM: string, lonD: string, lonM: string): LocationDeg {
-
-  const lat = +latD;
-  // split off last character of latM as N/S
-  const latSign = latM.slice(-1) === "N" ? 1 : -1;
-  const latMin = +latM.slice(0, -1);
-  const latDeg = latSign * (lat + latMin / 60);
-  
-  const lon = +lonD;
-  // split off last character of lonM as W/E
-  const lonSign = lonM.slice(-1) === "E" ? 1 : -1;
-  const lonMin = +lonM.slice(0, -1);
-  const lonDeg = lonSign * (lon + lonMin / 60);
-  
-  return {
-    latitudeDeg: latDeg,
-    longitudeDeg: lonDeg
-  };
-}
-
-function parseEclipsePath(csv: string) {
-  const tsv = dsvFormat('|');
-
-  return tsv.parseRows(csv, (d) => {
-    // parse rows based on space delimieted eclipse_path.txt
-
-    const utcString = d[1].split(':');
-    const utc = new Date(eclipseStartTime);
-    utc.setUTCHours(+utcString[0]);
-    utc.setUTCMinutes(+utcString[1]);
-    utc.setUTCSeconds(0);
-    utc.setUTCMilliseconds(0);
-    
-    
-    const northernLimit = parseLatLon(d[2], d[3], d[4], d[5]);
-    const southernLimit = parseLatLon(d[6], d[7], d[8], d[9]);
-    const centerLine = parseLatLon(d[10], d[11], d[12], d[13]);
-    const ratio = +d[14];
-    const sunAlt = +d[15];
-    const sunAz = +d[16];
-    const pathWidth = +d[17];
-    const eclipseDuration = d[18];
-    // content for the popup : eclipse time (UTC) and duration
-    const tz = tzlookup(centerLine.latitudeDeg, centerLine.longitudeDeg);
-    const localTimeString = formatInTimeZone(utc.getTime(), tz, "h:mm aa (zzz)");
-    const popupContent = `Eclipse time (local): ${localTimeString} <br/>Eclipse time (UTC): ${d[1]} <br/>Duration: ${eclipseDuration}`;
-    
-    return {
-      'utc': utc.getTime(),
-      'northernLimit': northernLimit,
-      'southernLimit': southernLimit,
-      'centerLine': centerLine,
-      'ratio': ratio,
-      'sunAlt': sunAlt,
-      'sunAz': sunAz,
-      'pathWidth': pathWidth,
-      'eclipseDuration': eclipseDuration,
-      'popupContent': popupContent
-    };
-    
-  });
-}
-
-const eclipsePath = parseEclipsePath(eclipse);
-
 
 /** PARSE CLOUD COVERAGE DATA **/
 import cloudCover from "./assets/cloud_cover.csv";
@@ -1845,7 +1717,6 @@ export default defineComponent({
       type: String,
       required: true
     },
-    // http://localhost:8081/?lat=42.243208914562764&lon=-3.9245888745091406
     initialCameraParams: {
       type: Object as PropType<Omit<GotoRADecZoomParams, 'instant'>>,
       default() {
@@ -1919,8 +1790,7 @@ export default defineComponent({
     return {
 
       showForecastSheet: false,
-      
-      selectedCloudCoverVariable: 'median', // Define selectedCloudCoverVariable
+
       cloudCoverData: cloudDataArray as CloudData[],
       rectangleDegrees: Math.abs(dLat),
       
@@ -1958,20 +1828,13 @@ export default defineComponent({
       sheet: null as SheetType,
       layersLoaded: false,
       positionSet: false,
-      imagesetFolder: null as Folder | null,
 
       wwtMove: null as ((x: number, y: number) => void) | null,
 
       searchOpen: true,
       searchText: null as string | null,
-      searchResults: null as MapBoxFeatureCollection | null,
       searchErrorMessage: null as string | null,
-      locationJustUpdated: false,
 
-      showMapTooltip: false,
-      showTextTooltip: false,
-      showMapSelector: false,
-      showLocationSelector: false,
       getMyLocation: true,
       myLocation: null as LocationDeg | null,
       geolocationPermission: '' as 'granted' | 'denied' | 'prompt',
@@ -1980,19 +1843,14 @@ export default defineComponent({
       // (showInfoSheet), rather than two separately-toggled sheets.
       infoTab: 0,
       showAdvancedWeather: queryData.awv ?? false,
-      showAWVMapByDefault: queryData.awv ?? false,
-      showAWVChartsByDefault: queryData.awv ?? false,
-      showAWVFullScreen: false,
-      
+
       showEclipsePredictionSheet: false,
 
-      
-      selectionProximity: 4,
+
       pointerMoveThreshold: 6,
       isPointerMoving: false,
       pointerStartPosition: null as { x: number; y: number } | null,
 
-      // "Greatest Eclipse"
       totalEclipseTimeUTC,
       // Captured once here so the reset button can return to this exact
       // value later, rather than independently recomputing the same
@@ -2004,22 +1862,11 @@ export default defineComponent({
       defaultLocation,
       selectedLocationText: defaultLocationText,
       defaultLocationText,
-      locationErrorMessage: "",
-            
+
       syncDateTimeWithWWTCurrentTime: true,
-      syncDateTimewithSelectedTime: true,
 
       sunOffset: null as { x: number; y: number } | null,
 
-      presetMapOptions: {
-        templateUrl: "https://watercolormaps.collection.cooperhewitt.org/tile/watercolor/{z}/{x}/{y}.jpg",
-        minZoom: 1,
-        maxZoom: 16,
-        attribution: 'Maptiles by Stamen Design, under <a target="_blank" href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a target="_top" href="https://www.openstreetmap.org/#map=4/38.01/-95.84">OpenStreetMap</a>, under <a target="_top" href="http://creativecommons.org/licenses/by-sa/2.0">CC BY-SA 2.0</a>',
-        ext: 'jpg',
-        ...initialView
-      },
-      
       initialMapOptions,
 
       userSelectedMapOptions: {
@@ -2028,8 +1875,7 @@ export default defineComponent({
         attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
         ...(queryData ? { ...queryData, initialZoom: 5 } : initialView)
       },
-      
-      eclipseCenterLine: eclipsePath,
+
       currentFractionEclipsed: 0,
 
       placeCircleOptions: {
@@ -2050,7 +1896,6 @@ export default defineComponent({
       visitedCloudCover: false,
       
       playing: false,
-      playingIntervalId: null as ReturnType<typeof setInterval> | null,
       playingWaitCount: 0,
 
       activePointer: false,
@@ -2058,9 +1903,7 @@ export default defineComponent({
       sunCenteredTracking: true,
       showAltAzGrid: false,
       showHorizon: true,
-      showTextSheet: false, 
-      showLinkToPath: false, 
-      
+
       toggleTrackSun: true,
       
       times,
@@ -2110,7 +1953,6 @@ export default defineComponent({
       viewerMode: 'Horizon' as ViewerMode,
 
       showSky: true,
-      skyColorNight: "#1F1F1F",
       skyColorLight: "#4190ED",
       skyColor: "#4190ED",
       skyOpacity: 0.6,
@@ -2124,9 +1966,7 @@ export default defineComponent({
       maxPlaybackRate: MAX_PLAYBACK_RATE,
       
       horizonRate: 500,
-      scopeRate: 100, 
-
-      startPaused: false,
+      scopeRate: 100,
 
       sunPlace,
       moonPlace,
@@ -2143,10 +1983,6 @@ export default defineComponent({
           url: "https://raw.githubusercontent.com/johnarban/wwt_interactives/refs/heads/main/images/center_2026.json",
           style: {color: '#ff0000', weight: 1, opacity: 1, fillOpacity: 0}
         },
-        // { // individual places
-        //   'geojson': _eclipsePathGeoJson as GeoJSON.FeatureCollection,
-        //   'style': {radius:3,fillColor: '#ccc', color:'#222', weight: 2, opacity: 1, fillOpacity: 1}
-        // }
       ],
       
 
@@ -2159,9 +1995,7 @@ export default defineComponent({
       eclipseStart: 0 as number | null,
       eclipseMid: 0 as number | null,
       eclipseEnd: 0 as number | null,
-      eclipseApproach: 'entering' as 'entering' | 'leaving',
       eclipseType: null as "Partial" | "Total" | "Annular" | 'None' | null,
-      showEclipseTimer:true,
     };
   },
 
@@ -2201,7 +2035,6 @@ export default defineComponent({
 
       this.backgroundImagesets = [...skyBackgroundImagesets];
 
-      // console.log(this);
       this.setTime(this.dateTime);
 
       this.wwtSettings.set_localHorizonMode(true);
@@ -2255,7 +2088,6 @@ export default defineComponent({
       /* eslint-disable @typescript-eslint/no-var-requires */
       Planets['_planetTextures'][0] = Texture.fromUrl(require("./assets/2023-09-19-SDO-Sun.png"));
       this.setForegroundImageByName("Digitized Sky Survey (Color)");
-      // this.setBackgroundImageByName("Black Sky Background");
       this.setForegroundOpacity(100);
 
       // The initial Moon position is incorrect, and we use it to set the Moon sprite.
@@ -2264,25 +2096,21 @@ export default defineComponent({
       this.updateMoonTexture(true);
 
       this.updateWWTLocation();
-      
-      // this.setClockSync(!queryData.splash); // set to true if queryData.splash == false
-      // this.playing = !queryData.splash;
+
       this.setClockSync(false);
       this.playing = false;
 
       this.setClockRate(1); //
 
       this.playbackRate = 1;  //this.setplaybackRate('8 minutes per second'); // 500;
-      
-      // If there are layers to set up, do that here!
+
       this.layersLoaded = true;
 
       this.startHorizonMode();
 
       this.trackSun().then(() => this.positionSet = true);
       this.getEclipsePrediction();
-      // this.setTimeforSunAlt(10); // 10 degrees above horizon
-      
+
       setInterval(() => {
         if (this.playing) {
           const time = this.wwtCurrentTime;
@@ -2407,15 +2235,6 @@ export default defineComponent({
       return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MMMM d, yyyy');
     },
     
-    selectedLocaledTimeDateString() {
-      if (this.smallSize) {
-        return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MM/dd, h:mm:ss aa');
-      } else {
-        return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MM/dd/yyyy h:mm:ss aa (zzz)');
-      }
-
-    },
-    
     selectedLocationCloudCover(): number | null {
       if (this.locationDeg) {
         return this.getCloudCover(this.locationDeg.latitudeDeg, this.locationDeg.longitudeDeg);
@@ -2441,14 +2260,6 @@ export default defineComponent({
       else {
         return 'mdi-clouds';
       } 
-    },
-    
-    selectedLocationCloudCoverString():string {
-      if (this.selectedLocationCloudCover !== null) {
-        return `Hist Cld Cvr: ${(this.selectedLocationCloudCover * 100).toFixed(0)}%`;
-      }
-      return "Outside Range";
-
     },
     
     myLocationToolTip() {
@@ -2563,11 +2374,6 @@ export default defineComponent({
       const basis = `${this.nonMapContainerWidthPercent}%`;
       return { flexBasis: basis, flexGrow: 0, flexShrink: 0 };
     },
-    forwardGeocodingCss() {
-      return {
-        '--fg-container-padding': this.searchOpen ? '5px 10px 12px 10px' : '0px',
-      };
-    },
     wwtControl(): WWTControl {
       return WWTControl.singleton;
     },
@@ -2576,24 +2382,6 @@ export default defineComponent({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       return Settings.get_active();
-    },
-    // dontSetTime(): boolean {
-    //   return this.selectedTime %MILLISECONDS_PER_DAY !== 0;
-    // },
-    
-    userZoom: {
-      get(): number {
-        return Math.round(Math.log10(this.wwtZoomDeg)*100)/100;
-      },
-      set(value: number) {
-        this.gotoRADecZoom({
-          raRad: this.wwtRARad,
-          decRad: this.wwtDecRad,
-          zoomDeg: Math.pow(10,value),
-          rollRad: 0,
-          instant: true
-        });
-      }
     },
     
     wwtContentHeight(): number | null {
@@ -2633,16 +2421,6 @@ export default defineComponent({
       }
     },
 
-    tickDurationMS(): number {
-      return MILLISECONDS_PER_INTERVAL / (this.playbackRate);
-    },
-
-    // maxPlaybackRate(): number {
-    //   const minDuration = 10; //min setInterval on Chrome is ~5ms
-    //   // console.log('maxPlaybackRate', MILLISECONDS_PER_INTERVAL / minDuration);
-    //   return MILLISECONDS_PER_INTERVAL / minDuration;
-    // },
-    
     sunPosition(): EquatorialRad & HorizontalRad {
       const sunAltAz = this.equatorialToHorizontal(this.sunPlace.get_RA() * 15 * D2R,
         this.sunPlace.get_dec() * D2R,
@@ -2693,15 +2471,10 @@ export default defineComponent({
       },
 
       get(): boolean {
-        // do something more useful later
         return this.toggleTrackSun;
       }
     },
 
-    defaultRate(): number {
-      return this.viewerMode === 'Horizon' ? this.horizonRate : this.scopeRate;
-    },
-    
     inEclipse(): boolean | null {
       if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null) {
         return this.wwtCurrentTime.getTime() >= this.eclipseStart && this.wwtCurrentTime.getTime() <= this.eclipseEnd;
@@ -2710,7 +2483,6 @@ export default defineComponent({
       }
     },
     
-    // before during or after the eclipse
     eclipsePhase(): 'before' | 'during' | 'after' | null {
       if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null) {
         if (this.wwtCurrentTime.getTime() < this.eclipseStart) {
@@ -2751,7 +2523,6 @@ export default defineComponent({
     },
     
     locationInTotality() {
-      // check if the location is within eclipseUmbra path
       const location = this.locationDeg;
       const poly = eclipseUmbra.geometries[0].coordinates[0];
       const point = [location.longitudeDeg, location.latitudeDeg];
@@ -2830,23 +2601,10 @@ export default defineComponent({
 
     },
     
-    scrollToTop() {
-      const element = document.getElementById("guided-content-container");
-      if (element) {
-        if (this.scrollUp) {
-          element.scrollTo({ top: 0 });
-        } else {
-          element.scrollTo({ top: element.scrollHeight });
-        }
-      }
-    },
-    
-
     sigmoid(val: number | null): number {
       if (val === null) {
         return 0;
       }
-      // return sigmoid
       const y = (val - 0.5) / .12;
       const z = Math.exp(y);
       return z / (1 + z);
@@ -2905,17 +2663,6 @@ export default defineComponent({
       } else {
         return test >= lower || test <= upper;
       }
-    },
-    
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    greatCircleDistance(coord1: { RA: number; dec: number; }, coord2: { RA: number; dec: number; }): number {
-      const ra1 = coord1.RA * 15 * D2R;
-      const dec1 = coord1.dec * D2R;
-      
-      const ra2 = coord2.RA * 15 * D2R;
-      const dec2 = coord2.dec * D2R;
-      
-      return distance(ra1, dec1, ra2, dec2);
     },
     
     updateIntersection() {
@@ -3160,7 +2907,6 @@ export default defineComponent({
     updateMoonTexture(force=false) {
       let filename: MoonImageFile = "moon.png";
       if (!this.useRegularMoon) {
-        // Are we even using showSky?
         const blueMoon = (this.showHorizon && this.showSky) &&
                           this.moonPosition.altRad > 0 ;
         if (!blueMoon) {
@@ -3183,53 +2929,7 @@ export default defineComponent({
       }
     },
 
-    clearPlayingInterval() {
-      if (this.playingIntervalId !== null) {
-        clearInterval(this.playingIntervalId);
-        this.playingIntervalId = null;
-      }
-    },
-
-    moveOneIntervalForward() {
-      this.selectedTime += MILLISECONDS_PER_INTERVAL;
-    },
-
-    moveOneIntervalBackward() {
-      this.selectedTime -= MILLISECONDS_PER_INTERVAL;
-    },
-
-    toUTCDateString(date: Date) {
-      // date = new Date(date.getTime() + this.selectedTimezoneOffset) // ignore timezone
-      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
-    },
-
-    toUTCTimeString(date: Date) {
-      const minutes = date.getUTCMinutes();
-      const minuteString = minutes < 10 ? `0${minutes}` : `${minutes}`;
-      // get am pm
-      const ampm = date.getUTCHours() < 12 ? "AM" : "PM";
-      return `${date.getUTCHours()}:${minuteString} ${ampm}`;
-    },
-
-    toLocaleDateString(date: Date) {
-      date = new Date(date.getTime() + this.selectedTimezoneOffset);
-      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
-    },
-
-    toLocaleTimeString(date: Date) {
-      date = new Date(date.getTime() + this.selectedTimezoneOffset);
-      const minutes = date.getUTCMinutes();
-      const minuteString = minutes < 10 ? `0${minutes}` : `${minutes}`;
-      // get am pm
-      const ampm = date.getUTCHours() < 12 ? "AM" : "PM";
-      // get the 12hr time
-      const hours = date.getUTCHours() % 12;
-      
-      return `${hours != 0 ? hours : 12}:${minuteString} ${ampm}`;
-    },
-
     toTimeString(date: Date | null, seconds = false, utc = false) {
-      // return this.toLocaleTimeString(date);
       if (date === null) {
         return "";
       }
@@ -3314,12 +3014,6 @@ export default defineComponent({
           this.userSelectedLocations.push(visitedLocation);
         }
       }
-    },
-
-    onTimeSliderChange() {
-      this.$nextTick(() => {
-        this.updateFrontAnnotations(this.dateTime);
-      });
     },
 
     async createUserEntry() {
@@ -3465,18 +3159,6 @@ export default defineComponent({
       });
     },
 
-    logLocation() {
-      // console.log(this.location.latitudeRad * R2D, this.location.longitudeRad * R2D);
-    },
-    
-    logPosition() {
-      // console.log(this.wwtRARad * R2D, this.wwtDecRad * R2D);
-    },
-
-    printUTCDate(date: Date) {
-      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()} ${date.getUTCHours()}:${date.getUTCMinutes()}:${date.getUTCSeconds()}`;
-    },    
-
     selectSheet(name: SheetType) {
       if (this.sheet === name) {
         this.sheet = null;
@@ -3566,8 +3248,6 @@ export default defineComponent({
       if (ra > 360) {
         ra -= 360;
       }
-      // ra -= 180;
-      // console.log(`Alt: ${(altRad*R2D).toFixed(2)} Az: ${(azRad*R2D).toFixed(2)} Ra: ${ra.toFixed(2)} Dec: ${(haDec.dec*R2D).toFixed(2)}`)
 
       return { raRad: D2R * ra, decRad: haDec.dec };
     },
@@ -3632,14 +3312,12 @@ export default defineComponent({
 
     createSky(when: Date | null = null) {
       const color = this.skyColor || '#4190ED';
-      // const opacity = 0.5;
       const date = when || this.dateTime || new Date();
 
       // The initial coordinates are given in Alt/Az, then converted to RA/Dec
       // Use N annotations to cover below the horizon
       const n = 6;
       const delta = 2 * Math.PI / n;
-      // const delta = 360/n;
       for (let i = 0; i < n; i++) {
         let points: [number, number][] = [
           [0, i * delta],
@@ -3703,8 +3381,6 @@ export default defineComponent({
         this.setTime(this.dateTime);
       }
       this.updateFrontAnnotations(this.dateTime);
-      // check if the time is within the range of the eclipse
-      // }
     },
 
     updateFrontAnnotations(when: Date | null = null) {
@@ -3737,7 +3413,6 @@ export default defineComponent({
     },
     
     onResize() {
-      // get height of #guided-content-container
       this.$nextTick(() => {
         this.updateGuidedContentHeight();
       });
@@ -4014,13 +3689,11 @@ export default defineComponent({
     },
 
     startHorizonMode() {
-      // turn on local horizon mode
       this.wwtSettings.set_localHorizonMode(true);
       this.showAltAzGrid = false;
       this.skyColor = this.skyColorLight;
       this.showHorizon = true; // automatically calls its watcher and updates horizon
       this.horizonOpacity = 1;
-      // this.setForegroundImageByName("Digitized Sky Survey (Color)");
       this.sunPlace.set_zoomLevel(20);
       this.gotoTarget({
         place: this.sunPlace,
@@ -4029,7 +3702,6 @@ export default defineComponent({
         trackObject: this.toggleTrackSun
       });
       this.playbackRate = this.horizonRate;
-      // console.log('=== startHorizonMode ===');
       return;
     },
   
@@ -4045,7 +3717,6 @@ export default defineComponent({
       // start at 12:00am and search every MINUTES_PER_INTERVAL
       const minTime = this.selectedTime - (this.selectedTime % MILLISECONDS_PER_DAY) - this.selectedTimezoneOffset;
       const maxTime = minTime + MILLISECONDS_PER_DAY;
-      // const ehr = this.eclipticHorizonAngle(this.location.latitudeRad, this.dateTime);
       let time = minTime;
       let sunAlt = this.getSunAltitudeAtTime(new Date(time)).altRad; // negative
       // find the two times it crosses the given altitude
@@ -4068,8 +3739,6 @@ export default defineComponent({
     
     setTimeforSunAlt(altDeg: number) {
       const out = this.getTimeforSunAlt(altDeg);
-      // console.log("rise", this.toLocaleDateString(new Date(out.rising as number)) + " " + this.toLocaleTimeString(new Date(out.rising as number)));
-      // console.log("set", this.toLocaleDateString(new Date(out.setting as number)) + " " + this.toLocaleTimeString(new Date(out.setting as number)));
       if (out.rising == null && out.setting == null) {
         return;
       }
@@ -4091,7 +3760,6 @@ export default defineComponent({
       } else {
         console.log("time not in times array");
         // best to leave it alone so it doesn't jump around
-        // this.selectedTime = Math.max(minTime, Math.min(newTime, maxTime));
       }
       
 
@@ -4099,7 +3767,6 @@ export default defineComponent({
 
     updateSkyOpacityForSunAlt(altRad: number) {
       const _civilTwilight = -6 * D2R;
-      // const _nauticalTwilight = 2 * _civilTwilight;
       const astronomicalTwilight = 3 * _civilTwilight;
       
       const sunAlt = altRad;
@@ -4144,7 +3811,6 @@ export default defineComponent({
     },
 
     getCloudCover(lat: number, lon: number): number | null {
-      // convert lat/lon to row/col
       const d = this.rectangleDegrees;
       console.log(d, maxLat, minLon, lat, lon);
       const row = Math.round((maxLat - lat) / d);
@@ -4402,10 +4068,6 @@ export default defineComponent({
       }
     },
     
-    cssVars(_css: unknown) {
-      // console.log(_css);
-    },
-    
     responseOptOut(optOut: boolean) {
       window.localStorage.setItem(OPT_OUT_KEY, String(optOut));
       if (optOut) {
@@ -4459,10 +4121,6 @@ export default defineComponent({
       this.updateForDateTime();
     },
 
-    selectedTime(_time: number) {
-      return;
-    },
-    
     nearTotality(near: boolean, oldNear: boolean) {
       if (near) {
         this.forceRate = (Math.abs(this.playbackRate) > 10) && this.playing;
@@ -4509,7 +4167,6 @@ export default defineComponent({
 
       this.selectedTimezone = tzlookup(...locationDeg);
       this.playing = false;
-      // this.sunOffset = null;
       this.updateWWTLocation();
 
       // We need to let the location update before we redraw the horizon and overlay
@@ -4519,9 +4176,7 @@ export default defineComponent({
       this.updateFrontAnnotations();
 
 
-      if (this.trackingSun) {
-        //this.centerSun();
-      } else {
+      if (!this.trackingSun) {
         this.trackSunOffset();
       }
     },
@@ -4669,8 +4324,6 @@ export default defineComponent({
     },
 
     sunAboveHorizon(isAbove: boolean) {
-      // console.log(`The sun is ${isAbove ? 'above' : 'below'} the horizon`);
-      // this.showSky = isAbove; // just turn it off
       this.horizonOpacity = isAbove ? 1 : 0.85;
     },
 
@@ -4681,7 +4334,6 @@ export default defineComponent({
     },
     
     currentFractionEclipsed(_frac: number) {
-      // this.skyOpacity = 1 - frac;
       this.updateSkyOpacityForSunAlt(this.sunPosition.altRad);
       this.updateFrontAnnotations();
     },
@@ -4873,13 +4525,9 @@ body {
 
 #main-content {
   position: relative;
-  // top: var(--top-content-height);
   width: 100%;
   height: calc(var(--app-content-height) - var(--top-content-height) - 1px);
   overflow: hidden;
-  // border: 2px solid blue;
-
-  // transition: height 0.1s ease-in-out;
   .icon-wrapper {
     -webkit-user-select:none;
     -moz-user-select:none;
@@ -4934,12 +4582,8 @@ body {
 
   .wwtelescope-component {
     position: relative;
-    // top: 0;
     width: 100%;
     height: 100%;
-    // border-style: none;
-    // border-width: 0;
-    // border: 3px solid red;
     overflow: hidden;
     margin: 0;
     padding: 0;
@@ -4991,44 +4635,6 @@ body {
   }
 }
 
-#modal-readytostart {
-  cursor: pointer;
-  color: #999;
-
-  &:hover {
-    color: #2aa5f7;
-  }
-
-  div {
-    margin: 0;
-    padding: 0;
-    background-image: url("https://projects.cosmicds.cfa.harvard.edu/cds-website/logos/wwt_globe_bg.png");
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-    width: 20rem;
-    height: 20rem;
-    max-width: 70%;
-    max-height: 70%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .icon {
-      width: 60%;
-      height: 60%;
-      margin-left: 14%;
-      margin-top: 3%;
-    }
-  }
-}
-
-.pointer {
-  cursor: pointer;
-}
-
-// these are now in #top-content
-
 // Top-left cluster: location label + eclipse-timer button, positioned
 // under the info+map container rather than overlapping its top edge.
 #left-buttons-wrapper {
@@ -5055,7 +4661,7 @@ body {
     left: 0.5rem;
 
     @media (max-width: 599px) {
-      // No standalone Map & Weather button to clear on mobile (it's
+      // No standalone Path & Weather button to clear on mobile (it's
       // hidden there -- see #closed-top-container) -- align with the
       // top-right button cluster's own closed-state offset instead.
       top: calc(var(--default-font-size) + 1px);
@@ -5172,23 +4778,6 @@ body {
   }
 }
 
-.top-content {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: calc(100% - 2rem);
-  pointer-events: none;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 10px;
-
-  #center-buttons {
-    display: flex;
-    flex-direction: row;
-  }
-}
-
 .bottom-content {
   display: flex;
   flex-direction: column;
@@ -5208,14 +4797,6 @@ body {
   color: #fff;
   width: 100%;
   gap: 5px;
-
-  .opacity-range {
-    width: 50vw;
-  }
-
-  .clickable {
-    cursor: pointer;
-  }
 
   select {
     background: white;
@@ -5314,10 +4895,6 @@ body {
   }
 }
 
-#show-controls {
-  color: var(--accent-color);
-}
-
 #text-credits {
   margin-block: 1rem;
   width: 100%;
@@ -5332,13 +4909,6 @@ body {
     margin-top: 0.6rem;
     margin-bottom: 0.3rem;
   }
-}
-
-#left-buttons, #right-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  pointer-events: auto;
 }
 
 #splash-overlay {
@@ -5686,11 +5256,6 @@ body {
       font-size: calc(1.2 * var(--default-font-size));
     }
 
-    .user-guide-emphasis {
-      color: var(--accent-color);
-      font-weight: bold;
-    }
-
     .user-guide-emphasis-white {
       font-weight: bold;
     }
@@ -5712,8 +5277,8 @@ body {
   // Flush against the card's own corner left no room for the oreo focus
   // ring, which got clipped by the card's own overflow on the top/right
   // edges. Inset it slightly instead.
-  top: 12px;
-  right: 12px;
+  top: 6px;
+  right: 6px;
   z-index: 1;
   // At least Apple/Google's recommended ~44px minimum touch target —
   // the icon itself is much smaller, but the tap target shouldn't be.
@@ -5822,10 +5387,23 @@ body {
 }
 
 #slider {
-  width: 100% !important;
-  margin-left: 5px;
-  margin-right: 0;
+  // The time label (.v-slider-thumb__label) is centered on the thumb and
+  // stays put at min-width: fit-content -- when the thumb sits at either
+  // end of the track, half the label's width extends past the track's own
+  // edge. Without side margin here, that overhang runs off the edge of
+  // the screen instead of just the track. Width has to shrink by the same
+  // amount the margins add, since a flex item's own `width` isn't reduced
+  // automatically to make room for its margins.
+  width: calc(100% - 11rem) !important;
+  margin-left: 5.5rem;
+  margin-right: 5.5rem;
   position: relative;
+
+  @media (max-width: 600px) {
+    width: calc(100% - 9rem) !important;
+    margin-left: 4.5rem;
+    margin-right: 4.5rem;
+  }
 }
 
 .v-container {
@@ -5911,7 +5489,6 @@ body {
       font-size: min(3vw, 1.75vh);
   }
 
-  --map-max-height: var(--top-content-max-height); // Keep this about 3 smaller than above // not used any more
   --container-padding: 0.5rem;
   position: relative;
   margin: var(--margin);
@@ -5948,24 +5525,6 @@ body {
     border-radius: 0.25em;;
   }
   
-  #scrollButton-button {
-    position: fixed;
-    top: calc(var(--top-content-height) - 2.5rem);
-    right: 1rem;
-    z-index: 1000;
-  }
-
-  #non-map-container {
-    flex-basis: 100%;
-    min-width: 0;
-    @media (max-width: 600px) {
-      flex: 0 0 auto;
-    }
-    @media (min-width: 960px) {
-      flex: 0 1 38%;
-    }
-  }
-
   #map-column {
     flex-basis: 100%;
 
@@ -6043,8 +5602,14 @@ body {
 
   #non-map-container { // Keep content away from the x to close
     height: 100%;
+    flex-basis: 100%;
+    min-width: 0;
     @media (max-width: 600px) {
       height: auto;
+      flex: 0 0 auto;
+    }
+    @media (min-width: 960px) {
+      flex: 0 1 38%;
     }
     --padding-left: 0.5rem;
     // @media (max-width: 600px) {
@@ -6052,7 +5617,7 @@ body {
     // }
     padding-left: var(--padding-left);
     padding-right: calc(var(--padding-left) + var(--container-padding));
-    
+
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -6071,7 +5636,6 @@ body {
 
   }
     
-    // .v-row.non-map-row#title-row
   #title-row {
     display: flex;
     align-items: center;
@@ -6099,15 +5663,6 @@ body {
     }
   }
   
-  .v-btn#toggle-instruction-text {
-    position: absolute;
-    right: 1.8em;
-    top: 2.3em;
-    color: var(--accent-color)
-    // transform: translate(-25%, 75%);
-  }
-    
-    // .v-row.non-map-row#instructions-row
   #instructions-row {
     // Grows to fill the space between the title row (pinned top) and the
     // button row (pinned bottom) when non-map-container is taller than its
@@ -6240,7 +5795,6 @@ body {
 
 #map-column { // v-col
   position: relative;
-  --map-max-height: calc(var(--top-content-max-height) - 2*var(--margin) - 2*var(--container-padding));
   --map-edge-gap: 4px;
   // #guided-content-container has no explicit `height` (only min/max, to
   // stay fit-content-sized) and uses align-items: center rather than
@@ -6374,18 +5928,6 @@ body {
       margin: 0;
     }
     
-    #eclipse-path-map > img {
-      display: block;
-      max-width: 100%;
-      max-height: 100%;
-      // position: absolute;
-      // top: 50%;
-      // left: 50%;
-      // transform: translateX(-50%) translateY(-50%);
-      
-      
-    }
-
     .leaflet-control-zoom-in, .leaflet-control-zoom-out {
 
       background-color: #fff;
@@ -6459,16 +6001,6 @@ body {
   backdrop-filter: blur(5px);
   border-radius: var(--tight-border-radius);
   
-  
-  
-  #instructions-close-button {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: min(4vw, 3.5vh);
-    text-align: center;
-  }
   
   
   div.inst-quad {
@@ -6619,10 +6151,6 @@ body {
       font-size: calc(0.9 * var(--default-font-size));
     }    
   
-    #intro-reminder {
-      outline: 1px solid red;
-    }
-    
     #intro-next-button, #intro-back-button {
       background-color: rgba(18, 18, 18,.5);
     }
@@ -6768,7 +6296,7 @@ body {
     top: 0.7rem;
   }
 
-  // Once it's closed, align with the closed Map & Weather button
+  // Once it's closed, align with the closed Path & Weather button
   // (#closed-top-container) instead — #left-buttons-wrapper's own .budge
   // offset drops further still, to leave a gap below that button.
   &.budge {
@@ -6835,48 +6363,6 @@ a {
     color: var(--accent-color-2);
     pointer-events: auto;
   }
-
-#mobile-zoom-control {
-  position: absolute;
-  top: 50%;
-  left: 1rem;
-  transform: translateY(-50%);
-  
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  
-  .vue-slider {    
-    .vue-slider-rail {
-      width: 10px;
-      left: calc(-10px / 2 + 2.5px);
-    }
-  }
-  
-  
-  .slider-padding {
-    margin-block: 1em;
-    color: var(--accent-color);
-  }
-  
-}
-
-
-// this is class called blink that makes a span look like a round blinking circle period of 1 sec
-.blink {
-  animation: blinker 1s linear infinite;
-  border-radius: 50%;
-  width: 1em;
-  height: 1em;
-  background-color: #29ff29;
-  display: inline-block;
-}
-
-@keyframes blinker {
-  10% {
-    opacity: 0;
-  }
-}
 
 .icon-wrapper {
   box-sizing: border-box;

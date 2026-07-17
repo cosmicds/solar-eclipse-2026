@@ -103,7 +103,7 @@ type SearchProvider = (searchText: string) => Promise<MapBoxFeatureCollection | 
 export default defineComponent({
   name: 'LocationSearch',
   
-  emits: ['update:modelValue','set-location', 'error', 'geolocate'],
+  emits: ['update:modelValue','set-location', 'error'],
   
   props: {
     
@@ -132,12 +132,7 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    
-    theme: {
-      type: String,
-      default: 'dark',
-    },
-    
+
     buttonSize: {
       type: String,
       default: '1x',
@@ -429,7 +424,7 @@ export default defineComponent({
     backdrop-filter: var(--search-icon-backdrop-filter);
   }
 
-  .geocoding-search-icon:hover, #geocoding-close-icon:hover {
+  .geocoding-search-icon:hover {
     cursor: pointer;
   }
 }
