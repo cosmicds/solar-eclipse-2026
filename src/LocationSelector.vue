@@ -603,8 +603,18 @@ export default defineComponent({
 
 <style lang="less">
 .map-container {
-  height: 100%;
-  width: 100%;
+  // height: 100% (or relying on the parent's align-items: stretch)
+  // proved unreliable here in practice -- the parent (#map-container in
+  // SolarEclipse2026.vue) itself gets its own height from a flex-grow
+  // chain rather than an explicitly authored height, and empirically
+  // this element still collapsed to near-zero height even with
+  // align-items: stretch set on the parent and no explicit height set
+  // here. Absolute positioning against the parent's already-final,
+  // concretely computed box size sidesteps that chain entirely -- the
+  // parent (#map-container) has position: relative already.
+  position: absolute;
+  inset: 0;
+  width: auto;
   margin: auto;
   padding: 0;
   border-radius: 5px;

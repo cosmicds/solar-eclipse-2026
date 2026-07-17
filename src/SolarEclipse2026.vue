@@ -28,7 +28,7 @@
     </template>
   </icon-button>
   </div>
-  <div id="guided-content-wrapper">
+  <div id="guided-content-wrapper" :class="{ 'mobile-fullscreen': narrow && showGuidedContent }">
   <v-container
     id="guided-content-container"
     v-show="showGuidedContent"
@@ -192,18 +192,6 @@
                 :show-tooltip="!mobile"
                 :box-shadow="false"
                 @activate="() => { learnerPath = 'Clouds'}"
-              ></icon-button>
-              
-              <icon-button
-                v-model="showInfoSheet"
-                fa-icon="circle-info"
-                fa-size="xl"
-                :color="accentColor"
-                :focus-color="accentColor"
-                :tooltip-text="showInfoSheet ? null : 'Information & User Guide'"
-                :tooltip-location="'bottom'"
-                :show-tooltip="!mobile"
-                :box-shadow="false"
               ></icon-button>
             </div>
           <!-- </v-col> -->
@@ -856,16 +844,16 @@
             />
             <v-checkbox
               :color="accentColor"
-              v-model="showAltAzGrid"
-              @keyup.enter="showAltAzGrid = !showAltAzGrid"
-              label="Sky Grid"
+              v-model="showHorizon"
+              @keyup.enter="showHorizon = !showHorizon"
+              label="Horizon / Sky"
               hide-details
             />
             <v-checkbox
               :color="accentColor"
-              v-model="showHorizon"
-              @keyup.enter="showHorizon = !showHorizon"
-              label="Horizon/Daytime Sky"
+              v-model="showAltAzGrid"
+              @keyup.enter="showAltAzGrid = !showAltAzGrid"
+              label="Sky Grid"
               hide-details
             />
             <v-checkbox
@@ -1018,13 +1006,13 @@
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Set location<br> + more
+            Location, Path, <br>&amp; Timing
           </div>
         </div>
         <div class="inst-quad top-right">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Where, when, <br>+ how much
+            Settings, Info, <br>&amp; Sharing
           </div>
         </div>
         <div class="inst-quad bottom-left">
@@ -1151,6 +1139,7 @@
       <div id="location-date-display">
         <div
           id="location-status-box"
+          :class="{ 'non-interactive': narrow }"
           @click="() => {
             if (narrow) {
               return;
@@ -2339,7 +2328,7 @@ export default defineComponent({
         }
         const maxCoverage = this.eclipsePrediction.coverage[0];
         if (maxCoverage) {
-          return `Partial Eclipse\n(Max amount eclipsed: ${Math.round(maxCoverage * 100)}%)`;
+          return `Partial Eclipse\n(Max: ${Math.round(maxCoverage * 100)}%)`;
         }
         return "Partial Eclipse";
       }
@@ -5750,6 +5739,30 @@ body {
   // outer edge of its margin.
   --margin: 0.5rem;
   position: relative;
+
+  // On mobile, while open, becomes a full-screen overlay covering the
+  // WWT canvas and all its floating buttons. This is also what fixes the
+  // map appearing blank on mobile: #map-column's flex-grow only has
+  // real remaining space to grow into once this wrapper (and, via the
+  // 100% overrides below, #guided-content-container itself) has a
+  // genuinely definite height -- the container's own calc(100% - 1rem)
+  // needs a definite-height ancestor to resolve against, and one was
+  // never available before (the wrapper had no explicit height either).
+  @media (max-width: 600px) {
+    &.mobile-fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 700;
+
+      #guided-content-container {
+        margin: 0;
+        width: 100%;
+        --top-content-max-height: 100%;
+        --top-content-min-height: 100%;
+        border-radius: 0;
+      }
+    }
+  }
 }
 
 #guided-content-container {
@@ -5912,8 +5925,7 @@ body {
     
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    justify-content: safe center;
+    justify-content: flex-start;
     align-items: stretch;
     gap: 0.5em;
     .thin-scrollbar();
@@ -5948,6 +5960,12 @@ body {
     #hide-guided-content-button {
       flex: 0 0 auto;
       border: none;
+      // The global .icon-wrapper rule hardcodes a dark translucent
+      // background regardless of the icon-button's own background-color
+      // prop (that prop only sets an inline --background-color CSS var,
+      // which .icon-wrapper's background never reads) -- override it
+      // directly here so this specific chevron stays transparent.
+      background: transparent;
     }
   }
   
@@ -5961,7 +5979,11 @@ body {
     
     // .v-row.non-map-row#instructions-row
   #instructions-row {
-    flex: 0 1 auto;
+    // Grows to fill the space between the title row (pinned top) and the
+    // button row (pinned bottom) when non-map-container is taller than its
+    // content -- blank space inside the box is fine, the text itself stays
+    // top-aligned via #top-container-main-text's own layout below.
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     border: 1.5px solid var(--sky-color);
@@ -6107,14 +6129,30 @@ body {
   // outline: 1px solid red;
 
   #map-container {
-    height: 100%;
+    // #map-column is itself a column flex container, and its own height
+    // only counts as "definite" for a percentage-height child like this
+    // one when it was resolved via align-self/items: stretch (a cross-
+    // axis size) -- on mobile #map-column's height instead comes from
+    // its own flex-grow (a main-axis size in that column context), which
+    // the flex spec does NOT carry through as definite to descendants.
+    // height: 100% silently failed there, collapsing this to its own
+    // near-zero content height. flex-grow sidesteps percentage
+    // resolution entirely and works in both the row (desktop) and
+    // column (mobile) cases.
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
     padding: var(--map-edge-gap);
     position: relative;
 
     display: flex;
-    align-items: center;
+    // LocationSelector's own root (.map-container, lowercase -- a
+    // different element than this #map-container wrapper) has an
+    // explicit height: 100% that needs this to be align-items: stretch
+    // (not center) to resolve at all -- same reasoning as #map-column
+    // above, one level deeper.
+    align-items: stretch;
     justify-content: center;
 
 
@@ -6569,6 +6607,16 @@ body {
   // unbolded details underneath.
   #location-status-box {
     pointer-events: auto;
+
+    // Belt-and-suspenders alongside the @click guard: this makes the box
+    // truly inert to clicks/taps at the browser level in narrow/mobile
+    // layouts, rather than relying on the handler firing and returning
+    // early -- also drops the hover border-color change below, so there's
+    // no lingering visual hint that it's interactive.
+    &.non-interactive {
+      pointer-events: none;
+    }
+
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(6px);
     color: white;
