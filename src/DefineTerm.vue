@@ -1,5 +1,3 @@
-
-import { tooltip } from 'leaflet';
 <template>
   <v-tooltip 
     class="define-term-tooltip"
@@ -76,11 +74,6 @@ export default defineComponent({
       default: 0,
       validator: (value: number) => value >= 0
     },
-    
-    tooltipLocation: {
-      type: String || undefined,
-      default: undefined
-    }
   },
   
   data() {

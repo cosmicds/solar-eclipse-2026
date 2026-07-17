@@ -10,7 +10,6 @@
       </div>
       
       <v-slider
-        ref="slider"
         hide-details
         v-model="value"
         :max="max ?? index[index.length - 1]"
@@ -39,7 +38,7 @@
 import { defineComponent } from 'vue';
 // import VueSlider from 'vue-slider-component';
 import { VSlider } from 'vuetify/components/VSlider';
-import { SymmetricalLogTransform, symmLinspace } from './symlog';
+import { SymmetricalLogTransform } from './symlog';
 
 const symLog = new SymmetricalLogTransform(10);
 
@@ -76,10 +75,6 @@ export default defineComponent({
     color: {
       type: String,
       default: 'white',
-    },
-    smallScreen: {
-      type: Boolean,
-      default: false,
     },
 
     inline: {
@@ -129,14 +124,6 @@ export default defineComponent({
             container.classList.remove('inset');
           }
         }
-        
-        // if container width is more than 300px use .normal-screen on psc
-        // if (container.clientWidth <= 300) {
-        //   psc.classList.add('small-screen');
-        // } else {
-        //   psc.classList.remove('small-screen');
-        // }
-        
       }
     });
     resizeObserver.observe(document.getElementById('enclosing-playback-container')!);
@@ -147,11 +134,7 @@ export default defineComponent({
 
   data() {
     return {
-      // Define the data here
-      data: ['a', 'b', 'c'],
-      symlog: symLog,
       index: symLog.sequence(this.maxPower).filter(v => v > 0),
-      myTicks: symmLinspace(1, Math.pow(10,this.maxPower), 2).map((val) => symLog.toSymlogIndex(val)),
       useBuiltInTicks: true,
     };
   },
@@ -249,12 +232,10 @@ export default defineComponent({
   padding-block-end: 0.75rem;
   border-radius: 0.5rem;
   border: 2px solid var(--color);
-  // min-width: 200px;
   max-width: 510px;
   background-color: rgba(39, 39, 39, 0.7);
   backdrop-filter: blur(6px);
   font-size: 0.7rem;
-  --track-wdith: 0px; // get set by the resize observer to the actual track width
   --min-tick-gap: 0.2rem;
   --tick-color: #ddd;
   --track-color: white;

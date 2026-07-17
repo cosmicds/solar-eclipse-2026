@@ -54,10 +54,6 @@ export default defineComponent({
   emits: ["place", "update:modelValue", "error", "dataclick", "finishLoading"],
 
   props: {
-    activatorColor: {
-      type: String,
-      default: "#ffffff"
-    },
     showCloudCover: {
       type: Boolean,
       default: false
@@ -180,7 +176,6 @@ export default defineComponent({
       resizeObserver: null as ResizeObserver | null,
       eclipsePath: [] as L.GeoJSON[],
       placeCircles: [] as L.CircleMarker[],
-      hoveredPlace: null as Place | null,
       selectedCircle: null as L.CircleMarker | null,
       selectedPlace: null as Place | null,
       selectedPlaceCircle: null as L.CircleMarker | null,
@@ -263,22 +258,10 @@ export default defineComponent({
         fillOpacity: this.cloudCoverOpacityFunction(cloudCover)
       });
       rect.on('click', () => {
-        console.log('dataclick', { lat, lon, cloudCover, index});
         this.$emit('dataclick', { lat, lon, cloudCover, index});
       });
       return rect;
     },
-    
-    sigmoid(val: number | null): number {
-      if (val === null) {
-        return 0;
-      }
-      // return sigmoid
-      const y = (val - 0.5) / .12;
-      const z = Math.exp(y);
-      return z / (1 + z);
-    },
-    
 
     getColor(_cloudCover:number) {
       // Calculate HSL color based on a gradient
@@ -369,7 +352,6 @@ export default defineComponent({
     },
 
     setup(initial=false) {
-      console.log('setup', initial);
       const mapContainer = this.$el as HTMLDivElement;
       const location: L.LatLngExpression = initial && this.mapOptions.initialLocation ?
         this.locationToLatLng(this.mapOptions.initialLocation) :
@@ -388,7 +370,6 @@ export default defineComponent({
       this.placeCircles.forEach((circle, index) => {
         circle.on('mouseover', () => {
           const place = this.places[index];
-          this.hoveredPlace = place;
           circle.openTooltip([place.latitudeDeg, place.longitudeDeg]);
         });
 
@@ -397,10 +378,6 @@ export default defineComponent({
             this.onPlaceSelect(this.places[index]);
           });
         }
-
-        circle.on('mouseout', () => {
-          this.hoveredPlace = null;
-        });
 
         circle.addTo(map);
       });
@@ -539,10 +516,8 @@ export default defineComponent({
           this.rectanglesCreated = true; // Set the flag to true
         }
       } else {
-        // Clear cloud cover rectangles if value is false
-        // this.cloudCoverRectangles.clearLayers();
-        // this.rectanglesCreated = false; // Reset the flag
-        // set opacity to 0 instead of clearing re: J.C.
+        // Set opacity to 0 instead of clearing the layers so the
+        // rectangles are ready to show again without recomputing.
         this.updateRectangleIntensity(0);
       }
     },
@@ -555,22 +530,6 @@ export default defineComponent({
     },
     latLng(): L.LatLngExpression {
       return this.locationToLatLng(this.modelValue);
-    },
-    
-    pixelSize(): number {
-      // not used but eventually
-      if (this.selectedCloudCover === null) {
-        return 0;
-      }
-      const lats = Array.from(new Set(this.selectedCloudCover?.map((row) => row.lat))).sort();
-      const lons = Array.from(new Set(this.selectedCloudCover?.map((row) => row.lon))).sort();
-      // get difference between consecutive latitudes
-      // average of the differences is the pixel size
-      const latDiff = lats.map((val, index, arr) => index === 0 ? 0 : val - arr[index - 1]);
-      const lonDiff = lons.map((val, index, arr) => index === 0 ? 0 : val - arr[index - 1]);
-      const latAvg = latDiff.reduce((a, b) => a + b, 0) / latDiff.length;
-      const lonAvg = lonDiff.reduce((a, b) => a + b, 0) / lonDiff.length;
-      return (latAvg + lonAvg) / 2;
     }
   },
 
@@ -578,7 +537,6 @@ export default defineComponent({
 
     selectedCloudCover(val: CloudData[] | null) {
       if (val !== null && val !== undefined) {
-        //this.updateRectangleIntensity();
         this.updateCloudCover(this.showCloudCover);
         this.bringLocationAndPathToFront();
       }
@@ -659,10 +617,6 @@ export default defineComponent({
     left: 100%;
     transform: translate(-100%, 0);
     pointer-events: auto;
-  }
-
-  .leaflet-top.leaflet-right::before {
-    /* match formatting for actual attribution */
     color: #0078a8;
     background-color: rgba(255,255,255,0.8);
     font-size: 0.75em;
