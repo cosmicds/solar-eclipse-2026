@@ -716,6 +716,13 @@
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
     ></WorldWideTelescope>
+    <div
+      id="eclipse-percent-indicator"
+      v-if="currentFractionEclipsed > 0"
+      :style="{ top: eclipsedIndicatorTop + 'px', left: eclipsedIndicatorLeft + 'px' }"
+    >
+      {{ percentEclipsedText }}
+    </div>
     <div>
       <div id="left-buttons-wrapper" :class="[!showGuidedContent ?'budge' : '']">
         <location-search
@@ -1155,7 +1162,6 @@
           <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
           <div>{{ selectedLocalDateString }}</div>
           <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
-          <div>{{ percentEclipsedText }}</div>
         </div>
 
         <icon-button
@@ -2064,6 +2070,10 @@ export default defineComponent({
       normalBorderRadius: "10px",
       tightBorderRadius: "5px",
       guidedContentHeight: "300px",
+      // Position (px, relative to #main-content's own top/left edges) for
+      // the eclipse-percent indicator -- see updateEclipsedIndicatorPosition().
+      eclipsedIndicatorTop: 0,
+      eclipsedIndicatorLeft: 0,
       showGuidedContent: true,
       topContainerCustomHeight: null as number | null,
       isResizingTopContainer: false,
@@ -2286,6 +2296,11 @@ export default defineComponent({
     this.$nextTick(() => {
       window.addEventListener('resize', this.onResize);
       this.onResize();
+    });
+
+    this.$nextTick(() => {
+      window.addEventListener('resize', this.updateEclipsedIndicatorPosition);
+      this.updateEclipsedIndicatorPosition();
     });
 
     document.addEventListener('keydown', this.onSpeedControlTabKeydown);
@@ -3692,6 +3707,42 @@ export default defineComponent({
       this.updateGuidedContentHeight();
     },
 
+    // Positions the eclipse-percent indicator relative to the top of the
+    // time controls (the toolbar's own top edge, with the speed-control
+    // popup closed -- deliberately not dynamic with the popup's
+    // open/closed state) and the WWT canvas (#main-content). Which of the
+    // two layouts below applies depends on the canvas's own form factor
+    // (its own width vs height), not the window's -- #main-content
+    // doesn't necessarily share the window's aspect ratio (e.g. the
+    // guided-content box eats into its effective shape).
+    //
+    // Canvas wider than tall: vertically centered on the canvas, with its
+    // horizontal center 25% of the canvas's width in from the right edge.
+    //
+    // Canvas taller than wide: horizontally centered, 40% of the way from
+    // the toolbar's top edge towards the canvas's vertical middle (i.e.
+    // closer to the toolbar than the exact midpoint -- measuring the 40%
+    // from the toolbar side, not the canvas side).
+    updateEclipsedIndicatorPosition() {
+      const mainContent = document.getElementById('main-content');
+      const timeControlsEl = document.getElementById('tools');
+      if (!mainContent || !timeControlsEl) {
+        return;
+      }
+      const mainRect = mainContent.getBoundingClientRect();
+      const controlsTop = timeControlsEl.getBoundingClientRect().top;
+      const canvasMiddle = mainRect.top + mainRect.height / 2;
+      const isCanvasWide = mainRect.width > mainRect.height;
+
+      if (isCanvasWide) {
+        this.eclipsedIndicatorTop = canvasMiddle - mainRect.top;
+        this.eclipsedIndicatorLeft = mainRect.width * 0.75;
+      } else {
+        this.eclipsedIndicatorTop = controlsTop - 0.4 * (controlsTop - canvasMiddle) - mainRect.top;
+        this.eclipsedIndicatorLeft = mainRect.width / 2;
+      }
+    },
+
     startTopContainerResize(event: MouseEvent | TouchEvent) {
       const container = document.getElementById('guided-content-container');
       if (!container) {
@@ -4271,7 +4322,14 @@ export default defineComponent({
     playingWaitCount(val: number, old: number) {
       console.log(`Playing wait count: ${old} ---> ${val}`);
     },
-    
+
+    // guidedContentHeight changes on every path that can resize
+    // #main-content (window resize, dragging the resize handle, toggling
+    // guided content) -- should reposition the eclipse-percent indicator.
+    guidedContentHeight() {
+      this.$nextTick(() => this.updateEclipsedIndicatorPosition());
+    },
+
     showNewMobileUI(narrow: boolean) {
       this.updatePanForMobile();
       // showNewMobileUI is driven by `narrow`, so this fires whenever the
@@ -6452,6 +6510,26 @@ body {
 #eclipse-percent-chip {
     display: flex;
     width: 100%;
+}
+
+// Styled to match #speed-text. top/left are set inline (see
+// updateEclipsedIndicatorPosition) relative to the WWT canvas
+// (#main-content, its positioning parent here) -- the exact placement
+// differs between wide and vertical screens. transform centers the
+// element itself on that computed point in both dimensions.
+#eclipse-percent-indicator {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  padding-inline: 0.4em;
+  padding-block: 0.15em;
+  border-radius: 0.3em;
+  font-size: calc(1 * var(--default-font-size));
+  text-wrap: nowrap;
+  width: fit-content;
+  color: white;
+  z-index: 50;
+  pointer-events: none;
 }
 
 #top-wwt-content {
