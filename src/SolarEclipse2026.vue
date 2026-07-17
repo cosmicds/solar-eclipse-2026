@@ -170,9 +170,9 @@
           <!-- <v-col> -->
             <div id="top-container-buttons">
               <icon-button
-                :model-value="learnerPath == 'Location'" 
-                fa-icon="location-dot"
-                fa-size="xl"
+                :model-value="learnerPath == 'Location'"
+                md-icon="map-search"
+                md-size="24"
                 :color="accentColor"
                 :focus-color="accentColor"
                 :tooltip-text="'Choose any viewing location'"
@@ -1067,7 +1067,7 @@
               <ul>
                 <v-list-item density="compact">
                   <template v-slot:prepend>
-                    <font-awesome-icon icon="location-dot" size="xl" class="bullet-icon"></font-awesome-icon>
+                    <v-icon icon="mdi-map-search" size="xl" class="bullet-icon"></v-icon>
                   </template>
                     <strong>Select any location</strong> around the world. See and share how the eclipse would look from there.
                 </v-list-item>
@@ -1200,6 +1200,7 @@
         :max-width="xSmallSize ? '85%' : '45%'"
         transition="slide-y-transition"
         id="weather-forecast-sheet"
+        :style="cssVars"
         >
       <v-card>
           <v-card-text class="pb-8">
@@ -1225,6 +1226,7 @@
         :max-width="xSmallSize ? '95%' : 'fit-content'"
         transition="slide-y-transition"
         id="eclipse-prediction-sheet"
+        :style="cssVars"
         >
         <v-card>
           <v-card-text>
@@ -5595,6 +5597,9 @@ body {
     width: 100%;
 
     align-self: center;
+    // Thin border all around, then the thicker dark accent stripe
+    // specifically along the bottom edge overrides just that one side.
+    border: 1px solid var(--accent-color-2);
     border-bottom: solid #212121 0.5em;
   }
 
@@ -5726,6 +5731,10 @@ body {
 }
 
 #eclipse-prediction-sheet {
+  .v-card {
+    border: 1px solid var(--accent-color-2);
+  }
+
   @media (max-width: 350px) {
     .v-card-text {
       padding-inline: 12px;
@@ -6302,10 +6311,20 @@ body {
       border-radius: var(--tight-border-radius);
       padding: 0.35em 0.5em;
       font-size: calc(0.8 * var(--default-font-size));
-      max-width: 60vw;
+      text-align: center;
+      // Narrower than #location-status-box (the WWT-canvas version of
+      // this box) -- this one sits over the small map, where space is
+      // tighter -- but still fixed, so it doesn't grow/shrink with the
+      // length of the location name.
+      width: 8rem;
+      max-width: 70vw;
 
       .location-status-name {
         font-size: calc(0.9 * var(--default-font-size));
+        // Lets the "\n" in the plain lat/long fallback (no place name
+        // found) render as an actual line break: latitude on one line,
+        // longitude on the next.
+        white-space: pre-line;
       }
 
       .eclipse-status-line {
