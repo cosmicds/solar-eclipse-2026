@@ -769,7 +769,12 @@
   <div
     id="main-content"
   >
-    <debug-eclipse-timer :prediction="eclipsePrediction" :timezone="selectedTimezone"/>
+    <debug-eclipse-timer
+      :prediction="eclipsePrediction"
+      :timezone="selectedTimezone"
+      :lat-deg="locationDeg.latitudeDeg"
+      :lon-deg="locationDeg.longitudeDeg"
+    />
     <div id="center-page-banner" v-if="(sunPosition.altRad < -.25 * Math.PI/180)">
       <p>
         The Sun has {{ sunPosition.azRad < Math.PI ? 'not risen yet' : 'set' }}
@@ -1992,7 +1997,7 @@ const MAX_PLAYBACK_RATE = 5**6;
 const wwtMove = WWTControl.singleton.move;
 
 /* READ IN Eclipse Umbra */
-import eclipseUmbra from "./assets/upath_lo.json";
+// import eclipseUmbra from "./assets/upath_lo.json";
 
 export default defineComponent({
   extends: MiniDSBase,
@@ -2271,7 +2276,8 @@ export default defineComponent({
       // the order is the layer order form bottom to top
       geojson: [
         {
-          geojson: eclipseUmbra as GeoJSON.GeometryCollection,
+          // geojson: eclipseUmbra as GeoJSON.GeometryCollection,
+          geojson: nso.umbra as GeoJSON.GeometryCollection,
           style: {fillColor: '#333', weight: 1, opacity: 0, fillOpacity: 0.3, id:"upath"}
         },
         {
@@ -2460,9 +2466,28 @@ export default defineComponent({
       if (!this.eclipsePrediction) {
         return '';
       }
-      const { type, maxTime, duration } = this.eclipsePrediction;
+      const { type, maxTime, duration, partialStart, centralStart, centralEnd, partialEnd } = this.eclipsePrediction;
       if (type === '' || type === null || maxTime[0] === null) {
         return "No Eclipse";
+      }
+
+      const anyVisible = [partialStart, centralStart, maxTime, centralEnd, partialEnd]
+        .some(c => c[0] !== null && c[1] === null);
+      if (!anyVisible) { // The entire eclipse is below the horizon here
+        return "No Eclipse";
+      }
+      
+      // Max eclipse must be above the horizon. The NSO boundary cuts at the
+      // day/night terminator at max eclipse, so this matches being inside it
+      // (sun can set between C2 and max: C2 visible but totality not).
+      if (type === "T" && maxTime[1] !== null) {
+        return "Total Eclipse below Horizon";
+      }
+      
+      // rising case: it must end after sunrise: centrality end = null
+      // setting case: it must start before sunset: centrality start = null
+      if (type === "P" && partialStart[1] !== null && partialEnd[1] !== null) {
+        return "Eclipse below Horizon";
       }
 
       if (!this.onDayOfEclipse) {
@@ -2485,7 +2510,7 @@ export default defineComponent({
       ])).get(type);
 
       if (type == "T") {
-        const begins = formatInTimeZone(this.eclipsePrediction.centralStart[0], this.selectedTimezone, "h:mm:ss aa (zzz)");
+        const begins = formatInTimeZone(centralStart[0], this.selectedTimezone, "h:mm:ss aa (zzz)");
         if (this.$vuetify.display.xs) {
           return `Totality starts: ${begins} Duration: ${spaceHMS(duration)}`;
         }
@@ -2494,7 +2519,7 @@ export default defineComponent({
 
       if (duration === '') {
         // get the duration of the partial eclipse
-        const starting = formatInTimeZone(this.eclipsePrediction.partialStart[0], this.selectedTimezone, "h:mm aa (zzz)");
+        const starting = formatInTimeZone(partialStart[0], this.selectedTimezone, "h:mm aa (zzz)");
         if (this.$vuetify.display.xs) {
           return `${typeString} starts: ${starting}`;
         }
@@ -2784,9 +2809,9 @@ export default defineComponent({
     },
 
     percentEclipsedText(): string {
-      let percentEclipsed = Math.abs(this.currentFractionEclipsed * 100).toFixed(0);
-      if (this.currentFractionEclipsed < 1 && percentEclipsed === "100") {
-        percentEclipsed = "99";
+      let percentEclipsed = Math.round(this.currentFractionEclipsed*100);//.toFixed(0);
+      if (this.currentFractionEclipsed < 0.995 && percentEclipsed === 100) {
+        percentEclipsed = 99;
       }
       return `Eclipsed: ${percentEclipsed}%`;
     },
@@ -2861,10 +2886,26 @@ export default defineComponent({
     locationInTotality() {
       // check if the location is within eclipseUmbra path
       const location = this.locationDeg;
-      const poly = eclipseUmbra.geometries[0].coordinates[0];
-      // const poly = (nso.umbra.geometries[0] as any).coordinates[0];
+      // const poly = eclipseUmbra.geometries[0].coordinates[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const poly = (nso.umbra.geometries[0] as any).coordinates[0];
       const point = [location.longitudeDeg, location.latitudeDeg];
       return pointInPolygon(point, poly);
+    },
+
+    
+    inPredictedTotality(): boolean {
+      const p = this.eclipsePrediction;
+      if (p === null || p.type !== 'T') {
+        return false;
+      }
+      const start = p.centralStart[0];
+      const end = p.centralEnd[0];
+      if (!(start instanceof Date) || !(end instanceof Date)) {
+        return false;
+      }
+      const t = this.wwtCurrentTime.getTime();
+      return t >= start.getTime() && t <= end.getTime();
     },
 
 
@@ -3116,7 +3157,7 @@ export default defineComponent({
       }
       
       let forceTotality = false;
-      if (this.locationInTotality && this.inEclipse) {
+      if ((this.locationInTotality || this.inPredictedTotality) && this.inEclipse) {
         if (this.currentFractionEclipsed <= 1) {
           this.currentFractionEclipsed = 1;
           forceTotality = true;

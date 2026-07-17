@@ -883,7 +883,7 @@ function getalt(circumstances: any[]): [number, SunBSR]{
   } else {
     ans = 1;
   }
-  t = Math.floor(t + 0.5);
+  t = Math.round(t * 100) / 100; // 2 decimal places (was whole degrees)
   if (t < 10.0) {
     // don't neet to zero pad
     // ans = ans + "0";
@@ -917,7 +917,7 @@ function getazi(circumstances: any[]): number {
   if (t >= 360.0) {
     t = t - 360.0;
   }
-  t = Math.floor(t + 0.5);
+  t = Math.round(t * 100) / 100; // 2 decimal places (was whole degrees)
   if (t < 100.0) {
     // don't need to zero pad
     // ans = ans + "0";
