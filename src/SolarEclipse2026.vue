@@ -229,57 +229,72 @@
             :class="['']"
             id="map-container">
 
-            <!-- modelValue = false, starts with it closed, use stay-open to keep it open -->
-            <div
-              class="map-search-stack"
-              :class="[learnerPath === 'Clouds' ? 'overmap-budge' : '', showNewMobileUI ? '' : 'overmap-low']"
-              v-if="narrow"
+            <!-- modelValue = false, starts with it closed, use stay-open to keep it open.
+                 Shown on both mobile and desktop now -- the geolocate search
+                 and "use my location" controls live over the small map on
+                 both, rather than desktop having its own separate copies
+                 floating over the WWT canvas. -->
+            <location-search
+              class="map-search-bottomleft"
+              v-model="searchOpen"
+              small
+              buttonSize="xl"
+              :search-provider="geocodingInfoForSearch"
+              :accentColor="accentColor"
+              @set-location="setLocationFromSearchFeature"
+              @error="searchErrorMessage = $event"
             >
-              <location-search
-                v-model="searchOpen"
-                small
-                buttonSize="xl"
-                :search-provider="geocodingInfoForSearch"
-                :accentColor="accentColor"
-                @set-location="setLocationFromSearchFeature"
-                @error="searchErrorMessage = $event"
-              >
-              </location-search>
-              <icon-button
-                v-if="getMyLocation"
-                id="my-location-overmap"
-                fa-icon="location-crosshairs"
-                fa-size="2xl"
-                :color="myLocationColor"
-                :focus-color="myLocationColor"
-                :box-shadow="false"
-                :tooltip-text="myLocationToolTip"
-                :show-tooltip="!mobile"
-                @update:modelValue="(value: boolean) => {
-                  if(value) {
-                    ($refs.geolocation as any).getLocation();
-                    showMyLocationDialog = true;
-                    learnerPath = 'Location';
-                  }
-                  else {
-                    console.log('geolocation button pressed = false');
-                  }
+            </location-search>
+            <icon-button
+              v-if="getMyLocation"
+              id="my-location-overmap"
+              fa-icon="location-crosshairs"
+              fa-size="2xl"
+              :color="myLocationColor"
+              :focus-color="myLocationColor"
+              :box-shadow="false"
+              :tooltip-text="myLocationToolTip"
+              :show-tooltip="!mobile"
+              @update:modelValue="(value: boolean) => {
+                if(value) {
+                  ($refs.geolocation as any).getLocation();
+                  showMyLocationDialog = true;
+                  learnerPath = 'Location';
+                }
+                else {
+                  console.log('geolocation button pressed = false');
+                }
 
+              }"
+            ></icon-button>
+            <div v-if="narrow" class="map-topright-stack">
+              <icon-button
+                id="eclipse-details-overmap"
+                md-icon="sun-clock"
+                md-size="24"
+                :color="accentColor"
+                :focus-color="accentColor"
+                tooltip-text="View eclipse timing details"
+                tooltip-location="start"
+                @activate="() => { showEclipsePredictionSheet = true; }"
+                >
+              </icon-button>
+              <icon-button
+                id="reset-location-overmap"
+                fa-icon="house"
+                fa-size="lg"
+                :color="accentColor"
+                :focus-color="accentColor"
+                :box-shadow="false"
+                tooltip-text="Reset to Antiguita, Spain"
+                tooltip-location="start"
+                @activate="() => {
+                  location = defaultLocation;
+                  selectedLocationText = defaultLocationText;
+                  learnerPath = 'Location';
                 }"
               ></icon-button>
             </div>
-            <icon-button
-              v-if="narrow"
-              id="eclipse-details-overmap"
-              md-icon="sun-clock"
-              md-size="24"
-              :color="accentColor"
-              :focus-color="accentColor"
-              tooltip-text="View eclipse timing details"
-              tooltip-location="start"
-              @activate="() => { showEclipsePredictionSheet = true; }"
-              >
-            </icon-button>
             <!-- :places="places" -->
             <location-selector
               :model-value="locationDeg"
@@ -713,40 +728,57 @@
     </div>
     <div>
       <div id="left-buttons-wrapper" :class="[!showGuidedContent ?'budge' : '']">
-        <location-search
-          class="location-search-overwwt"
-          v-model="searchOpen"
-          :search-provider="geocodingInfoForSearch"
-          :accentColor="accentColor"
-          @set-location="setLocationFromSearchFeature"
-          @error="searchErrorMessage = $event"
-          small
-          buttonSize="lg"
-        />
+        <div id="location-date-display">
+          <div
+            id="location-status-box"
+            @click="() => {
+              if (narrow) {
+                showGuidedContent = true;
+                onResize();
+                return;
+              }
+              searchOpen = true;
+              learnerPath = 'Location'
+              }"
+          >
+            <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
+            <div>{{ selectedLocalDateString }}</div>
+            <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
+          </div>
 
-        <icon-button
-          v-if="getMyLocation"
-          class="geolocation-button"
-          id="my-location"
-          fa-icon="location-crosshairs"
-          :color="myLocationColor"
-          :focus-color="myLocationColor"
-          :box-shadow="false"
-          :tooltip-text="myLocationToolTip"
-          :show-tooltip="!mobile"
-          @update:modelValue="(value: boolean) => {
-            if(value) {
-              ($refs.geolocation as any).getLocation();
-              showMyLocationDialog = true;
-              learnerPath = 'Location';
-            }
-            else {
-              console.log('geolocation button pressed = false');
-            }
+          <div id="location-secondary-row">
+            <!-- Mobile-only replacement for the old text "Map & Weather"
+                 button -- desktop keeps that button as its own separate
+                 standalone control (#closed-top-container). -->
+            <icon-button
+              v-if="narrow"
+              v-model="showGuidedContent"
+              id="show-guided-content-mobile"
+              md-icon="map-search"
+              md-size="20"
+              :color="accentColor"
+              :focus-color="accentColor"
+              tooltip-text="Map and Weather"
+              :tooltip-location="'bottom'"
+              :show-tooltip="!mobile"
+              :box-shadow="false"
+              @activate="onResize"
+            ></icon-button>
 
-          }"
-          faSize="lg"
-        ></icon-button>
+            <icon-button
+              id="eclipse-details-button"
+              md-icon="sun-clock"
+              :md-size="showNewMobileUI ? '20' : '24'"
+              :color="accentColor"
+              :focus-color="accentColor"
+              tooltip-text="View eclipse timing details"
+              tooltip-location="start"
+              @activate="() => { showEclipsePredictionSheet = true; }"
+              >
+            </icon-button>
+          </div>
+        </div>
+
         <div id="location-progress" :class="[!showGuidedContent ?'budge' : '']">
           <geolocation-button
             :color="accentColor"
@@ -794,78 +826,7 @@
             }"
           ></geolocation-button>
         </div>
-
-        <icon-button
-          id="share"
-          fa-icon="share-nodes"
-          :color="accentColor"
-          :focus-color="accentColor"
-          :box-shadow="false"
-          tooltip-text="Share view of this location"
-          :show-tooltip="!mobile"
-          @activate="copyShareURL"
-          faSize="lg"
-        ></icon-button>
-
-        <div
-          id="controls"
-          class="control-icon-wrapper"
-          :class="{ 'controls-panel-open': showControls }"
-        >
-          <div id="controls-top-row">
-            <font-awesome-icon
-              v-if="showControls"
-              class="controls-chevron"
-              icon="chevron-up"
-              size="lg"
-              :color="accentColor"
-              @click="showControls = false"
-              @keyup.enter="showControls = false"
-              tabindex="0"
-            />
-            <icon-button
-              v-else
-              v-model="showControls"
-              fa-icon="sliders"
-              fa-size="lg"
-              :color="accentColor"
-              :focus-color="accentColor"
-              :box-shadow="false"
-            ></icon-button>
-          </div>
-
-          <div v-if="showControls" id="control-checkboxes">
-            <v-checkbox
-              :color="accentColor"
-              v-model="toggleTrackSun"
-              @keyup.enter="toggleTrackSun = !toggleTrackSun"
-              label="Track Sun"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showHorizon"
-              @keyup.enter="showHorizon = !showHorizon"
-              label="Horizon / Sky"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showAltAzGrid"
-              @keyup.enter="showAltAzGrid = !showAltAzGrid"
-              label="Sky Grid"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="useRegularMoon"
-              @keyup.enter="useRegularMoon = !useRegularMoon"
-              label="Visible Moon"
-              hide-details
-            />
-          </div>
       </div>
-    </div>
       <!-- <div id="mobile-zoom-control"> -->
         <!-- {{ Math.round(Math.pow(10, userZoom)*100)/100 }} -->
         <!-- <div class="slider-padding">
@@ -1006,13 +967,13 @@
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Location, Path, <br>&amp; Timing
+            Location,<br> Path, &amp; <br> Timing
           </div>
         </div>
         <div class="inst-quad top-right">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Settings, Info, <br>&amp; Sharing
+            Settings, <br> Info &amp; <br> Sharing
           </div>
         </div>
         <div class="inst-quad bottom-left">
@@ -1135,50 +1096,83 @@
     
   
   <div id="top-wwt-content" :class="[!showGuidedContent ? 'budge' : '']">
-    <!-- <p> in total eclipse {{ locationInTotality }}</p> -->
-      <div id="location-date-display">
-        <div
-          id="location-status-box"
-          :class="{ 'non-interactive': narrow }"
-          @click="() => {
-            if (narrow) {
-              return;
-            }
-            searchOpen = true;
-            learnerPath = 'Location'
-            }"
-        >
-          <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
-          <div>{{ selectedLocalDateString }}</div>
-          <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
-        </div>
+    <!-- Right-to-left: controls, info, share -->
+    <div id="top-right-buttons">
+      <icon-button
+        id="share"
+        fa-icon="share-nodes"
+        :color="accentColor"
+        :focus-color="accentColor"
+        :box-shadow="false"
+        tooltip-text="Share view of this location"
+        :show-tooltip="!mobile"
+        @activate="copyShareURL"
+        faSize="lg"
+      ></icon-button>
 
-        <icon-button
-          id="eclipse-details-button"
-          md-icon="sun-clock"
-          :md-size="showNewMobileUI ? '20' : '24'"
-          :color="accentColor"
-          :focus-color="accentColor"
-          tooltip-text="View eclipse timing details"
-          tooltip-location="start"
-          @activate="() => { showEclipsePredictionSheet = true; }"
-          >
-        </icon-button>
+      <icon-button
+        v-model="showInfoSheet"
+        id="info-button"
+        fa-icon="circle-info"
+        fa-size="lg"
+        :color="accentColor"
+        :focus-color="accentColor"
+        :tooltip-text="showInfoSheet ? null : 'Information & User Guide'"
+        :tooltip-location="'bottom'"
+        :show-tooltip="!mobile"
+        :box-shadow="false"
+      ></icon-button>
 
+      <div
+        id="controls"
+        class="control-icon-wrapper"
+      >
+        <!-- Mirrors the speed-control icon's open/close toggle pattern --
+             the activator itself becomes an X when the panel is open,
+             rather than a separate close chevron inside the panel. -->
         <icon-button
-          v-if="showNewMobileUI"
-          v-model="showInfoSheet"
-          fa-icon="circle-info"
+          v-model="showControls"
+          id="controls-toggle"
+          :fa-icon="showControls ? 'xmark' : 'sliders'"
           fa-size="lg"
           :color="accentColor"
           :focus-color="accentColor"
-          :tooltip-text="showInfoSheet ? null : 'Information & User Guide'"
-          :tooltip-location="'left'"
-          :show-tooltip="!mobile"
           :box-shadow="false"
         ></icon-button>
       </div>
     </div>
+
+    <div v-if="showControls" id="control-checkboxes">
+      <v-checkbox
+        :color="accentColor"
+        v-model="toggleTrackSun"
+        @keyup.enter="toggleTrackSun = !toggleTrackSun"
+        label="Track Sun"
+        hide-details
+      />
+      <v-checkbox
+        :color="accentColor"
+        v-model="showHorizon"
+        @keyup.enter="showHorizon = !showHorizon"
+        label="Horizon / Sky"
+        hide-details
+      />
+      <v-checkbox
+        :color="accentColor"
+        v-model="showAltAzGrid"
+        @keyup.enter="showAltAzGrid = !showAltAzGrid"
+        label="Sky Grid"
+        hide-details
+      />
+      <v-checkbox
+        :color="accentColor"
+        v-model="useRegularMoon"
+        @keyup.enter="useRegularMoon = !useRegularMoon"
+        label="Visible Moon"
+        hide-details
+      />
+    </div>
+  </div>
     
     <div class="bottom-content">
       
@@ -2039,7 +2033,7 @@ export default defineComponent({
       playingWaitCount: 0,
 
       activePointer: false,
-      showControls: true,
+      showControls: false,
       sunCenteredTracking: true,
       showAltAzGrid: false,
       showHorizon: true,
@@ -4300,8 +4294,13 @@ export default defineComponent({
     // (guided content + wide book icon, location search, and controls) instead
     // of inheriting the other mode's state.
     applyLayoutDefaults(narrow: boolean) {
-      this.searchOpen = !narrow;
-      this.showControls = !narrow;
+      // Search starts open on both mobile and desktop -- there's no close
+      // X on it (closing it back up is a deliberate action, not a default
+      // state), so there's no reason to hide it up front.
+      this.searchOpen = true;
+      // Controls panel starts closed on both mobile and desktop now --
+      // it opens under the top-right button cluster on demand instead.
+      this.showControls = false;
       this.showGuidedContent = !narrow;
     }
   },
@@ -4820,10 +4819,6 @@ body {
   }
 
 
-  .location-search-overwwt {
-    z-index: 600;
-  }
-
   #center-page-banner {
     position: absolute;
     width: 25%;
@@ -4966,6 +4961,8 @@ body {
 
 // these are now in #top-content
 
+// Top-left cluster: location label + eclipse-timer button, positioned
+// under the info+map container rather than overlapping its top edge.
 #left-buttons-wrapper {
   position: absolute;
   left: 1rem;
@@ -4974,7 +4971,10 @@ body {
   gap: 5px;
   width: fit-content;
   align-items: flex-start;
-  
+
+  // #main-content (the positioned ancestor here) already starts in
+  // normal flow right below the guided-content box -- these are small
+  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -4997,7 +4997,74 @@ body {
       top: 4.3rem;
     }
   }
-  
+
+  #location-date-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+
+    @media (max-width: 250px) {
+      padding-top: 3.5em;
+    }
+  }
+
+  #location-secondary-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
+
+  // Styled to match the location-button box from the Seasons data story:
+  // dark background, accent-colored border, bold location name with
+  // unbolded details underneath.
+  #location-status-box {
+    pointer-events: auto;
+
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    color: white;
+    border: 2px solid var(--accent-color);
+    border-radius: var(--tight-border-radius);
+    padding: 0.5rem;
+    font-size: calc(0.9 * var(--default-font-size));
+    text-align: center;
+    // Fixed width so the box doesn't grow/shrink with the length of the
+    // location name — long names wrap instead (max-width guards against
+    // overflow on very narrow screens).
+    width: 12rem;
+    max-width: 70vw;
+    transition: border-color 0.2s ease;
+
+    @media (max-width: 600px) {
+      width: 9rem;
+    }
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--accent-color) 70%, black);
+    }
+
+    .location-status-name {
+      font-size: calc(0.95 * var(--default-font-size));
+      margin-bottom: 0.25rem;
+      // Lets the "\n" in the plain lat/long fallback (no place name found)
+      // render as an actual line break: latitude on one line, longitude
+      // on the next, instead of one long wrapped/truncated line.
+      white-space: pre-line;
+    }
+
+    .eclipse-status-line {
+      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
+      // actually render as a line break.
+      white-space: pre-line;
+      // Same vertical space as between the location name and this line.
+      margin-block: 0.25rem;
+    }
+  }
+
+  pointer-events: auto;
+
   // Sizing/border now come from the unified .icon-wrapper rule.
 }
 
@@ -5105,30 +5172,27 @@ body {
   // Sizing now comes from the unified .icon-wrapper rule.
 }
 
-#left-buttons-wrapper {
-  #controls {
-    align-self: flex-start;
-  }
+#controls {
+  // Just the toggle icon-button now -- the panel itself
+  // (#control-checkboxes) is a sibling that appears below the whole
+  // top-right button cluster instead of expanding inline here.
+  display: flex;
+  pointer-events: auto;
 }
 
-#controls {
-  // Closed, this is just the sliders icon-button -- its own icon-wrapper
-  // box is the only visible box. Open, this becomes a real panel holding
-  // the checkboxes, so it gets its own background/border/padding, and the
-  // close chevron is drawn bare (no separate icon-wrapper box) since the
-  // panel border already wraps it.
+// The open controls panel, positioned below the top-right button
+// cluster (#top-right-buttons) by normal flow inside #top-wwt-content.
+#control-checkboxes {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  align-self: flex-end;
+  padding: 0.5em;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  border-radius: var(--tight-border-radius);
+  border: solid 1px var(--accent-color);
   pointer-events: auto;
-
-  &.controls-panel-open {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(6px);
-    padding-block: 0.5em;
-    padding-right: 0.5em;
-    border-radius: var(--tight-border-radius);
-    border: solid 1px var(--accent-color);
-  }
 
   .v-label {
     color: var(--accent-color);
@@ -5136,63 +5200,38 @@ body {
     font-size: var(--default-font-size);
   }
 
-  #control-checkboxes {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding-left: calc(0.5 * var(--default-line-height));
-
-    .v-checkbox .v-selection-control {
-      font-size: calc(1.1 * var(--default-font-size));
-      height: calc(1.2 * var(--default-line-height));
-      min-height: calc(1.2 * var(--default-line-height));
-    }
-
-    .v-checkbox .v-selection-control__input {
-      width: calc(1.2 * var(--default-line-height));
-      height: calc(1.2 * var(--default-line-height));
-    }
-
-    .v-checkbox .v-selection-control__wrapper {
-      width: calc(1.2 * var(--default-line-height));
-      height: calc(1.2 * var(--default-line-height));
-    }
-
-    .v-btn {
-      align-self: center;
-      padding-left: 5px;
-      padding-right: 5px;
-      border: solid 1px #899499;
-
-      &:focus {
-        border: 2px solid white;
-      }
-    }
-
-    .v-btn__content {
-      color: black;
-      font-weight: 900;
-      white-space: break-spaces;
-      width: 150px;
-    }
+  .v-checkbox .v-selection-control {
+    font-size: calc(1.1 * var(--default-font-size));
+    height: calc(1.2 * var(--default-line-height));
+    min-height: calc(1.2 * var(--default-line-height));
   }
-  #controls-top-row {
-    display: flex;
-    width: 100%;
-    flex-direction: row;
-    justify-content: flex-start;
 
-    @media (max-width: 599px) {
-      justify-content: flex-start;
+  .v-checkbox .v-selection-control__input {
+    width: calc(1.2 * var(--default-line-height));
+    height: calc(1.2 * var(--default-line-height));
+  }
+
+  .v-checkbox .v-selection-control__wrapper {
+    width: calc(1.2 * var(--default-line-height));
+    height: calc(1.2 * var(--default-line-height));
+  }
+
+  .v-btn {
+    align-self: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    border: solid 1px #899499;
+
+    &:focus {
+      border: 2px solid white;
     }
   }
 
-  &.controls-panel-open #controls-top-row {
-    padding-left: 0.5em;
-  }
-
-  .controls-chevron {
-    cursor: pointer;
+  .v-btn__content {
+    color: black;
+    font-weight: 900;
+    white-space: break-spaces;
+    width: 150px;
   }
 }
 
@@ -6156,32 +6195,45 @@ body {
     justify-content: center;
 
 
-    .map-search-stack {
+    // Small, consistent margin from the small map's own edges for the
+    // overlay buttons below.
+    --map-overlay-margin: 0.5em;
+    // Leaflet's own always-visible "Credit: © Leaflet.js" label sits
+    // flush in the map's bottom-right corner (see LocationSelector.vue's
+    // .leaflet-bottom.leaflet-right::before) -- bottom-anchored buttons
+    // need more clearance than the horizontal/top margin to avoid
+    // sitting on top of it.
+    --map-overlay-bottom-margin: 1.75em;
+
+    .map-search-bottomleft {
       position: absolute;
       z-index: 600;
-      right: 1.25em;
-      top: 1em;
+      bottom: var(--map-overlay-bottom-margin);
+      left: var(--map-overlay-margin);
+    }
+
+    // "Use my location", bottom-right corner of the small map.
+    #my-location-overmap-button {
+      position: absolute;
+      z-index: 600;
+      bottom: var(--map-overlay-bottom-margin);
+      right: var(--map-overlay-margin);
+    }
+
+    // Eclipse-timer button + "reset to Antiguita, Spain" (below it),
+    // stacked in the top-right corner of the small map (mobile only --
+    // desktop keeps its own eclipse-timer copy in the top-left cluster).
+    .map-topright-stack {
+      position: absolute;
+      z-index: 600;
+      top: var(--map-overlay-margin);
+      right: var(--map-overlay-margin);
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       gap: 5px;
-
-      &.overmap-low {
-        top: 2em;
-      }
-
-      &.overmap-budge {
-        right: 4.5em;
-      }
     }
 
-    #eclipse-details-overmap-button {
-      position: absolute;
-      z-index: 600;
-      bottom: 1rem;
-      right: 1.25em;
-    }
-    
     .map-container {
       height: 100%;
       width: 100%;
@@ -6276,7 +6328,11 @@ body {
   height: var(--height);
   min-height: max-content;
   padding: 1rem;
-  grid-template-columns: 1fr 1.35fr;
+  // Equal columns now that both quadrants' text wraps to similarly-short
+  // lines -- the old 1.35fr right column (sized for longer text) shifted
+  // that quadrant's content further right, making the close X (centered
+  // on the overall box) look off-center relative to the two quadrants.
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: 0.5fr 0.5fr;
   gap: 1em;
   
@@ -6570,12 +6626,20 @@ body {
   pointer-events: none;
 }
 
+// Top-right cluster: share, info, and controls, positioned under the
+// info+map container rather than overlapping its top edge. The open
+// controls panel (#control-checkboxes) stacks below the button row.
 #top-wwt-content {
   position: absolute;
   right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
 
-  // Same top offsets as #left-buttons-wrapper while the Map & Weather box
-  // is open, so the two stay vertically aligned.
+  // #main-content (the positioned ancestor here) already starts in
+  // normal flow right below the guided-content box -- these are small
+  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -6591,71 +6655,11 @@ body {
     top: calc(var(--default-font-size) + 1px);
   }
 
-  #location-date-display {
+  #top-right-buttons {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    flex-direction: row;
+    align-items: center;
     gap: 5px;
-
-    @media (max-width: 250px) {
-      padding-top: 3.5em;
-    }
-  }
-
-  // Styled to match the location-button box from the Seasons data story:
-  // dark background, accent-colored border, bold location name with
-  // unbolded details underneath.
-  #location-status-box {
-    pointer-events: auto;
-
-    // Belt-and-suspenders alongside the @click guard: this makes the box
-    // truly inert to clicks/taps at the browser level in narrow/mobile
-    // layouts, rather than relying on the handler firing and returning
-    // early -- also drops the hover border-color change below, so there's
-    // no lingering visual hint that it's interactive.
-    &.non-interactive {
-      pointer-events: none;
-    }
-
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(6px);
-    color: white;
-    border: 2px solid var(--accent-color);
-    border-radius: var(--tight-border-radius);
-    padding: 0.5rem;
-    font-size: calc(0.9 * var(--default-font-size));
-    text-align: center;
-    // Fixed width so the box doesn't grow/shrink with the length of the
-    // location name — long names wrap instead (max-width guards against
-    // overflow on very narrow screens).
-    width: 12rem;
-    max-width: 70vw;
-    transition: border-color 0.2s ease;
-
-    @media (max-width: 600px) {
-      width: 9rem;
-    }
-
-    &:hover {
-      border-color: color-mix(in srgb, var(--accent-color) 70%, black);
-    }
-
-    .location-status-name {
-      font-size: calc(0.95 * var(--default-font-size));
-      margin-bottom: 0.25rem;
-      // Lets the "\n" in the plain lat/long fallback (no place name found)
-      // render as an actual line break: latitude on one line, longitude
-      // on the next, instead of one long wrapped/truncated line.
-      white-space: pre-line;
-    }
-
-    .eclipse-status-line {
-      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
-      // actually render as a line break.
-      white-space: pre-line;
-      // Same vertical space as between the location name and this line.
-      margin-block: 0.25rem;
-    }
   }
 
   pointer-events: auto;
