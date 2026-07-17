@@ -25,7 +25,15 @@
       ></v-text-field>
       <div
         class="icon-wrapper geocoding-search-icon"
+        tabindex="0"
         @click="() => {
+          if (searchOpen) {
+            performForwardGeocodingSearch();
+          } else {
+            searchOpen = true;
+          }
+        }"
+        @keyup.enter="() => {
           if (searchOpen) {
             performForwardGeocodingSearch();
           } else {
@@ -48,7 +56,12 @@
         icon="xmark"
         :size="searchOpen ? 'xl' : '1x'"
         :color="accentColor"
+        tabindex="0"
         @click="() => {
+          searchOpen = false;
+          clearSearchData();
+        }"
+        @keyup.enter="() => {
           searchOpen = false;
           clearSearchData();
         }"

@@ -140,7 +140,7 @@ export default defineComponent({
       }
     });
     resizeObserver.observe(document.getElementById('enclosing-playback-container')!);
-    
+
   },
 
 
