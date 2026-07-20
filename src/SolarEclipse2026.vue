@@ -2,12 +2,13 @@
 <v-app
   id="app"
   :style="cssVars"
+  :inert="showSplashScreen"
 >
 
   <!-- Floating button to reopen the top content box once it's hidden.
        Stays in the DOM (v-show, not v-if) even while the box is open so
        the ref used below to reset its tooltip/focus keeps working. -->
-  <div id="closed-top-container" v-show="!showGuidedContent" class="budge">
+  <div id="closed-top-container" v-show="!narrow && !showGuidedContent" class="budge">
     <icon-button
       v-model="showGuidedContent"
       id="show-guided-content"
@@ -23,10 +24,11 @@
       @activate="onResize"
     >
     <template v-slot:button>
-      <font-awesome-icon icon="chevron-down" size="lg" class="bullet-icon"/> Map & Weather
+      <font-awesome-icon icon="chevron-down" size="lg" class="bullet-icon"/> Path & Weather
     </template>
   </icon-button>
   </div>
+  <div id="guided-content-wrapper" :class="{ 'mobile-fullscreen': narrow && showGuidedContent }">
   <v-container
     id="guided-content-container"
     v-show="showGuidedContent"
@@ -125,7 +127,6 @@
                 hide-details
                 :color="accentColor"
                 @click="infoPage++"
-                @keyup.enter="infoPage++"
                 elevation="0"
                 >
                 More
@@ -136,7 +137,6 @@
                 density="compact"
                 :color="accentColor"
                 @click="infoPage--"
-                @keyup.enter="infoPage--"
                 elevation="0"
                 >
                 Back
@@ -165,14 +165,12 @@
             
           </div>
         </div>
-      <!-- </toggle-content> -->
         <div id="button-row" class="non-map-row">
-          <!-- <v-col> -->
             <div id="top-container-buttons">
               <icon-button
-                :model-value="learnerPath == 'Location'" 
-                fa-icon="location-dot"
-                fa-size="xl"
+                :model-value="learnerPath == 'Location'"
+                md-icon="map-search"
+                md-size="24"
                 :color="accentColor"
                 :focus-color="accentColor"
                 :tooltip-text="'Choose any viewing location'"
@@ -193,31 +191,7 @@
                 :box-shadow="false"
                 @activate="() => { learnerPath = 'Clouds'}"
               ></icon-button>
-              
-              <icon-button
-                v-model="showInfoSheet"
-                fa-icon="book-open"
-                fa-size="xl"
-                :color="accentColor"
-                :focus-color="accentColor"
-                :tooltip-text="showInfoSheet ? null : 'More on Eclipses'"
-                :tooltip-location="'bottom'"
-                :show-tooltip="!mobile"
-                :box-shadow="false"
-              ></icon-button>
-              <icon-button
-                v-model="showWWTGuideSheet"
-                fa-icon="circle-info"
-                fa-size="xl"
-                :color="accentColor"
-                :focus-color="accentColor"
-                :tooltip-text="showWWTGuideSheet ? null : 'User Guide'"
-                :tooltip-location="'bottom'"
-                :show-tooltip="!mobile"
-                :box-shadow="false"
-              ></icon-button>
             </div>
-          <!-- </v-col> -->
         </div>
       </div>
       <div
@@ -229,6 +203,7 @@
         tabindex="0"
         @mousedown="startMapWidthResize"
         @touchstart="startMapWidthResize"
+        @keydown="onMapWidthResizeKeydown"
       ></div>
       <div
         v-if="!smAndUp"
@@ -239,6 +214,7 @@
         tabindex="0"
         @mousedown="startMobileNonMapHeightResize"
         @touchstart="startMobileNonMapHeightResize"
+        @keydown="onMobileNonMapHeightResizeKeydown"
       ></div>
       <div id="map-column">
       <v-hover v-slot="{isHovering, props}">
@@ -250,55 +226,104 @@
             :class="['']"
             id="map-container">
 
-            <!-- modelValue = false, starts with it closed, use stay-open to keep it open -->
-            <location-search
-              v-model="searchOpen"
-              :class="['location-search-overmap', learnerPath === 'Clouds' ? 'overmap-budge' : '', showNewMobileUI ? '' : 'overmap-low']"
-              v-if="narrow"
-              small
-              buttonSize="xl"
-              :search-provider="geocodingInfoForSearch"
-              :accentColor="accentColor"
-              @set-location="setLocationFromSearchFeature"
-              @error="searchErrorMessage = $event"
-            >
-            </location-search>
-            <icon-button
-            v-if="getMyLocation && narrow"
-            :id="'my-location-overmap' + (learnerPath === 'Clouds' ? '-budge' : '')"
-            fa-icon="location-crosshairs"
-            fa-size="2xl"
-            :color="myLocationColor"
-            :focus-color="myLocationColor"
-            :box-shadow="false"
-            :tooltip-text="myLocationToolTip"
-            :show-tooltip="!mobile"
-            @update:modelValue="(value: boolean) => {
-              if(value) {
-                ($refs.geolocation as any).getLocation();
-                showMyLocationDialog = true;
-                learnerPath = 'Location';
-              }
-              else {
-                console.log('geolocation button pressed = false');
-              }
-
-            }"
-          ></icon-button>
-            <icon-button
-              v-if="narrow"
-              id="eclipse-details-overmap"
-              md-icon="sun-clock"
-              md-size="24"
-              :color="accentColor"
-              :focus-color="accentColor"
-              tooltip-text="View eclipse timing details"
-              tooltip-location="start"
-              @activate="() => { showEclipsePredictionSheet = true; }"
+            <!-- modelValue = false, starts with it closed, use stay-open to keep it open.
+                 Shown on both mobile and desktop now -- the geolocate search
+                 and "use my location" controls live over the small map on
+                 both, rather than desktop having its own separate copies
+                 floating over the WWT canvas. -->
+            <div class="map-bottomleft-stack">
+              <!-- On mobile, the top-left location-status-box (in
+                   #left-buttons-wrapper) sits behind this full-screen map
+                   overlay and is never visible while the map is open --
+                   repeat a compact copy of it here (name + eclipse status,
+                   no date) so location context is still visible. -->
+              <div
+                v-if="narrow"
+                id="location-status-box-overmap"
               >
-            </icon-button>
+                <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
+                <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
+              </div>
+              <location-search
+                class="map-search-bottomleft"
+                v-model="searchOpen"
+                small
+                buttonSize="xl"
+                :search-provider="geocodingInfoForSearch"
+                :accentColor="accentColor"
+                :open-upward="narrow"
+                :escape-container="!narrow"
+                @set-location="setLocationFromSearchFeature"
+                @error="searchErrorMessage = $event"
+              >
+              </location-search>
+            </div>
+            <icon-button
+              v-if="getMyLocation"
+              id="my-location-overmap"
+              fa-icon="location-crosshairs"
+              fa-size="2xl"
+              :color="myLocationColor"
+              :focus-color="myLocationColor"
+              :box-shadow="false"
+              :tooltip-text="myLocationToolTip"
+              :show-tooltip="!mobile"
+              @update:modelValue="(value: boolean) => {
+                if(value) {
+                  ($refs.geolocation as any).getLocation();
+                  showMyLocationDialog = true;
+                  learnerPath = 'Location';
+                }
+                else {
+                  console.log('geolocation button pressed = false');
+                }
+
+              }"
+            ></icon-button>
+            <div v-if="narrow" class="map-topright-stack">
+              <icon-button
+                id="eclipse-details-overmap"
+                md-icon="sun-clock"
+                md-size="24"
+                :color="accentColor"
+                :focus-color="accentColor"
+                tooltip-text="View eclipse timing details"
+                tooltip-location="start"
+                @activate="() => { showEclipsePredictionSheet = true; }"
+                >
+              </icon-button>
+              <icon-button
+                id="reset-location-overmap"
+                fa-icon="house"
+                fa-size="lg"
+                :color="accentColor"
+                :focus-color="accentColor"
+                :box-shadow="false"
+                tooltip-text="Reset to Antiguita, Spain"
+                tooltip-location="start"
+                @activate="() => {
+                  location = defaultLocation;
+                  selectedLocationText = defaultLocationText;
+                  learnerPath = 'Location';
+                  // The pin resets to Antiguita, Spain, but the map's own
+                  // camera should return to this session's actual
+                  // starting view (which is deliberately NOT centered on
+                  // Antiguita -- see initialMapOptions), not wherever the
+                  // pin ends up. Deferred a tick: the location change
+                  // above also triggers location-selector's own
+                  // modelValue watcher, which re-centers/zooms the map
+                  // on the pin's new position -- calling this after that
+                  // watcher runs, rather than before, is what makes it
+                  // win instead of being immediately undone by it.
+                  $nextTick(() => {
+                    (($refs.locationSelector as any)?.resetToInitialView)?.();
+                  });
+                }"
+              ></icon-button>
+            </div>
             <!-- :places="places" -->
             <location-selector
+              ref="locationSelector"
               :model-value="locationDeg"
               @update:modelValue="updateLocationFromMap"
               :place-circle-options="placeCircleOptions"
@@ -316,7 +341,9 @@
         </v-slide-y-transition>
       </v-hover>
     </div>
+  </v-container>
     <div
+      v-show="showGuidedContent && !narrow"
       id="top-container-resize-handle"
       role="separator"
       aria-orientation="horizontal"
@@ -324,35 +351,10 @@
       tabindex="0"
       @mousedown="startTopContainerResize"
       @touchstart="startTopContainerResize"
+      @keydown="onTopContainerResizeKeydown"
     ></div>
-  </v-container>
-  
-  <v-dialog
-    id="video-container"
-    v-model="showVideoSheet"
-    transition="slide-y-transition"
-    close-on-back
-    fullscreen
-  >
-    <div class="video-wrapper">
-      <font-awesome-icon
-        id="video-close-icon"
-        class="close-icon"
-        icon="times"
-        size="lg"
-        @click="showVideoSheet = false"
-        @keyup.enter="showVideoSheet = false"
-        tabindex="0"
-      ></font-awesome-icon>
-      <video
-        controls
-        id="info-video"
-      >
-        <source src="./assets/video.mp4" type="video/mp4">
-      </video>
-    </div>
-  </v-dialog>
-  
+  </div>
+
 
     <v-dialog
       scrim="false"
@@ -364,16 +366,27 @@
     >
       <v-card
         class="bottom-sheet-card">
-        <v-card-title tabindex="0"><h3 class="v-btn tab-title">Information</h3></v-card-title>
-          <font-awesome-icon
-          id="close-text-icon"
-          class="control-icon"
-          :icon="`square-xmark`"
-          size="xl"
+        <v-tabs
+          v-model="infoTab"
+          height="32px"
+          :color="accentColor"
+          :slider-color="accentColor"
+          id="tabs"
+          dense
+        >
+          <v-tab class="info-tabs" tabindex="0"><h3>Information</h3></v-tab>
+          <v-tab class="info-tabs" tabindex="0"><h3>User Guide</h3></v-tab>
+        </v-tabs>
+        <div
+          class="dialog-close-button"
           @click="showInfoSheet = false"
           @keyup.enter="showInfoSheet = false"
           tabindex="0"
-        ></font-awesome-icon>
+        >
+          <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
+        </div>
+        <v-window v-model="infoTab" id="tab-items" class="no-bottom-border-radius">
+          <v-window-item>
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container id="learn-more-content">
@@ -448,7 +461,6 @@
                   </div>
                 </div>
               <figure>
-                <!-- <v-img src="https://www.nasa.gov/sites/default/files/thumbnails/image/tsis_eclipse-1.gif"></v-img> -->
                 <gif-play-pause startPaused :gif='require("./assets/eclipse.gif")' :still='require("./assets/eclipse_static.gif")' alt="Animated schematic of a solar eclipse showing how the Moon moves between the Sun and Earth."/>
                 <figcaption>Image credit: NASA Goddard / Katy Mersmann</figcaption>
                 <div class="disclaimer">Not to scale</div>
@@ -456,28 +468,8 @@
             </v-container>
           </v-card-text>
         </v-card>
-      </v-card>
-    </v-dialog>
-    
-    <v-dialog
-      scrim="false"
-      transition="slide-y-transition"
-      v-model="showWWTGuideSheet" 
-      class="bottom-sheet"
-      id="wwt-guide-sheet"
-      :style="cssVars"
-    >
-      <v-card class="bottom-sheet-card">
-        <v-card-title tabindex="0"><h3 class="v-btn tab-title">User Guide</h3></v-card-title>
-        <font-awesome-icon
-          id="close-text-icon"
-          class="control-icon"
-          :icon="`square-xmark`"
-          size="xl"
-          @click="showWWTGuideSheet = false"
-          @keyup.enter="showWWTGuideSheet = false"
-          tabindex="0"
-        ></font-awesome-icon>
+          </v-window-item>
+          <v-window-item>
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container  id="user-guide">
@@ -609,34 +601,6 @@
                       <li>
                         Eclipsed: The fraction of the Sun that is eclipsed in the current view (for the selected time and location).
                       </li>
-                      <li v-if="!showNewMobileUI" class="switch-bullets">
-                        <v-switch
-                          class="display-only-switch"
-                          v-model="displaySwitchOn"
-                          density="compact"
-                          hide-details
-                          disabled
-                          :ripple="false"
-                          :color="accentColor"
-                          true-icon="mdi-white-balance-sunny"
-                        >
-                        </v-switch>
-                        <span class="user-guide-emphasis"> Track Sun:</span> Camera follows the Sun.
-                      </li>
-                      <li v-if="!showNewMobileUI" class="switch-bullets mb-5">
-                        <v-switch
-                          class="display-only-switch"
-                          v-model="displaySwitchOff"
-                          density="compact"
-                          hide-details
-                          disabled
-                          :ripple="false"
-                          :color="accentColor"
-                          false-icon="mdi-image"
-                        >
-                        </v-switch>
-                        <span class="user-guide-emphasis"> Don't Track Sun:</span> Camera stays fixed and shows motion of Sun (and Moon) against the sky.
-                      </li>
                     </ul>
 
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
@@ -648,9 +612,9 @@
                         {{ touchscreen ? "Tap" : "Click" }}
                         <font-awesome-icon
                           class="bullet-icon"
-                          icon="book-open"
-                          size="lg" 
-                        ></font-awesome-icon> to open <span class="user-guide-emphasis-white">Information Guide</span> on why eclipses happen and more.
+                          icon="circle-info"
+                          size="lg"
+                        ></font-awesome-icon> to open <span class="user-guide-emphasis-white">Information &amp; User Guide</span> on why eclipses happen and more.
                       </li>
                       <li class="mb-2">
                         {{ touchscreen ? "Tap" : "Click" }}
@@ -661,7 +625,7 @@
                         </v-icon> to display detailed <span class="user-guide-emphasis-white">eclipse timing</span> predictions for your selected location.
                       </li>
                       <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Center Sun:</span> Recenter view on Sun.
+                        <span class="user-guide-emphasis-white">Track Sun:</span> Camera follows the Sun. Turn off to keep the camera fixed and show motion of Sun (and Moon) against the sky.
                       </li>
                       <li v-if="!showNewMobileUI">
                         <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
@@ -759,9 +723,11 @@
               
               <funding-acknowledgment/>
 
-            </v-container>              
+            </v-container>
           </v-card-text>
         </v-card>
+          </v-window-item>
+        </v-window>
       </v-card>
     </v-dialog>
 
@@ -786,43 +752,65 @@
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
     ></WorldWideTelescope>
+    <div
+      id="eclipse-percent-indicator"
+      v-if="currentFractionEclipsed > 0"
+      :style="{ top: eclipsedIndicatorTop + 'px', left: eclipsedIndicatorLeft + 'px' }"
+    >
+      {{ percentEclipsedText }}
+    </div>
     <div>
       <div id="left-buttons-wrapper" :class="[!showGuidedContent ?'budge' : '']">
-        <div id='geocoding-row' class="d-flex align-center ga-1">
-          <icon-button
-            v-if="getMyLocation"
-            class="geolocation-button"
-            id="my-location"
-            fa-icon="location-crosshairs"
-            :color="myLocationColor"
-            :focus-color="myLocationColor"
-            :box-shadow="false"
-            :tooltip-text="myLocationToolTip"
-            :show-tooltip="!mobile"
-            @update:modelValue="(value: boolean) => {
-              if(value) {
-                ($refs.geolocation as any).getLocation();
-                showMyLocationDialog = true;
-                learnerPath = 'Location';
+        <div id="location-date-display">
+          <div
+            id="location-status-box"
+            :class="{ 'non-interactive': !narrow }"
+            @click="() => {
+              if (!narrow) {
+                return;
               }
-              else {
-                console.log('geolocation button pressed = false');
-              }
+              showGuidedContent = true;
+              onResize();
+              }"
+          >
+            <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
+            <div>{{ selectedLocalDateString }}</div>
+            <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
+          </div>
 
-            }"
-            faSize="lg"
-          ></icon-button>
-          <location-search
-            class="location-search-overwwt"
-            v-model="searchOpen"
-            :search-provider="geocodingInfoForSearch"
-            :accentColor="accentColor"
-            @set-location="setLocationFromSearchFeature"
-            @error="searchErrorMessage = $event"
-            small
-            buttonSize="lg"
-          />
+          <div id="location-secondary-row">
+            <!-- Mobile-only replacement for the old text "Path & Weather"
+                 button -- desktop keeps that button as its own separate
+                 standalone control (#closed-top-container). -->
+            <icon-button
+              v-if="narrow"
+              v-model="showGuidedContent"
+              id="show-guided-content-mobile"
+              md-icon="map-search"
+              md-size="20"
+              :color="accentColor"
+              :focus-color="accentColor"
+              tooltip-text="Map and Weather"
+              :tooltip-location="'bottom'"
+              :show-tooltip="!mobile"
+              :box-shadow="false"
+              @activate="onResize"
+            ></icon-button>
+
+            <icon-button
+              id="eclipse-details-button"
+              md-icon="sun-clock"
+              :md-size="showNewMobileUI ? '20' : '24'"
+              :color="accentColor"
+              :focus-color="accentColor"
+              tooltip-text="View eclipse timing details"
+              tooltip-location="start"
+              @activate="() => { showEclipsePredictionSheet = true; }"
+              >
+            </icon-button>
+          </div>
         </div>
+
         <div id="location-progress" :class="[!showGuidedContent ?'budge' : '']">
           <geolocation-button
             :color="accentColor"
@@ -870,153 +858,7 @@
             }"
           ></geolocation-button>
         </div>
-
-        <div
-          id="controls"
-          class="control-icon-wrapper"
-          v-if="showNewMobileUI"
-        >
-          <div id="controls-top-row">
-            <font-awesome-icon
-              size="lg"
-              :color="accentColor"
-              :icon="showControls ? `chevron-down` : `gear`"
-              @click="showControls = !showControls"
-              @keyup.enter="showControls = !showControls"
-              tabindex="0"
-            /> 
-          </div>
-
-          <div v-if="showControls" id="control-checkboxes">
-            <v-checkbox
-              v-if="!showNewMobileUI"
-              :color="accentColor"
-              v-model="sunCenteredTracking"
-              @change="centerSun()"
-              label="Center Sun"
-              :disabled="sunCenteredTracking"
-              hide-details 
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showAltAzGrid"
-              @keyup.enter="showAltAzGrid = !showAltAzGrid"
-              label="Sky Grid"
-              hide-details 
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showHorizon"
-              @keyup.enter="showHorizon = !showHorizon"
-              label="Horizon/Daytime Sky"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="useRegularMoon"
-              @keyup.enter="useRegularMoon = !useRegularMoon"
-              label="Visible Moon"
-              hide-details
-            />
-          </div>
       </div>
-
-        <div
-          id="controls"
-          class="control-icon-wrapper"
-          v-if="!showNewMobileUI"
-        >
-          <div id="controls-top-row">
-            <font-awesome-icon
-              size="lg"
-              :color="accentColor"
-              :icon="showControls ? `chevron-down` : `gear`"
-              @click="showControls = !showControls"
-              @keyup.enter="showControls = !showControls"
-              tabindex="0"
-            />
-          </div>
-
-          <div v-if="showControls" id="control-checkboxes">
-            <v-checkbox
-              v-if="!showNewMobileUI"
-              :color="accentColor"
-              v-model="sunCenteredTracking"
-              @change="centerSun()"
-              label="Center Sun"
-              :disabled="sunCenteredTracking"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showAltAzGrid"
-              @keyup.enter="showAltAzGrid = !showAltAzGrid"
-              label="Sky Grid"
-              hide-details
-            />
-            <v-checkbox
-              :color="accentColor"
-              v-model="showHorizon"
-              @keyup.enter="showHorizon = !showHorizon"
-              label="Horizon/Daytime Sky"
-              hide-details
-            />
-            <v-checkbox
-                :color="accentColor"
-                v-model="useRegularMoon"
-                @keyup.enter="useRegularMoon = !useRegularMoon"
-                label="Visible Moon"
-                hide-details
-            />
-          </div>
-      </div>
-
-        <icon-button
-          id="share"
-          fa-icon="share-nodes"
-          :color="accentColor"
-          :focus-color="accentColor"
-          :box-shadow="false"
-          tooltip-text="Share view of this location"
-          :show-tooltip="!mobile"
-          @activate="copyShareURL"
-          faSize="lg"
-        ></icon-button>
-    </div>
-      <!-- <div id="mobile-zoom-control"> -->
-        <!-- {{ Math.round(Math.pow(10, userZoom)*100)/100 }} -->
-        <!-- <div class="slider-padding">
-          <v-icon>mdi-magnify-plus</v-icon>
-        </div>
-        <vue-slider 
-          v-model="userZoom"
-          direction="ttb"
-          :min="1"
-          :max="Math.round(Math.log10(360)*100)/100"
-          :interval=".01"
-          :color="accentColor"
-          :tooltip="'none'"
-          :duration="0"
-          :height="wwtContentHeight ? `${0.5 * wwtContentHeight}px` : '200px'"
-          :process-style="{ backgroundColor: 'rgb(255 193 203)' }"
-          :dot-style="{ backgroundColor: accentColor, borderColor: 'black'}"
-          ></vue-slider>
-        <div class="slider-padding">
-          <v-icon>mdi-magnify-minus</v-icon>
-        </div>
-      </div> -->
-        <!-- <v-dialog
-          scrim="false"
-          v-model="showMyLocationDialog"
-          max-width="400px"
-          id="mylocation-popup-dialog"
-        >
-          <v-card>
-            <v-card-text>
-              Fetching your location...
-            </v-card-text>
-          </v-card>
-        </v-dialog> -->
     </div>
 
 
@@ -1039,7 +881,9 @@
         >
           <div
             id="close-splash-button"
+            tabindex="0"
             @click="closeSplashScreen"
+            @keyup.enter="closeSplashScreen"
             >&times;</div>
           <div id="splash-screen-text">
             <p>See how the </p>
@@ -1101,60 +945,39 @@
     <v-overlay
       v-if="showNewMobileUI"
       v-model="inIntro"
+      id="intro-overlay-mobile"
       opacity="1"
       :scrim="false"
       :close-on-content-click="true"
+      :style="cssVars"
       >
       <div id="instruction-overlay">
-        <div id="overlay-close">
-          <v-icon
-            class="overlay-close-icon"
-            icon="mdi-close-box"
-            color="gray"
-            @click="inIntro = !inIntro"
-            @keyup.enter="inIntro = !inIntro"
-            tabindex="0"
-          ></v-icon>
-        </div>
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Set location + more
+            Location,<br> Path, &amp; <br> Timing
           </div>
         </div>
         <div class="inst-quad top-right">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Where, when + how much
+            Settings, <br> Info &amp; <br> Sharing
           </div>
         </div>
         <div class="inst-quad bottom-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            New! Set time to "Now," or control time yourself!
+            <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
+            <template v-else>Control time yourself!</template>
           </div>
         </div>
-        <div class="inst-quad bottom-right">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
-          <div class="inst-text">
-            Tell me what will happen and when<span v-if="withinForecastRange">, + new! August 12 weather</span>
-          </div>
-        </div>
-        <!-- <div id="instructions-close-button">
-          <v-icon 
-            :size="Math.max(0.1 * $vuetify.display.width, 20)" 
-            @click="inIntro = !inIntro"
-            icon="mdi-gesture-tap-button"
-            >
-          </v-icon>
-          Tap to close
-        </div> -->
       </div>
     </v-overlay>
 
     <v-dialog
       v-if="!showNewMobileUI"
       v-model="inIntro"
+      id="intro-dialog"
       :style="cssVars"
       :scrim="false"
       :persistent="false"
@@ -1162,18 +985,18 @@
       <div v-if="inIntro" id="introduction-overlay" class="elevation-10">
         <v-window v-model="introSlide">
           <template v-slot:additional>
-            <div id="intro-window-close-button">
-            <font-awesome-icon
-              size="xl"
-              class="ma-1"
-              color="#b3d5e6"
-              icon='square-xmark'
+            <div
+              class="dialog-close-button"
               @click="inIntro = !inIntro"
               @keyup.enter="inIntro = !inIntro"
               tabindex="0"
-              tooltip-location="start"
-            /> 
-          </div>
+            >
+              <font-awesome-icon
+                size="xl"
+                :color="accentColor2"
+                icon='xmark'
+              />
+            </div>
           </template>
           <v-window-item :value="1">
             <div class="intro-text">
@@ -1196,7 +1019,7 @@
                 <p class="mb-3">
                 Access these features in  
                 </p> 
-                <span class="px-2 py-1 my-2 mr-1" style="border: 1px solid #eac402; border-radius: 1em; color:#eac402; white-space: nowrap">Map & Weather</span>
+                <span class="px-2 py-1 my-2 mr-1" style="border: 1px solid #eac402; border-radius: 1em; color:#eac402; white-space: nowrap">Path & Weather</span>
               </div>
               <p v-else class="mb-3">
                 In this interactive page you can:
@@ -1204,7 +1027,7 @@
               <ul>
                 <v-list-item density="compact">
                   <template v-slot:prepend>
-                    <font-awesome-icon icon="location-dot" size="xl" class="bullet-icon"></font-awesome-icon>
+                    <v-icon icon="mdi-map-search" size="xl" class="bullet-icon"></v-icon>
                   </template>
                     <strong>Select any location</strong> around the world. See and share how the eclipse would look from there.
                 </v-list-item>
@@ -1216,15 +1039,9 @@
                 </v-list-item>
                 <v-list-item density="compact">
                   <template v-slot:prepend>
-                    <font-awesome-icon icon="book-open" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>Learn more</strong> about solar eclipses. 
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
                     <font-awesome-icon icon="circle-info" size="xl" class="bullet-icon"></font-awesome-icon>
                   </template>
-                    Access <strong>User Guide</strong> on how to navigate this app. 
+                    <strong>Learn more</strong> about solar eclipses, and access the <strong>User Guide</strong> on how to navigate this app.
                 </v-list-item>
               </ul>
             </div>
@@ -1235,21 +1052,19 @@
           <div>
             <v-btn
               v-if="(introSlide > 1) && (!showNewMobileUI)"
-              id="intro-next-button"
+              id="intro-back-button"
               :color="accentColor"
               @click="introSlide--"
-              @keyup.enter="introSlide--"
               elevation="0"
               >
               Back
             </v-btn>
           </div>
-          
+
           <v-btn
             id="intro-next-button"
             :color="accentColor"
             @click="introSlide++"
-            @keyup.enter="introSlide++"
             elevation="0"
             >
             {{ introSlide < 2 ? 'Next' : 'Get Started' }}
@@ -1260,51 +1075,83 @@
     
   
   <div id="top-wwt-content" :class="[!showGuidedContent ? 'budge' : '']">
-    <!-- <p> in total eclipse {{ locationInTotality }}</p> -->
-      <div id="location-date-display">
-        <div
-          id="location-status-box"
-          tabindex="0"
-          @click="() => {
-            searchOpen = true;
-            learnerPath = 'Location'
-            }"
-          @keyup.enter="() => {
-            searchOpen = true;
-            learnerPath = 'Location'
-            }"
-        >
-          <div class="location-status-name"><strong>{{ selectedLocationText }}</strong></div>
-          <div>{{ selectedLocalDateString }}</div>
-          <div v-if="eclipsePredictionText" class="eclipse-status-line">{{ eclipsePredictionText }}</div>
-          <div>{{ percentEclipsedText }}</div>
-        </div>
-      </div>
-      <div id="top-switches" v-if="!showNewMobileUI">
-        <div id="track-sun-switch"> 
-          <hover-tooltip
-              location="left"
-              :disabled="mobile"
-            >
-              <template v-slot:target>
-                <v-switch
-                  inset
-                  hide-details
-                  v-model="toggleTrackSun"
-                  :ripple="false"
-                  :color="accentColor"
-                  true-icon="mdi-white-balance-sunny"
-                  false-icon="mdi-image"
-                  @keyup.enter="toggleTrackSun = !toggleTrackSun"
-                  tabindex="0"
-                >
-                </v-switch>
-            </template>
-            {{ toggleTrackSun ? "Stop Tracking Sun" : 'Start Tracking Sun' }}
-          </hover-tooltip>
-        </div>
+    <!-- Right-to-left: controls, info, share -->
+    <div id="top-right-buttons">
+      <icon-button
+        id="share"
+        fa-icon="share-nodes"
+        :color="accentColor"
+        :focus-color="accentColor"
+        :box-shadow="false"
+        tooltip-text="Share view of this location"
+        :show-tooltip="!mobile"
+        @activate="copyShareURL"
+        faSize="lg"
+      ></icon-button>
+
+      <icon-button
+        v-model="showInfoSheet"
+        id="info-button"
+        fa-icon="circle-info"
+        fa-size="lg"
+        :color="accentColor"
+        :focus-color="accentColor"
+        :tooltip-text="showInfoSheet ? null : 'Information & User Guide'"
+        :tooltip-location="'bottom'"
+        :show-tooltip="!mobile"
+        :box-shadow="false"
+      ></icon-button>
+
+      <div
+        id="controls"
+        class="control-icon-wrapper"
+      >
+        <!-- Mirrors the speed-control icon's open/close toggle pattern --
+             the activator itself becomes an X when the panel is open,
+             rather than a separate close chevron inside the panel. -->
+        <icon-button
+          v-model="showControls"
+          id="controls-toggle"
+          :fa-icon="showControls ? 'xmark' : 'sliders'"
+          fa-size="lg"
+          :color="accentColor"
+          :focus-color="accentColor"
+          :box-shadow="false"
+        ></icon-button>
       </div>
     </div>
+
+    <div v-if="showControls" id="control-checkboxes">
+      <v-checkbox
+        :color="accentColor"
+        v-model="toggleTrackSun"
+        @keyup.enter="toggleTrackSun = !toggleTrackSun"
+        label="Track Sun"
+        hide-details
+      />
+      <v-checkbox
+        :color="accentColor"
+        v-model="showHorizon"
+        @keyup.enter="showHorizon = !showHorizon"
+        label="Horizon / Sky"
+        hide-details
+      />
+      <v-checkbox
+        :color="accentColor"
+        v-model="showAltAzGrid"
+        @keyup.enter="showAltAzGrid = !showAltAzGrid"
+        label="Sky Grid"
+        hide-details
+      />
+      <v-checkbox
+        :color="accentColor"
+        v-model="useRegularMoon"
+        @keyup.enter="useRegularMoon = !useRegularMoon"
+        label="Visible Moon"
+        hide-details
+      />
+    </div>
+  </div>
     
     <div class="bottom-content">
       
@@ -1313,18 +1160,19 @@
         :max-width="xSmallSize ? '85%' : '45%'"
         transition="slide-y-transition"
         id="weather-forecast-sheet"
+        :style="cssVars"
         >
       <v-card>
           <v-card-text class="pb-8">
-            <font-awesome-icon
-                style="position:absolute;right:12px;cursor:pointer;padding:1em;margin:-1em"
-                icon="square-xmark"
-                size="xl"
-                @click="showForecastSheet = false"
-                @keyup.enter="showForecastSheet = false"
-                tabindex="0"
-              ></font-awesome-icon>
-            <open-meteo-forecast 
+            <div
+              class="dialog-close-button"
+              @click="showForecastSheet = false"
+              @keyup.enter="showForecastSheet = false"
+              tabindex="0"
+            >
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
+            </div>
+            <open-meteo-forecast
               :location="locationDeg"
               :location-str="selectedLocationText"
               :time="(eclipsePrediction !== null && eclipseType != 'None') ? eclipsePrediction.maxTime[0] : null"
@@ -1335,55 +1183,31 @@
      
       <v-dialog
         v-model="showEclipsePredictionSheet"
-        max-width="fit-content"
+        :max-width="xSmallSize ? '95%' : 'fit-content'"
         transition="slide-y-transition"
         id="eclipse-prediction-sheet"
+        :style="cssVars"
         >
         <v-card>
           <v-card-text>
-            <font-awesome-icon
-                style="position:absolute;right:12px;cursor:pointer;padding:1em;margin:-1em"
-                icon="square-xmark"
-                size="xl"
-                @click="showEclipsePredictionSheet = false"
-                @keyup.enter="showEclipsePredictionSheet = false"
-                tabindex="0"
-              ></font-awesome-icon>
+            <div
+              class="dialog-close-button"
+              @click="showEclipsePredictionSheet = false"
+              @keyup.enter="showEclipsePredictionSheet = false"
+              tabindex="0"
+            >
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
+            </div>
             <eclipse-timer show-timer :prediction="eclipsePrediction" :timezone="selectedTimezone" :color="accentColor" :location="selectedLocationText"/>
           </v-card-text>
         </v-card>
       </v-dialog>
-            
-      <icon-button
-        v-if="showNewMobileUI"
-        v-model="showInfoSheet"
-        fa-icon="book-open"
-        fa-size="lg"
-        :color="accentColor"
-        :focus-color="accentColor"
-        :tooltip-text="showInfoSheet ? null : 'More on Eclipses'"
-        :tooltip-location="'left'"
-        :show-tooltip="!mobile"
-        :box-shadow="false"
-      ></icon-button>
-      
-      <icon-button
-        id="eclipse-details-button"
-        md-icon="sun-clock"
-        :md-size="showNewMobileUI ? '16' : '24'"
-        :color="accentColor"
-        :focus-color="accentColor"
-        tooltip-text="View eclipse timing details"
-        tooltip-location="start"
-        @activate="() => { showEclipsePredictionSheet = true; }"
-        >
-      </icon-button>
 
       <icon-button
         v-if="withinForecastRange"
         v-model="showForecastSheet"
         md-icon="mdi-cloud-clock"
-        :md-size="showNewMobileUI ? '16' : '24'"
+        :md-size="showNewMobileUI ? '20' : '24'"
         :color="accentColor"
         :focus-color="accentColor"
         :tooltip-text="showForecastSheet ? null : 'August 12 Weather Forecast'"
@@ -1410,37 +1234,10 @@
         </v-btn>
       </div>
       
-      <div id="video-icon">
-        <icon-button
-          v-model="showVideoSheet"
-          id="video-icon"
-          fa-icon="video"
-          fa-size="lg"
-          :color="accentColor"
-          tooltip-text="Video guide"
-          tooltip-location="start"
-          :tooltip-offset="smallSize ? 0 : '10px'"
-        ></icon-button>
-      </div>
       <div id="tools">
         <span class="tool-container">
           <div style="position: relative">
             <div id="speed-control">
-              <icon-button
-                id="reverse-speed"
-                :md-icon="playbackRate < 0 ? 'mdi-step-forward-2' : 'mdi-step-backward-2'"
-                @activate="() => {
-                      reversePlaybackRate();
-                      // playing = true;
-                    }"
-                :color="accentColor"
-                :focus-color="accentColor"
-                :tooltip-text="playbackRate < 0 ? 'Play time forwards' : 'Play time backwards'"
-                tooltip-location="top"
-                tooltip-offset="5px"
-                mdSize="18"
-                :show-tooltip="!mobile"
-              ></icon-button>
               <icon-button
                 id="play-pause-icon"
                 :fa-icon="!(playing) ? 'play' : 'pause'"
@@ -1452,7 +1249,7 @@
                 tooltip-text="Play/Pause"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1467,7 +1264,7 @@
                 :tooltip-text="'Slower'"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1482,7 +1279,23 @@
                 :tooltip-text="'Faster'"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
+                :show-tooltip="!mobile"
+              ></icon-button>
+              <icon-button
+                v-if="!xSmallSize"
+                id="reverse-speed"
+                :md-icon="playbackRate < 0 ? 'mdi-step-forward-2' : 'mdi-step-backward-2'"
+                @activate="() => {
+                      reversePlaybackRate();
+                      // playing = true;
+                    }"
+                :color="accentColor"
+                :focus-color="accentColor"
+                :tooltip-text="playbackRate < 0 ? 'Play time forwards' : 'Play time backwards'"
+                tooltip-location="top"
+                tooltip-offset="5px"
+                mdSize="22"
                 :show-tooltip="!mobile"
               ></icon-button>
               <icon-button
@@ -1490,26 +1303,35 @@
                 :fa-icon="'house'"
                 @activate="() => {
 
-                  selectedTime = (totalEclipseTimeUTC.getTime() - 60*60*1000*1.5);
+                  selectedTime = initialSelectedTime;
                   playbackRate = 500;
                   playing = false;
-                  toggleTrackSun = true;
                   forceRate = false;
+                  location = defaultLocation;
+                  selectedLocationText = defaultLocationText;
+                  toggleTrackSun = true;
+                  sunPlace.set_zoomLevel(20);
+                  gotoTarget({
+                    place: sunPlace,
+                    instant: true,
+                    noZoom: false,
+                    trackObject: true
+                  });
                 }"
                 :color="accentColor"
                 :focus-color="accentColor"
                 tooltip-text="Reset"
                 tooltip-location="top"
                 tooltip-offset="5px"
-                faSize="1x"
+                faSize="lg"
                 :show-tooltip="!mobile"
               ></icon-button>
-                    
-              <v-dialog 
-                v-if="!xSmallSize" 
-                v-model="playbackVisible" 
+
+              <v-dialog
+                v-if="!xSmallSize"
+                v-model="playbackVisible"
                 :scrim="false"
-                location="top"
+                location="top end"
                 offset="40"
                 location-strategy="connected"
                 persistent
@@ -1528,7 +1350,7 @@
                     tooltip-text="Speed Controls"
                     tooltip-location="top"
                     tooltip-offset="5px"
-                    faSize="1x"
+                    faSize="lg"
                     :show-tooltip="!mobile"
                     v-bind="props"
                   ></icon-button>
@@ -1541,17 +1363,11 @@
                         forceRate = false;
                         playbackRate = value;
                       }"
-                      :paused="!playing"
-                      @paused="playing = !$event"
                       :max-power="3"
                       :max="Math.log10(1000) + 1"
                       :color="accentColor"
                       :inline="false"
-                      show-close-button
-                      @close="() => {
-                        playbackVisible = false;
-                      }"
-                    /> 
+                    />
               </v-dialog>
       
 
@@ -1567,7 +1383,7 @@
                     tooltip-text="Time Controls"
                     tooltip-location="top"
                     tooltip-offset="5px"
-                    faSize="1x"
+                    faSize="lg"
                     :show-tooltip="!mobile"
                   ></icon-button>
 
@@ -1579,34 +1395,16 @@
                         forceRate = false;
                         playbackRate = value;
                       }"
-                      :paused="!playing"
-                      @paused="playing = !$event"
                       :max-power="3"
                       :max="Math.log10(1000) + 1"
                       :color="accentColor"
                       :inline="true"
-                      inline-button
-                      @close="() => {
-                        playbackVisible = false;
-                      }"
-                    /> 
+                    />
 
                 </div>
             </div>
             <div id="speed-text">
-              Time rate: 
-              <span v-if="playbackRate===1 && playing">
-                Real time
-              </span>
-              <span v-if="playbackRate!=1 && playing">
-                {{ niceRound(playbackRate) }}&times;
-              </span>
-              <span v-if="!playing">
-                ({{ niceRound(playbackRate) }}&times;) Paused
-              </span>
-              <span v-if="playing && forceRate">
-                (Slowed for totality)
-              </span>
+              Speed: {{ niceRound(playbackRate) }}x real time<span v-if="!playing"> (paused)</span><span v-else-if="forceRate"> (slowed for totality)</span>
             </div>
           </div>
           <div id="slider">
@@ -1735,7 +1533,6 @@
             class="privacy-button"
             color="#BDBDBD"
             @click="showRatingPrivacyPolicy = true"
-            @keyup.enter="showRatingPrivacyPolicy = true"
             size="small"
             target="_blank"
             rel="noopener noreferrer"
@@ -1755,8 +1552,7 @@ import { defineComponent, toRaw, PropType } from "vue";
 import { MiniDSBase, BackgroundImageset, skyBackgroundImagesets, API_BASE_URL, UserExperienceRating } from "@cosmicds/vue-toolkit";
 import { GotoRADecZoomParams } from "@wwtelescope/engine-pinia";
 import { Classification, SolarSystemObjects } from "@wwtelescope/engine-types";
-import { Folder, Grids, LayerManager, Planets, Poly, Settings, WWTControl, Place, Texture, CAAMoon } from "@wwtelescope/engine";
-import { distance } from "@wwtelescope/astro";
+import { Grids, LayerManager, Planets, Poly, Settings, WWTControl, Place, Texture, CAAMoon } from "@wwtelescope/engine";
 import { Annotation2, Poly2 } from "./Annotation2";
 
 import { getTimezoneOffset, formatInTimeZone } from "date-fns-tz";
@@ -1777,13 +1573,7 @@ interface CloudData {
   cloudCover: number;
 }
 
-// interface CloudCoverData {
-//   [key: string]: CloudData[];
-// }
-
-
-
-type SheetType = "text" | "video" | null;
+type SheetType = "text" | null;
 type LearnerPath = "Location" | "Clouds" | 'CloudDetail' | "Learn";
 type ViewerMode = "Horizon";
 type MoonImageFile = "moon.png" | "moon-dark-gray-overlay.png" | `moon-sky-blue-overlay-${number}.png` | "empty.png";
@@ -1825,16 +1615,10 @@ export interface MapBoxContextItem {
 // instead of eclipse start/end times this shouldj ust be 24 hours
 const eclipseStartTime = Date.UTC(2026, 7, 12, 4, 1); // partial eclipse starts at 15:40 UTC
 const eclipseFinishTime = Date.UTC(2026, 7, 13, 3, 59); // partial eclipse ends at  20:55 UTC
-console.log("Eclipse start time", new Date(eclipseStartTime));
-console.log("Eclipse finish time", new Date(eclipseFinishTime));
 const extraTime = 1000 * 60 * 60 * 0; // add 2 hours to the end time to make sure we get the full eclipse
 const minTime = eclipseStartTime - extraTime;
 const maxTime = eclipseFinishTime + extraTime;
-console.log("Min time",new Date(minTime).toISOString());
-console.log("Max time", new Date(maxTime).toISOString());
-// if current time is between min and max time
 const onDayOfEclipse = (Date.now() >= minTime) && (Date.now() <= maxTime);
-// within 15 days of the start date
 const withinForecastRange = (Date.now() >= (eclipseStartTime - 1000 * 60 * 60 * 24 * 15)) && (Date.now() <= (eclipseStartTime + 1000 * 60 * 60 * 24 * 2));
 const SECONDS_PER_DAY = 60 * 60 * 24;
 const MILLISECONDS_PER_DAY = 1000 * SECONDS_PER_DAY;
@@ -1888,74 +1672,6 @@ const RELEVANT_FEATURE_TYPES = ["postcode", "place", "region", "country"];
 const NA_COUNTRIES = ["United States", "Canada", "Mexico"];
 const NA_ABBREVIATIONS = ["US-", "CA-", "MX-"];
 
-import { dsvFormat } from "d3-dsv";
-import { eclipse } from "./eclipse_path";
-
-function parseLatLon(latD: string, latM: string, lonD: string, lonM: string): LocationDeg {
-
-  const lat = +latD;
-  // split off last character of latM as N/S
-  const latSign = latM.slice(-1) === "N" ? 1 : -1;
-  const latMin = +latM.slice(0, -1);
-  const latDeg = latSign * (lat + latMin / 60);
-  
-  const lon = +lonD;
-  // split off last character of lonM as W/E
-  const lonSign = lonM.slice(-1) === "E" ? 1 : -1;
-  const lonMin = +lonM.slice(0, -1);
-  const lonDeg = lonSign * (lon + lonMin / 60);
-  
-  return {
-    latitudeDeg: latDeg,
-    longitudeDeg: lonDeg
-  };
-}
-
-function parseEclipsePath(csv: string) {
-  const tsv = dsvFormat('|');
-
-  return tsv.parseRows(csv, (d) => {
-    // parse rows based on space delimieted eclipse_path.txt
-
-    const utcString = d[1].split(':');
-    const utc = new Date(eclipseStartTime);
-    utc.setUTCHours(+utcString[0]);
-    utc.setUTCMinutes(+utcString[1]);
-    utc.setUTCSeconds(0);
-    utc.setUTCMilliseconds(0);
-    
-    
-    const northernLimit = parseLatLon(d[2], d[3], d[4], d[5]);
-    const southernLimit = parseLatLon(d[6], d[7], d[8], d[9]);
-    const centerLine = parseLatLon(d[10], d[11], d[12], d[13]);
-    const ratio = +d[14];
-    const sunAlt = +d[15];
-    const sunAz = +d[16];
-    const pathWidth = +d[17];
-    const eclipseDuration = d[18];
-    // content for the popup : eclipse time (UTC) and duration
-    const tz = tzlookup(centerLine.latitudeDeg, centerLine.longitudeDeg);
-    const localTimeString = formatInTimeZone(utc.getTime(), tz, "h:mm aa (zzz)");
-    const popupContent = `Eclipse time (local): ${localTimeString} <br/>Eclipse time (UTC): ${d[1]} <br/>Duration: ${eclipseDuration}`;
-    
-    return {
-      'utc': utc.getTime(),
-      'northernLimit': northernLimit,
-      'southernLimit': southernLimit,
-      'centerLine': centerLine,
-      'ratio': ratio,
-      'sunAlt': sunAlt,
-      'sunAz': sunAz,
-      'pathWidth': pathWidth,
-      'eclipseDuration': eclipseDuration,
-      'popupContent': popupContent
-    };
-    
-  });
-}
-
-const eclipsePath = parseEclipsePath(eclipse);
-
 
 /** PARSE CLOUD COVERAGE DATA **/
 import cloudCover from "./assets/cloud_cover.csv";
@@ -2008,7 +1724,6 @@ export default defineComponent({
       type: String,
       required: true
     },
-    // http://localhost:8081/?lat=42.243208914562764&lon=-3.9245888745091406
     initialCameraParams: {
       type: Object as PropType<Omit<GotoRADecZoomParams, 'instant'>>,
       default() {
@@ -2070,14 +1785,19 @@ export default defineComponent({
     const storedRatingOptOut = window.localStorage.getItem(RATING_OPT_OUT_KEY);
     const ratingOptOut = typeof storedRatingOptOut === "string" ? storedRatingOptOut === "true" : null;
     
+    // Captured once here so the reset button can return to this exact
+    // location later, rather than independently recomputing the same
+    // literal (and risking the two silently drifting apart).
+    const defaultLocation: LocationRad = { latitudeRad: D2R * 41.05651083190793, longitudeRad: D2R * -2.3823344069458017 };
+    const defaultLocationText = "Antiguita, Spain";
+
     const location: LocationRad = (latitudeDeg !== undefined && longitudeDeg !== undefined) ?
       { latitudeRad: D2R * latitudeDeg, longitudeRad: D2R * longitudeDeg } :
-      { latitudeRad: D2R * 41.05651083190793, longitudeRad: D2R * -2.3823344069458017 };
+      defaultLocation;
     return {
 
       showForecastSheet: false,
-      
-      selectedCloudCoverVariable: 'median', // Define selectedCloudCoverVariable
+
       cloudCoverData: cloudDataArray as CloudData[],
       rectangleDegrees: Math.abs(dLat),
       
@@ -2115,60 +1835,45 @@ export default defineComponent({
       sheet: null as SheetType,
       layersLoaded: false,
       positionSet: false,
-      imagesetFolder: null as Folder | null,
 
       wwtMove: null as ((x: number, y: number) => void) | null,
 
       searchOpen: true,
       searchText: null as string | null,
-      searchResults: null as MapBoxFeatureCollection | null,
       searchErrorMessage: null as string | null,
-      locationJustUpdated: false,
 
-      showMapTooltip: false,
-      showTextTooltip: false,
-      showMapSelector: false,
-      showLocationSelector: false,
       getMyLocation: true,
       myLocation: null as LocationDeg | null,
       geolocationPermission: '' as 'granted' | 'denied' | 'prompt',
       
-      showWWTGuideSheet: false,
+      // Information and User Guide are now tabs (0/1) within one dialog
+      // (showInfoSheet), rather than two separately-toggled sheets.
+      infoTab: 0,
       showAdvancedWeather: queryData.awv ?? false,
-      showAWVMapByDefault: queryData.awv ?? false,
-      showAWVChartsByDefault: queryData.awv ?? false,
-      showAWVFullScreen: false,
-      
+
       showEclipsePredictionSheet: false,
 
-      
-      selectionProximity: 4,
+
       pointerMoveThreshold: 6,
       isPointerMoving: false,
-      pointerStartPosition: null as { x: number; y: number } | null,  
+      pointerStartPosition: null as { x: number; y: number } | null,
 
-      // "Greatest Eclipse"
       totalEclipseTimeUTC,
+      // Captured once here so the reset button can return to this exact
+      // value later, rather than independently recomputing the same
+      // formula (and risking the two silently drifting apart).
+      initialSelectedTime: totalEclipseTimeUTC.getTime() - 60*60*1000*1.5,
       selectedTime:  totalEclipseTimeUTC.getTime() - 60*60*1000*1.5,
       selectedTimezone: "Europe/Madrid",
       location,
-      selectedLocationText: "Antiguita, Spain",
-      locationErrorMessage: "",
-            
+      defaultLocation,
+      selectedLocationText: defaultLocationText,
+      defaultLocationText,
+
       syncDateTimeWithWWTCurrentTime: true,
-      syncDateTimewithSelectedTime: true,
 
       sunOffset: null as { x: number; y: number } | null,
 
-      presetMapOptions: {
-        templateUrl: "https://watercolormaps.collection.cooperhewitt.org/tile/watercolor/{z}/{x}/{y}.jpg",
-        minZoom: 1,
-        maxZoom: 16,
-        attribution: 'Maptiles by Stamen Design, under <a target="_blank" href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a target="_top" href="https://www.openstreetmap.org/#map=4/38.01/-95.84">OpenStreetMap</a>, under <a target="_top" href="http://creativecommons.org/licenses/by-sa/2.0">CC BY-SA 2.0</a>',
-        ext: 'jpg',
-        ...initialView
-      },
-      
       initialMapOptions,
 
       userSelectedMapOptions: {
@@ -2177,8 +1882,7 @@ export default defineComponent({
         attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
         ...(queryData ? { ...queryData, initialZoom: 5 } : initialView)
       },
-      
-      eclipseCenterLine: eclipsePath,
+
       currentFractionEclipsed: 0,
 
       placeCircleOptions: {
@@ -2199,17 +1903,14 @@ export default defineComponent({
       visitedCloudCover: false,
       
       playing: false,
-      playingIntervalId: null as ReturnType<typeof setInterval> | null,
       playingWaitCount: 0,
 
       activePointer: false,
-      showControls: true,
+      showControls: false,
       sunCenteredTracking: true,
       showAltAzGrid: false,
       showHorizon: true,
-      showTextSheet: false, 
-      showLinkToPath: false, 
-      
+
       toggleTrackSun: true,
       
       times,
@@ -2219,8 +1920,18 @@ export default defineComponent({
       nowOutsideTimeRange: false,
       
       accentColor: "#eac402",
+      // Lighter variant of the CosmicDS logo blue -- used for links and,
+      // to keep them visually distinct from the app's primary yellow
+      // accent, every "x to close" button.
+      accentColor2: "#7996DA",
       moonColor: "#CFD8DC",
+      normalBorderRadius: "10px",
+      tightBorderRadius: "5px",
       guidedContentHeight: "300px",
+      // Position (px, relative to #main-content's own top/left edges) for
+      // the eclipse-percent indicator -- see updateEclipsedIndicatorPosition().
+      eclipsedIndicatorTop: 0,
+      eclipsedIndicatorLeft: 0,
       showGuidedContent: true,
       topContainerCustomHeight: null as number | null,
       isResizingTopContainer: false,
@@ -2236,8 +1947,6 @@ export default defineComponent({
       mobileNonMapHeightResizeStartHeight: 0,
 
       inIntro: false,
-      displaySwitchOn: true,
-      displaySwitchOff: false,
       scrollUp: false,
 
       showPrivacyDialog: false,
@@ -2251,7 +1960,6 @@ export default defineComponent({
       viewerMode: 'Horizon' as ViewerMode,
 
       showSky: true,
-      skyColorNight: "#1F1F1F",
       skyColorLight: "#4190ED",
       skyColor: "#4190ED",
       skyOpacity: 0.6,
@@ -2264,10 +1972,8 @@ export default defineComponent({
       playbackVisible: false,
       maxPlaybackRate: MAX_PLAYBACK_RATE,
       
-      horizonRate: 625, 
-      scopeRate: 100, 
-
-      startPaused: false,
+      horizonRate: 500,
+      scopeRate: 100,
 
       sunPlace,
       moonPlace,
@@ -2297,9 +2003,7 @@ export default defineComponent({
       eclipseStart: 0 as number | null,
       eclipseMid: 0 as number | null,
       eclipseEnd: 0 as number | null,
-      eclipseApproach: 'entering' as 'entering' | 'leaving',
       eclipseType: null as "Partial" | "Total" | "Annular" | 'None' | null,
-      showEclipseTimer:true,
     };
   },
 
@@ -2339,7 +2043,6 @@ export default defineComponent({
 
       this.backgroundImagesets = [...skyBackgroundImagesets];
 
-      // console.log(this);
       this.setTime(this.dateTime);
 
       this.wwtSettings.set_localHorizonMode(true);
@@ -2393,7 +2096,6 @@ export default defineComponent({
       /* eslint-disable @typescript-eslint/no-var-requires */
       Planets['_planetTextures'][0] = Texture.fromUrl(require("./assets/2023-09-19-SDO-Sun.png"));
       this.setForegroundImageByName("Digitized Sky Survey (Color)");
-      // this.setBackgroundImageByName("Black Sky Background");
       this.setForegroundOpacity(100);
 
       // The initial Moon position is incorrect, and we use it to set the Moon sprite.
@@ -2402,25 +2104,21 @@ export default defineComponent({
       this.updateMoonTexture(true);
 
       this.updateWWTLocation();
-      
-      // this.setClockSync(!queryData.splash); // set to true if queryData.splash == false
-      // this.playing = !queryData.splash;
+
       this.setClockSync(false);
       this.playing = false;
 
       this.setClockRate(1); //
 
       this.playbackRate = 1;  //this.setplaybackRate('8 minutes per second'); // 500;
-      
-      // If there are layers to set up, do that here!
+
       this.layersLoaded = true;
 
       this.startHorizonMode();
 
       this.trackSun().then(() => this.positionSet = true);
       this.getEclipsePrediction();
-      // this.setTimeforSunAlt(10); // 10 degrees above horizon
-      
+
       setInterval(() => {
         if (this.playing) {
           const time = this.wwtCurrentTime;
@@ -2428,12 +2126,6 @@ export default defineComponent({
           this.updateFrontAnnotations(time);
         }
       }, 500);
-      
-      window.addEventListener('keyup', (event: KeyboardEvent) => {
-        if (["Esc", "Escape"].includes(event.key) && this.showVideoSheet) {
-          this.showVideoSheet = false;
-        }
-      });
 
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
@@ -2449,6 +2141,21 @@ export default defineComponent({
       window.addEventListener('resize', this.onResize);
       this.onResize();
     });
+
+    this.$nextTick(() => {
+      window.addEventListener('resize', this.updateEclipsedIndicatorPosition);
+      this.updateEclipsedIndicatorPosition();
+    });
+
+    document.addEventListener('keydown', this.onSpeedControlTabKeydown);
+
+    // Tracks keyboard vs mouse/touch use so the oreo focus ring can stay
+    // keyboard-only even on text inputs (see the body.keyboard-focus-only
+    // CSS override above -- browsers show :focus-visible for text fields
+    // on click by default, which this needs to suppress explicitly).
+    document.addEventListener('keydown', this.onKeydownForFocusIndicator);
+    document.addEventListener('mousedown', this.onPointerForFocusIndicator);
+    document.addEventListener('touchstart', this.onPointerForFocusIndicator);
 
     this.applyLayoutDefaults(this.narrow);
 
@@ -2501,6 +2208,10 @@ export default defineComponent({
           }
           return "Total Eclipse";
         }
+        const maxCoverage = this.eclipsePrediction.coverage[0];
+        if (maxCoverage) {
+          return `Partial Eclipse\n(Max: ${Math.round(maxCoverage * 100)}%)`;
+        }
         return "Partial Eclipse";
       }
 
@@ -2551,15 +2262,6 @@ export default defineComponent({
       return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MMMM d, yyyy');
     },
     
-    selectedLocaledTimeDateString() {
-      if (this.smallSize) {
-        return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MM/dd, h:mm:ss aa');
-      } else {
-        return formatInTimeZone(this.dateTime, this.selectedTimezone, 'MM/dd/yyyy h:mm:ss aa (zzz)');
-      }
-
-    },
-    
     selectedLocationCloudCover(): number | null {
       if (this.locationDeg) {
         return this.getCloudCover(this.locationDeg.latitudeDeg, this.locationDeg.longitudeDeg);
@@ -2585,14 +2287,6 @@ export default defineComponent({
       else {
         return 'mdi-clouds';
       } 
-    },
-    
-    selectedLocationCloudCoverString():string {
-      if (this.selectedLocationCloudCover !== null) {
-        return `Hist Cld Cvr: ${(this.selectedLocationCloudCover * 100).toFixed(0)}%`;
-      }
-      return "Outside Range";
-
     },
     
     myLocationToolTip() {
@@ -2668,14 +2362,24 @@ export default defineComponent({
     cssVars() {
       return {
         '--accent-color': this.accentColor,
+        '--accent-color-2': this.accentColor2,
         '--sky-color': this.skyColorLight,
         '--app-content-height': this.showInfoSheet ? '100%' : '100%',
         '--top-content-height': this.showGuidedContent? this.guidedContentHeight : this.guidedContentHeight,
         '--moon-color': this.moonColor,
+        '--normal-border-radius': this.normalBorderRadius,
+        '--tight-border-radius': this.tightBorderRadius,
       };
     },
     topContainerStyle() {
-      if (this.topContainerCustomHeight === null) {
+      // On mobile the guided-content box is always a full-screen overlay
+      // (see .mobile-fullscreen) -- a custom height dragged in from a
+      // previous desktop session (or an earlier drag of the outer resize
+      // handle) would otherwise pin it to a stale, much shorter height via
+      // this inline style, which outranks the CSS 100% override and left
+      // a visible gap between the box's bottom border and the true bottom
+      // of the screen.
+      if (this.narrow || this.topContainerCustomHeight === null) {
         return {};
       }
       const height = `${this.topContainerCustomHeight}px`;
@@ -2697,11 +2401,6 @@ export default defineComponent({
       const basis = `${this.nonMapContainerWidthPercent}%`;
       return { flexBasis: basis, flexGrow: 0, flexShrink: 0 };
     },
-    forwardGeocodingCss() {
-      return {
-        '--fg-container-padding': this.searchOpen ? '5px 10px 12px 10px' : '0px',
-      };
-    },
     wwtControl(): WWTControl {
       return WWTControl.singleton;
     },
@@ -2710,24 +2409,6 @@ export default defineComponent({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       return Settings.get_active();
-    },
-    // dontSetTime(): boolean {
-    //   return this.selectedTime %MILLISECONDS_PER_DAY !== 0;
-    // },
-    
-    userZoom: {
-      get(): number {
-        return Math.round(Math.log10(this.wwtZoomDeg)*100)/100;
-      },
-      set(value: number) {
-        this.gotoRADecZoom({
-          raRad: this.wwtRARad,
-          decRad: this.wwtDecRad,
-          zoomDeg: Math.pow(10,value),
-          rollRad: 0,
-          instant: true
-        });
-      }
     },
     
     wwtContentHeight(): number | null {
@@ -2767,16 +2448,6 @@ export default defineComponent({
       }
     },
 
-    tickDurationMS(): number {
-      return MILLISECONDS_PER_INTERVAL / (this.playbackRate);
-    },
-
-    // maxPlaybackRate(): number {
-    //   const minDuration = 10; //min setInterval on Chrome is ~5ms
-    //   // console.log('maxPlaybackRate', MILLISECONDS_PER_INTERVAL / minDuration);
-    //   return MILLISECONDS_PER_INTERVAL / minDuration;
-    // },
-    
     sunPosition(): EquatorialRad & HorizontalRad {
       const sunAltAz = this.equatorialToHorizontal(this.sunPlace.get_RA() * 15 * D2R,
         this.sunPlace.get_dec() * D2R,
@@ -2825,17 +2496,12 @@ export default defineComponent({
           this.sunCenteredTracking = false;
         }
       },
-      
+
       get(): boolean {
-        // do something more useful later
         return this.toggleTrackSun;
-      }   
+      }
     },
 
-    defaultRate(): number {
-      return this.viewerMode === 'Horizon' ? this.horizonRate : this.scopeRate;
-    },
-    
     inEclipse(): boolean | null {
       if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null) {
         return this.wwtCurrentTime.getTime() >= this.eclipseStart && this.wwtCurrentTime.getTime() <= this.eclipseEnd;
@@ -2844,7 +2510,6 @@ export default defineComponent({
       }
     },
     
-    // before during or after the eclipse
     eclipsePhase(): 'before' | 'during' | 'after' | null {
       if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null) {
         if (this.wwtCurrentTime.getTime() < this.eclipseStart) {
@@ -2885,7 +2550,6 @@ export default defineComponent({
     },
     
     locationInTotality() {
-      // check if the location is within eclipseUmbra path
       const location = this.locationDeg;
       // const poly = eclipseUmbra.geometries[0].coordinates[0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2909,19 +2573,6 @@ export default defineComponent({
       return t >= start.getTime() && t <= end.getTime();
     },
 
-
-    showVideoSheet: {
-      get(): boolean {
-        return this.sheet === "video";
-      },
-      set(_value: boolean) {
-        this.selectSheet('video');
-        // if (!value) {
-        //   // const video = document.querySelector("#info-video") as HTMLVideoElement;
-        //   // video.pause();
-        // }
-      }
-    },
 
   },
 
@@ -2994,23 +2645,10 @@ export default defineComponent({
 
     },
     
-    scrollToTop() {
-      const element = document.getElementById("guided-content-container");
-      if (element) {
-        if (this.scrollUp) {
-          element.scrollTo({ top: 0 });
-        } else {
-          element.scrollTo({ top: element.scrollHeight });
-        }
-      }
-    },
-    
-
     sigmoid(val: number | null): number {
       if (val === null) {
         return 0;
       }
-      // return sigmoid
       const y = (val - 0.5) / .12;
       const z = Math.exp(y);
       return z / (1 + z);
@@ -3023,18 +2661,6 @@ export default defineComponent({
         instant: true,
         noZoom: true,
         trackObject: true
-      });
-    },
-
-    async centerSun(): Promise<void> {
-      this.sunOffset = null;
-      this.toggleTrackSun = true;
-      this.sunCenteredTracking = true;
-      return this.gotoTarget({
-        place: this.sunPlace,
-        instant: true,
-        noZoom: true,
-        trackObject: this.trackingSun
       });
     },
 
@@ -3081,17 +2707,6 @@ export default defineComponent({
       } else {
         return test >= lower || test <= upper;
       }
-    },
-    
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    greatCircleDistance(coord1: { RA: number; dec: number; }, coord2: { RA: number; dec: number; }): number {
-      const ra1 = coord1.RA * 15 * D2R;
-      const dec1 = coord1.dec * D2R;
-      
-      const ra2 = coord2.RA * 15 * D2R;
-      const dec2 = coord2.dec * D2R;
-      
-      return distance(ra1, dec1, ra2, dec2);
     },
     
     updateIntersection() {
@@ -3314,10 +2929,9 @@ export default defineComponent({
       if (this.showNewMobileUI) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        if (wwtControl._trackingObject !== this.sunPlace) {
+        if (this.toggleTrackSun && wwtControl._trackingObject !== this.sunPlace) {
           this.trackSun();
-          return;
-        } 
+        }
         return;
       } else {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -3337,7 +2951,6 @@ export default defineComponent({
     updateMoonTexture(force=false) {
       let filename: MoonImageFile = "moon.png";
       if (!this.useRegularMoon) {
-        // Are we even using showSky?
         const blueMoon = (this.showHorizon && this.showSky) &&
                           this.moonPosition.altRad > 0 ;
         if (!blueMoon) {
@@ -3360,53 +2973,7 @@ export default defineComponent({
       }
     },
 
-    clearPlayingInterval() {
-      if (this.playingIntervalId !== null) {
-        clearInterval(this.playingIntervalId);
-        this.playingIntervalId = null;
-      }
-    },
-
-    moveOneIntervalForward() {
-      this.selectedTime += MILLISECONDS_PER_INTERVAL;
-    },
-
-    moveOneIntervalBackward() {
-      this.selectedTime -= MILLISECONDS_PER_INTERVAL;
-    },
-
-    toUTCDateString(date: Date) {
-      // date = new Date(date.getTime() + this.selectedTimezoneOffset) // ignore timezone
-      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
-    },
-
-    toUTCTimeString(date: Date) {
-      const minutes = date.getUTCMinutes();
-      const minuteString = minutes < 10 ? `0${minutes}` : `${minutes}`;
-      // get am pm
-      const ampm = date.getUTCHours() < 12 ? "AM" : "PM";
-      return `${date.getUTCHours()}:${minuteString} ${ampm}`;
-    },
-
-    toLocaleDateString(date: Date) {
-      date = new Date(date.getTime() + this.selectedTimezoneOffset);
-      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()}`;
-    },
-
-    toLocaleTimeString(date: Date) {
-      date = new Date(date.getTime() + this.selectedTimezoneOffset);
-      const minutes = date.getUTCMinutes();
-      const minuteString = minutes < 10 ? `0${minutes}` : `${minutes}`;
-      // get am pm
-      const ampm = date.getUTCHours() < 12 ? "AM" : "PM";
-      // get the 12hr time
-      const hours = date.getUTCHours() % 12;
-      
-      return `${hours != 0 ? hours : 12}:${minuteString} ${ampm}`;
-    },
-
     toTimeString(date: Date | null, seconds = false, utc = false) {
-      // return this.toLocaleTimeString(date);
       if (date === null) {
         return "";
       }
@@ -3418,7 +2985,56 @@ export default defineComponent({
     },
 
     closeSplashScreen() {
-      this.showSplashScreen = false; 
+      this.showSplashScreen = false;
+    },
+
+    // While the speed control popup is open, Tab should cycle through
+    // exactly this set, in this order, rather than the page's normal
+    // DOM-based tab order -- which otherwise either escapes the popup
+    // entirely (its slider lives in a teleported dialog, so tabbing off
+    // it wraps around to the very start of the page) or skips over the
+    // popup's slider altogether (it sits outside the toolbar's own
+    // normal DOM position).
+    speedControlTabStops(): HTMLElement[] {
+      const stops = [
+        document.querySelector('.desktop-playback-control .v-slider-thumb'),
+        document.getElementById('play-pause-icon-button'),
+        document.getElementById('backward-speed-button'),
+        document.getElementById('forward-speed-button'),
+        document.getElementById('reverse-speed-button'),
+        document.getElementById('reset-button'),
+        document.getElementById('speed-control-icon-button'),
+        document.querySelector('#slider .v-slider-thumb'),
+      ];
+      return stops.filter((el): el is HTMLElement => el !== null);
+    },
+
+    onSpeedControlTabKeydown(event: KeyboardEvent) {
+      if (!this.playbackVisible || event.key !== 'Tab') {
+        return;
+      }
+      const stops = this.speedControlTabStops();
+      const currentIndex = stops.indexOf(document.activeElement as HTMLElement);
+      if (currentIndex === -1) {
+        return;
+      }
+      event.preventDefault();
+      const delta = event.shiftKey ? -1 : 1;
+      const nextIndex = (currentIndex + delta + stops.length) % stops.length;
+      stops[nextIndex].focus();
+    },
+
+    // Only Tab (not every keydown) counts as "using the keyboard to move
+    // focus" -- typing letters into an already-focused field shouldn't
+    // retroactively make that focus "keyboard-visible".
+    onKeydownForFocusIndicator(event: KeyboardEvent) {
+      if (event.key === 'Tab') {
+        document.body.classList.add('keyboard-focus-only');
+      }
+    },
+
+    onPointerForFocusIndicator() {
+      document.body.classList.remove('keyboard-focus-only');
     },
 
     updateWWTLocation() {
@@ -3442,12 +3058,6 @@ export default defineComponent({
           this.userSelectedLocations.push(visitedLocation);
         }
       }
-    },
-
-    onTimeSliderChange() {
-      this.$nextTick(() => {
-        this.updateFrontAnnotations(this.dateTime);
-      });
     },
 
     async createUserEntry() {
@@ -3538,8 +3148,8 @@ export default defineComponent({
       this.cloudCoverSelectedCount = 0;
       const now = Date.now();
       this.appStartTimestamp = now;
-      this.infoStartTimestamp = this.showInfoSheet ? now : null;
-      this.userGuideStartTimestamp = this.showWWTGuideSheet ? now : null;
+      this.infoStartTimestamp = (this.showInfoSheet && this.infoTab === 0) ? now : null;
+      this.userGuideStartTimestamp = (this.showInfoSheet && this.infoTab === 1) ? now : null;
       this.weatherStartTimestamp = this.showAdvancedWeather ? now : null;
       this.weatherInfoStartTimestamp = this.weatherInfoOpen ? now : null;
       this.eclipseTimerStartTimestamp = this.showEclipsePredictionSheet ? now : null;
@@ -3554,8 +3164,8 @@ export default defineComponent({
         return;
       }
       const now = Date.now();
-      const infoTime = (this.showInfoSheet && this.infoStartTimestamp !== null) ? now - this.infoStartTimestamp : this.infoTimeMs;
-      const userGuideTime = (this.showWWTGuideSheet && this.userGuideStartTimestamp !== null) ? now - this.userGuideStartTimestamp : this.userGuideTimeMs;
+      const infoTime = (this.showInfoSheet && this.infoTab === 0 && this.infoStartTimestamp !== null) ? now - this.infoStartTimestamp : this.infoTimeMs;
+      const userGuideTime = (this.showInfoSheet && this.infoTab === 1 && this.userGuideStartTimestamp !== null) ? now - this.userGuideStartTimestamp : this.userGuideTimeMs;
       const weatherTime = (this.showAdvancedWeather && this.weatherStartTimestamp !== null) ? now - this.weatherStartTimestamp : this.weatherTimeMs;
       const weatherInfoTime = (this.weatherInfoOpen && this.weatherInfoStartTimestamp !== null) ? now - this.weatherInfoStartTimestamp : this.weatherInfoTimeMs;
       const eclipseTimerTime = (this.showEclipsePredictionSheet && this.eclipseTimerStartTimestamp !== null) ? now - this.eclipseTimerStartTimestamp : this.eclipseTimerTimeMs;
@@ -3592,18 +3202,6 @@ export default defineComponent({
         this.resetData();
       });
     },
-
-    logLocation() {
-      // console.log(this.location.latitudeRad * R2D, this.location.longitudeRad * R2D);
-    },
-    
-    logPosition() {
-      // console.log(this.wwtRARad * R2D, this.wwtDecRad * R2D);
-    },
-
-    printUTCDate(date: Date) {
-      return `${date.getUTCMonth() + 1}/${date.getUTCDate()}/${date.getUTCFullYear()} ${date.getUTCHours()}:${date.getUTCMinutes()}:${date.getUTCSeconds()}`;
-    },    
 
     selectSheet(name: SheetType) {
       if (this.sheet === name) {
@@ -3694,8 +3292,6 @@ export default defineComponent({
       if (ra > 360) {
         ra -= 360;
       }
-      // ra -= 180;
-      // console.log(`Alt: ${(altRad*R2D).toFixed(2)} Az: ${(azRad*R2D).toFixed(2)} Ra: ${ra.toFixed(2)} Dec: ${(haDec.dec*R2D).toFixed(2)}`)
 
       return { raRad: D2R * ra, decRad: haDec.dec };
     },
@@ -3760,14 +3356,12 @@ export default defineComponent({
 
     createSky(when: Date | null = null) {
       const color = this.skyColor || '#4190ED';
-      // const opacity = 0.5;
       const date = when || this.dateTime || new Date();
 
       // The initial coordinates are given in Alt/Az, then converted to RA/Dec
       // Use N annotations to cover below the horizon
       const n = 6;
       const delta = 2 * Math.PI / n;
-      // const delta = 360/n;
       for (let i = 0; i < n; i++) {
         let points: [number, number][] = [
           [0, i * delta],
@@ -3794,7 +3388,7 @@ export default defineComponent({
       // @ts-ignore
       Annotation2.clearAll();
       this.clearAnnotations();
-    },    
+    },
 
     onPointerMove(event: PointerEvent) {
       if (!this.isPointerMoving && this.pointerStartPosition !== null) {
@@ -3815,7 +3409,7 @@ export default defineComponent({
     onPointerUp(_event: PointerEvent) {
       this.pointerStartPosition = null;
       this.isPointerMoving = false;
-      
+
       const sunLocation = Planets['_planetLocations'][0];
       const sunPoint = getScreenPosForCoordinates(this.wwtControl, sunLocation.RA, sunLocation.dec);
       this.sunOffset = {
@@ -3831,8 +3425,6 @@ export default defineComponent({
         this.setTime(this.dateTime);
       }
       this.updateFrontAnnotations(this.dateTime);
-      // check if the time is within the range of the eclipse
-      // }
     },
 
     updateFrontAnnotations(when: Date | null = null) {
@@ -3865,11 +3457,46 @@ export default defineComponent({
     },
     
     onResize() {
-      // get height of #guided-content-container
       this.$nextTick(() => {
         this.updateGuidedContentHeight();
       });
       this.updateGuidedContentHeight();
+    },
+
+    // Positions the eclipse-percent indicator relative to the top of the
+    // time controls (the toolbar's own top edge, with the speed-control
+    // popup closed -- deliberately not dynamic with the popup's
+    // open/closed state) and the WWT canvas (#main-content). Which of the
+    // two layouts below applies depends on the canvas's own form factor
+    // (its own width vs height), not the window's -- #main-content
+    // doesn't necessarily share the window's aspect ratio (e.g. the
+    // guided-content box eats into its effective shape).
+    //
+    // Canvas wider than tall: vertically centered on the canvas, with its
+    // horizontal center 25% of the canvas's width in from the right edge.
+    //
+    // Canvas taller than wide: horizontally centered, 40% of the way from
+    // the toolbar's top edge towards the canvas's vertical middle (i.e.
+    // closer to the toolbar than the exact midpoint -- measuring the 40%
+    // from the toolbar side, not the canvas side).
+    updateEclipsedIndicatorPosition() {
+      const mainContent = document.getElementById('main-content');
+      const timeControlsEl = document.getElementById('tools');
+      if (!mainContent || !timeControlsEl) {
+        return;
+      }
+      const mainRect = mainContent.getBoundingClientRect();
+      const controlsTop = timeControlsEl.getBoundingClientRect().top;
+      const canvasMiddle = mainRect.top + mainRect.height / 2;
+      const isCanvasWide = mainRect.width > mainRect.height;
+
+      if (isCanvasWide) {
+        this.eclipsedIndicatorTop = canvasMiddle - mainRect.top;
+        this.eclipsedIndicatorLeft = mainRect.width * 0.75;
+      } else {
+        this.eclipsedIndicatorTop = controlsTop - 0.4 * (controlsTop - canvasMiddle) - mainRect.top;
+        this.eclipsedIndicatorLeft = mainRect.width / 2;
+      }
     },
 
     startTopContainerResize(event: MouseEvent | TouchEvent) {
@@ -3921,6 +3548,28 @@ export default defineComponent({
       window.removeEventListener('touchend', this.endTopContainerResize);
       window.removeEventListener('touchcancel', this.endTopContainerResize);
       window.removeEventListener('blur', this.endTopContainerResize);
+    },
+
+    onTopContainerResizeKeydown(event: KeyboardEvent) {
+      const step = 20;
+      let delta = 0;
+      if (event.key === 'ArrowUp') {
+        delta = -step;
+      } else if (event.key === 'ArrowDown') {
+        delta = step;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const container = document.getElementById('guided-content-container');
+      if (!container) {
+        return;
+      }
+      const currentHeight = container.getBoundingClientRect().height;
+      const minHeight = 150;
+      const maxHeight = window.innerHeight - 100;
+      this.topContainerCustomHeight = Math.min(Math.max(currentHeight + delta, minHeight), maxHeight);
+      this.updateGuidedContentHeight();
     },
 
     startMapWidthResize(event: MouseEvent | TouchEvent) {
@@ -3979,6 +3628,30 @@ export default defineComponent({
       window.removeEventListener('blur', this.endMapWidthResize);
     },
 
+    onMapWidthResizeKeydown(event: KeyboardEvent) {
+      const step = 20;
+      let delta = 0;
+      if (event.key === 'ArrowLeft') {
+        delta = -step;
+      } else if (event.key === 'ArrowRight') {
+        delta = step;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const nonMapContainer = document.getElementById('non-map-container');
+      const container = document.getElementById('guided-content-container');
+      if (!nonMapContainer || !container) {
+        return;
+      }
+      const currentWidth = nonMapContainer.getBoundingClientRect().width;
+      const containerWidth = container.clientWidth;
+      const minWidth = 150;
+      const maxWidth = containerWidth - 150;
+      const newWidth = Math.min(Math.max(currentWidth + delta, minWidth), maxWidth);
+      this.nonMapContainerWidthPercent = (newWidth / containerWidth) * 100;
+    },
+
     startMobileNonMapHeightResize(event: MouseEvent | TouchEvent) {
       const nonMapContainer = document.getElementById('non-map-container');
       if (!nonMapContainer) {
@@ -4035,14 +3708,36 @@ export default defineComponent({
       window.removeEventListener('blur', this.endMobileNonMapHeightResize);
     },
 
+    onMobileNonMapHeightResizeKeydown(event: KeyboardEvent) {
+      const step = 20;
+      let delta = 0;
+      if (event.key === 'ArrowUp') {
+        delta = -step;
+      } else if (event.key === 'ArrowDown') {
+        delta = step;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      const nonMapContainer = document.getElementById('non-map-container');
+      const container = document.getElementById('guided-content-container');
+      if (!nonMapContainer || !container) {
+        return;
+      }
+      const currentHeight = nonMapContainer.getBoundingClientRect().height;
+      const containerHeight = container.clientHeight;
+      const minHeight = 100;
+      const maxHeight = containerHeight - 100;
+      const newHeight = Math.min(Math.max(currentHeight + delta, minHeight), maxHeight);
+      this.nonMapContainerMobileHeightPercent = (newHeight / containerHeight) * 100;
+    },
+
     startHorizonMode() {
-      // turn on local horizon mode
       this.wwtSettings.set_localHorizonMode(true);
       this.showAltAzGrid = false;
       this.skyColor = this.skyColorLight;
       this.showHorizon = true; // automatically calls its watcher and updates horizon
       this.horizonOpacity = 1;
-      // this.setForegroundImageByName("Digitized Sky Survey (Color)");
       this.sunPlace.set_zoomLevel(20);
       this.gotoTarget({
         place: this.sunPlace,
@@ -4051,7 +3746,6 @@ export default defineComponent({
         trackObject: this.toggleTrackSun
       });
       this.playbackRate = this.horizonRate;
-      // console.log('=== startHorizonMode ===');
       return;
     },
   
@@ -4067,7 +3761,6 @@ export default defineComponent({
       // start at 12:00am and search every MINUTES_PER_INTERVAL
       const minTime = this.selectedTime - (this.selectedTime % MILLISECONDS_PER_DAY) - this.selectedTimezoneOffset;
       const maxTime = minTime + MILLISECONDS_PER_DAY;
-      // const ehr = this.eclipticHorizonAngle(this.location.latitudeRad, this.dateTime);
       let time = minTime;
       let sunAlt = this.getSunAltitudeAtTime(new Date(time)).altRad; // negative
       // find the two times it crosses the given altitude
@@ -4090,8 +3783,6 @@ export default defineComponent({
     
     setTimeforSunAlt(altDeg: number) {
       const out = this.getTimeforSunAlt(altDeg);
-      // console.log("rise", this.toLocaleDateString(new Date(out.rising as number)) + " " + this.toLocaleTimeString(new Date(out.rising as number)));
-      // console.log("set", this.toLocaleDateString(new Date(out.setting as number)) + " " + this.toLocaleTimeString(new Date(out.setting as number)));
       if (out.rising == null && out.setting == null) {
         return;
       }
@@ -4113,7 +3804,6 @@ export default defineComponent({
       } else {
         console.log("time not in times array");
         // best to leave it alone so it doesn't jump around
-        // this.selectedTime = Math.max(minTime, Math.min(newTime, maxTime));
       }
       
 
@@ -4121,7 +3811,6 @@ export default defineComponent({
 
     updateSkyOpacityForSunAlt(altRad: number) {
       const _civilTwilight = -6 * D2R;
-      // const _nauticalTwilight = 2 * _civilTwilight;
       const astronomicalTwilight = 3 * _civilTwilight;
       
       const sunAlt = altRad;
@@ -4166,7 +3855,6 @@ export default defineComponent({
     },
 
     getCloudCover(lat: number, lon: number): number | null {
-      // convert lat/lon to row/col
       const d = this.rectangleDegrees;
       console.log(d, maxLat, minLon, lat, lon);
       const row = Math.round((maxLat - lat) / d);
@@ -4297,7 +3985,7 @@ export default defineComponent({
         const ew = this.locationDeg.longitudeDeg >= 0 ? 'E' : 'W';
         const lat = Math.abs(this.locationDeg.latitudeDeg).toFixed(3);
         const lon = Math.abs(this.locationDeg.longitudeDeg).toFixed(3);
-        return `${lat}° ${ns}, ${lon}° ${ew}`;
+        return `${lat}° ${ns}\n${lon}° ${ew}`;
       }
     },
 
@@ -4370,8 +4058,13 @@ export default defineComponent({
     // (guided content + wide book icon, location search, and controls) instead
     // of inheriting the other mode's state.
     applyLayoutDefaults(narrow: boolean) {
-      this.searchOpen = !narrow;
-      this.showControls = !narrow;
+      // Search starts open on both mobile and desktop -- there's no close
+      // X on it (closing it back up is a deliberate action, not a default
+      // state), so there's no reason to hide it up front.
+      this.searchOpen = true;
+      // Controls panel starts closed on both mobile and desktop now --
+      // it opens under the top-right button cluster on demand instead.
+      this.showControls = false;
       this.showGuidedContent = !narrow;
     }
   },
@@ -4381,7 +4074,14 @@ export default defineComponent({
     playingWaitCount(val: number, old: number) {
       console.log(`Playing wait count: ${old} ---> ${val}`);
     },
-    
+
+    // guidedContentHeight changes on every path that can resize
+    // #main-content (window resize, dragging the resize handle, toggling
+    // guided content) -- should reposition the eclipse-percent indicator.
+    guidedContentHeight() {
+      this.$nextTick(() => this.updateEclipsedIndicatorPosition());
+    },
+
     showNewMobileUI(narrow: boolean) {
       this.updatePanForMobile();
       // showNewMobileUI is driven by `narrow`, so this fires whenever the
@@ -4410,10 +4110,6 @@ export default defineComponent({
       } else if (this.narrow) {
         this.playForOverlay();
       }
-    },
-    
-    cssVars(_css: unknown) {
-      // console.log(_css);
     },
     
     responseOptOut(optOut: boolean) {
@@ -4469,10 +4165,6 @@ export default defineComponent({
       this.updateForDateTime();
     },
 
-    selectedTime(_time: number) {
-      return;
-    },
-    
     nearTotality(near: boolean, oldNear: boolean) {
       if (near) {
         this.forceRate = (Math.abs(this.playbackRate) > 10) && this.playing;
@@ -4519,7 +4211,6 @@ export default defineComponent({
 
       this.selectedTimezone = tzlookup(...locationDeg);
       this.playing = false;
-      // this.sunOffset = null;
       this.updateWWTLocation();
 
       // We need to let the location update before we redraw the horizon and overlay
@@ -4528,10 +4219,8 @@ export default defineComponent({
       this.getEclipsePrediction();
       this.updateFrontAnnotations();
 
-      
-      if (this.trackingSun) {
-        //this.centerSun();
-      } else {
+
+      if (!this.trackingSun) {
         this.trackSunOffset();
       }
     },
@@ -4556,19 +4245,44 @@ export default defineComponent({
     },
 
     showInfoSheet(show: boolean) {
-      // Keep track of how long the user has the book open/closed
+      // Keep track of how long the user has the Information/User Guide
+      // dialog open, split between whichever tab is active.
       if (show) {
+        this.infoTab = 0;
         this.infoStartTimestamp = Date.now();
         this.pauseForOverlay();
-      } else if (this.infoStartTimestamp !== null) {
-        this.infoTimeMs += (Date.now() - this.infoStartTimestamp);
-        this.infoStartTimestamp = null;
-      }
-      
-      if (!show) {
+      } else {
+        const now = Date.now();
+        if (this.infoStartTimestamp !== null) {
+          this.infoTimeMs += (now - this.infoStartTimestamp);
+          this.infoStartTimestamp = null;
+        }
+        if (this.userGuideStartTimestamp !== null) {
+          this.userGuideTimeMs += (now - this.userGuideStartTimestamp);
+          this.userGuideStartTimestamp = null;
+        }
         this.playForOverlay();
       }
-      
+    },
+
+    infoTab(tab: number) {
+      if (!this.showInfoSheet) {
+        return;
+      }
+      const now = Date.now();
+      if (this.infoStartTimestamp !== null) {
+        this.infoTimeMs += (now - this.infoStartTimestamp);
+        this.infoStartTimestamp = null;
+      }
+      if (this.userGuideStartTimestamp !== null) {
+        this.userGuideTimeMs += (now - this.userGuideStartTimestamp);
+        this.userGuideStartTimestamp = null;
+      }
+      if (tab === 0) {
+        this.infoStartTimestamp = now;
+      } else {
+        this.userGuideStartTimestamp = now;
+      }
     },
 
     showAdvancedWeather(show: boolean) {
@@ -4578,20 +4292,6 @@ export default defineComponent({
       } else if (this.weatherStartTimestamp !== null) {
         this.weatherTimeMs += (Date.now() - this.weatherStartTimestamp);
         this.weatherStartTimestamp = null;
-      }
-      
-      if (!show) {
-        this.playForOverlay();
-      }
-    },
-
-    showWWTGuideSheet(show: boolean) {
-      if (show) {
-        this.userGuideStartTimestamp = Date.now();
-        this.pauseForOverlay();
-      } else if (this.userGuideStartTimestamp !== null) {
-        this.userGuideTimeMs += (Date.now() - this.userGuideStartTimestamp);
-        this.userGuideStartTimestamp = null;
       }
       
       if (!show) {
@@ -4668,8 +4368,6 @@ export default defineComponent({
     },
 
     sunAboveHorizon(isAbove: boolean) {
-      // console.log(`The sun is ${isAbove ? 'above' : 'below'} the horizon`);
-      // this.showSky = isAbove; // just turn it off
       this.horizonOpacity = isAbove ? 1 : 0.85;
     },
 
@@ -4680,7 +4378,6 @@ export default defineComponent({
     },
     
     currentFractionEclipsed(_frac: number) {
-      // this.skyOpacity = 1 - frac;
       this.updateSkyOpacityForSunAlt(this.sunPosition.altRad);
       this.updateFrontAnnotations();
     },
@@ -4718,7 +4415,7 @@ export default defineComponent({
         return;
       }
     },
-    
+
     playbackRate(val: number) {
       if (Math.abs(val) > 11_000) {
         console.warn('playbackRate too high, setting to maxPlaybackRate');
@@ -4742,9 +4439,59 @@ export default defineComponent({
 }
 
 :root {
-  --default-font-size: clamp(0.7rem, min(1.7vh, 1.7vw), 1.1rem);
+  --default-font-size: clamp(0.8rem, min(1.7vh, 1.7vw), 1rem);
   --default-line-height: clamp(1rem, min(2.2vh, 2.2vw), 1.6rem);
   --time-content-max-width: 700px;
+}
+
+// From Sara Soueidan (https://www.sarasoueidan.com/blog/focus-indicators/) & Erik Kroes (https://www.erikkroes.nl/blog/the-universal-focus-state/)
+// checkbox will only get oreo styling when user tabs by keyboard.
+:focus-visible, .v-checkbox .v-selection-control__input:has(:focus-visible) {
+  outline: 9px double white !important;
+  box-shadow: 0 0 0 6px black !important;
+  border-radius: .125rem;
+}
+
+// :focus-visible's own browser heuristic carves out an exception for
+// text inputs/textareas: unlike buttons, they're treated as
+// "focus-visible" even when focused via a plain mouse click or tap (the
+// reasoning being that you need to see your cursor to type) -- so the
+// oreo ring above still shows up there on click, unlike everywhere else.
+// #keyboard-focus-only (toggled in mounted()/methods below, tracking
+// Tab presses vs mouse/touch) overrides that carve-out so text fields
+// behave the same as every other oreo-styled element: keyboard only.
+body:not(.keyboard-focus-only) input:focus-visible,
+body:not(.keyboard-focus-only) textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+// @cosmicds/vue-toolkit's icon-button bakes in its own pre-oreo focus
+// styling: plain (not focus-visible) rules that swap color/border-color
+// to --focus-color and, while active, the box-shadow to --focus-shadow --
+// e.g. one button binds --focus-color to a leftover blue "skyColor",
+// making it flash blue on focus. Neutralize both so the oreo ring above
+// is the only focus indicator icon-wrapper buttons show.
+.icon-wrapper:focus {
+  color: var(--color) !important;
+  border-color: var(--color) !important;
+}
+
+.icon-wrapper.active:focus {
+  box-shadow: 0 0 10px 3px var(--active-shadow) !important;
+}
+
+// Remove oreo focus styling from the Information/User Guide dialog, and
+// from the intro dialog/overlay -- Vuetify focuses .v-overlay__content
+// itself when either opens (for a11y), but that wrapper collapses to
+// near-zero height (its real content is positioned inside it), so the
+// outline rendered a full-width, few-pixels-tall bar instead of framing
+// anything meaningful.
+#text-bottom-sheet .v-overlay__content:focus-visible,
+#intro-dialog .v-overlay__content:focus-visible,
+#intro-overlay-mobile .v-overlay__content:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 // A thin, subdued scrollbar that only takes up visible space once there's
@@ -4822,27 +4569,16 @@ body {
 
 #main-content {
   position: relative;
-  // top: var(--top-content-height);
   width: 100%;
   height: calc(var(--app-content-height) - var(--top-content-height) - 1px);
   overflow: hidden;
-  // border: 2px solid blue;
-
-  // transition: height 0.1s ease-in-out;
   .icon-wrapper {
     -webkit-user-select:none;
     -moz-user-select:none;
     user-select: none;
   }
 
-  #my-location-button {
-    border-width: 2px;
-  }
 
-  .location-search-overwwt {
-    z-index: 600;
-  }
-  
   #center-page-banner {
     position: absolute;
     width: 25%;
@@ -4860,7 +4596,7 @@ body {
     font-weight: bold;
     color: #888888;
     text-align: center;
-    border-radius: 10px;
+    border-radius: var(--normal-border-radius);
 
     @media (max-width: 600px) {
       width: 35%;
@@ -4890,12 +4626,8 @@ body {
 
   .wwtelescope-component {
     position: relative;
-    // top: 0;
     width: 100%;
     height: 100%;
-    // border-style: none;
-    // border-width: 0;
-    // border: 3px solid red;
     overflow: hidden;
     margin: 0;
     padding: 0;
@@ -4947,62 +4679,20 @@ body {
   }
 }
 
-#modal-readytostart {
-  cursor: pointer;
-  color: #999;
-
-  &:hover {
-    color: #2aa5f7;
-  }
-
-  div {
-    margin: 0;
-    padding: 0;
-    background-image: url("https://projects.cosmicds.cfa.harvard.edu/cds-website/logos/wwt_globe_bg.png");
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-    width: 20rem;
-    height: 20rem;
-    max-width: 70%;
-    max-height: 70%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .icon {
-      width: 60%;
-      height: 60%;
-      margin-left: 14%;
-      margin-top: 3%;
-    }
-  }
-}
-
-.pointer {
-  cursor: pointer;
-}
-
-.control-icon {
-  pointer-events: auto;
-
-  &:hover {
-    cursor: pointer;
-  }
-
-}
-
-// these are now in #top-content
-
+// Top-left cluster: location label + eclipse-timer button, positioned
+// under the info+map container rather than overlapping its top edge.
 #left-buttons-wrapper {
   position: absolute;
   left: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
   width: fit-content;
   align-items: flex-start;
-  
+
+  // #main-content (the positioned ancestor here) already starts in
+  // normal flow right below the guided-content box -- these are small
+  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -5015,7 +4705,10 @@ body {
     left: 0.5rem;
 
     @media (max-width: 599px) {
-      top: 4.8rem;
+      // No standalone Path & Weather button to clear on mobile (it's
+      // hidden there -- see #closed-top-container) -- align with the
+      // top-right button cluster's own closed-state offset instead.
+      top: calc(var(--default-font-size) + 1px);
     }
 
     @media (min-width: 600px) {
@@ -5025,20 +4718,82 @@ body {
       top: 4.3rem;
     }
   }
-  
-  .icon-wrapper {
-    padding-inline: 0.5em;
-    padding-block: 0.6em;
+
+  #location-date-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+
+    @media (max-width: 250px) {
+      padding-top: 3.5em;
+    }
   }
 
-  .icon-wrapper {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
+  #location-secondary-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
   }
-  
-  .icon-wrapper:not(#my-location-button) {
+
+  // Styled to match the location-button box from the Seasons data story:
+  // dark background, accent-colored border, bold location name with
+  // unbolded details underneath.
+  #location-status-box {
+    pointer-events: auto;
+
+    // Clickable on mobile (opens the map), not on desktop -- the hover
+    // border-color change below implied clickability there even though
+    // nothing happened, so it's suppressed along with the click handler.
+    &.non-interactive {
+      pointer-events: none;
+    }
+
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    color: white;
     border: 2px solid var(--accent-color);
+    border-radius: var(--tight-border-radius);
+    padding: 0.5rem;
+    font-size: calc(0.9 * var(--default-font-size));
+    text-align: center;
+    // Fixed width so the box doesn't grow/shrink with the length of the
+    // location name — long names wrap instead (max-width guards against
+    // overflow on very narrow screens).
+    width: 10rem;
+    max-width: 70vw;
+    transition: border-color 0.2s ease;
+
+    @media (max-width: 600px) {
+      width: 9rem;
+    }
+
+    &:not(.non-interactive):hover {
+      border-color: color-mix(in srgb, var(--accent-color) 70%, black);
+    }
+
+    .location-status-name {
+      font-size: calc(0.95 * var(--default-font-size));
+      margin-bottom: 0.25rem;
+      // Lets the "\n" in the plain lat/long fallback (no place name found)
+      // render as an actual line break: latitude on one line, longitude
+      // on the next, instead of one long wrapped/truncated line.
+      white-space: pre-line;
+    }
+
+    .eclipse-status-line {
+      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
+      // actually render as a line break.
+      white-space: pre-line;
+      // Same vertical space as between the location name and this line.
+      margin-block: 0.25rem;
+    }
   }
+
+  pointer-events: auto;
+
+  // Sizing/border now come from the unified .icon-wrapper rule.
 }
 
 
@@ -5052,12 +4807,6 @@ body {
 
 }
 
-#geocoding-row {
-  @media (max-width: 599px) {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-  }
-}
 
 .url-notification {
   margin-top: 45vh;
@@ -5070,23 +4819,6 @@ body {
   }
   &.error {
     background-color: #b30000;
-  }
-}
-
-.top-content {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: calc(100% - 2rem);
-  pointer-events: none;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 10px;
-
-  #center-buttons {
-    display: flex;
-    flex-direction: row;
   }
 }
 
@@ -5109,14 +4841,6 @@ body {
   color: #fff;
   width: 100%;
   gap: 5px;
-
-  .opacity-range {
-    width: 50vw;
-  }
-
-  .clickable {
-    cursor: pointer;
-  }
 
   select {
     background: white;
@@ -5148,90 +4872,71 @@ body {
     align-items: stretch;
   }
 
-  div.icon-wrapper {
-    padding: 5px 5px;
-    min-width: 30px;
-  }
-  
-}
-
-#left-buttons-wrapper {
-  #controls {
-    align-self: flex-start;
-  }
+  // Sizing now comes from the unified .icon-wrapper rule.
 }
 
 #controls {
-  background: black;
-  padding-block: 0.5em;
-  padding-right: 0.5em;
-  border-radius: 5px;
-  border: solid 1px var(--accent-color);
+  // Just the toggle icon-button now -- the panel itself
+  // (#control-checkboxes) is a sibling that appears below the whole
+  // top-right button cluster instead of expanding inline here.
+  display: flex;
+  pointer-events: auto;
+}
+
+// The open controls panel, positioned below the top-right button
+// cluster (#top-right-buttons) by normal flow inside #top-wwt-content.
+#control-checkboxes {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  align-self: flex-end;
+  padding: 0.5em;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  border-radius: var(--tight-border-radius);
+  border: solid 1px var(--accent-color);
   pointer-events: auto;
 
   .v-label {
     color: var(--accent-color);
     opacity: 1;
     font-size: var(--default-font-size);
+    padding-left: 0.5rem;
   }
 
-  #control-checkboxes {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding-left: calc(0.5 * var(--default-line-height));
+  .v-checkbox .v-selection-control {
+    font-size: calc(1.1 * var(--default-font-size));
+    height: calc(1.5 * var(--default-line-height));
+    min-height: calc(1.2 * var(--default-line-height));
+  }
 
-    .v-checkbox .v-selection-control {
-      font-size: calc(1.1 * var(--default-font-size));
-      height: calc(1.2 * var(--default-line-height));
-      min-height: calc(1.2 * var(--default-line-height));
-    }
+  .v-checkbox .v-selection-control__input {
+    width: calc(1.2 * var(--default-line-height));
+    height: calc(1.2 * var(--default-line-height));
+  }
 
-    .v-checkbox .v-selection-control__input {
-      width: calc(1.2 * var(--default-line-height));
-      height: calc(1.2 * var(--default-line-height));
-    }
+  .v-checkbox .v-selection-control__wrapper {
+    width: calc(1.2 * var(--default-line-height));
+    height: calc(1.2 * var(--default-line-height));
+  }
 
-    .v-checkbox .v-selection-control__wrapper {
-      width: calc(1.2 * var(--default-line-height));
-      height: calc(1.2 * var(--default-line-height));
-    }
+  .v-btn {
+    align-self: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    border: solid 1px #899499;
 
-    .v-btn {
-      align-self: center;
-      padding-left: 5px;
-      padding-right: 5px;
-      border: solid 1px #899499;
-
-      &:focus {
-        border: 2px solid white;
-      }
-    }
-
-    .v-btn__content {
-      color: black;
-      font-weight: 900;
-      white-space: break-spaces;
-      width: 150px;
+    &:focus {
+      border: 2px solid white;
     }
   }
-  #controls-top-row {
-    padding-left: 0.5em;
-    display: flex;
-    width: 100%;
-    flex-direction: row;
-    justify-content: flex-start;
 
-    @media (max-width: 599px) {
-      justify-content: flex-start;
-    }
+  .v-btn__content {
+    color: black;
+    font-weight: 900;
+    white-space: break-spaces;
+    width: 150px;
   }
-}
-
-#show-controls {
-  color: var(--accent-color);
 }
 
 #text-credits {
@@ -5248,13 +4953,6 @@ body {
     margin-top: 0.6rem;
     margin-bottom: 0.3rem;
   }
-}
-
-#left-buttons, #right-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  pointer-events: auto;
 }
 
 #splash-overlay {
@@ -5331,9 +5029,17 @@ body {
     position: absolute;
     top: 0.5rem;
     right: 1.75rem;
-    text-align: end;
-    color: var(--accent-color);
+    color: var(--accent-color-2);
     font-size: min(8vw, 5vh);
+    // Sized in em (not just the "x" glyph's own, narrower-than-tall advance
+    // width/line-height) so the box -- and its keyboard focus outline --
+    // is a clean square instead of a tall, skinny rectangle.
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       cursor: pointer;
@@ -5379,102 +5085,16 @@ body {
   }
 }
 
-#video-icon {
-  display: none;  // ACTION NEEDED - reenable this when we have a video
-  position: absolute;
-  left: 0.5rem;
-  width: 2.2rem;
 
-  @media (max-width: 699px) {
-    bottom: 3rem;
-  }
-
-  @media (min-width: 700px) {   
-    bottom: 6rem;
-  }
-
-  .icon-wrapper {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-    border: 2px solid var(--accent-color);
-  }
-}
-
-.video-wrapper {  
-  display: flex;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(2px);
-  text-align: center;
-  z-index: 1000;
-}
-
-video, #info-video {
-  margin: auto;
-  height: 85%;
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
-  // aspect-ratio: 9/17;
-  border: 5px solid white;
-}
-
-#video-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  padding: 0px;
-  z-index: 1000;
-}
-
-.close-icon {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 15;
-
-  &:hover {
-    cursor: pointer;
-  }
-
-  &:focus {
-    color: white;
-    border: 2px solid white;
-  }
-}
-
-#overlay-close {
-  position: absolute;
-  top: 2%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 15;
-  font-size: calc(1.5 * var(--default-font-size));
-  display: flex;
-  flex-direction: column;
-  color: #888888;
-
-
-}
-
-
-.overlay-close-icon {
-  z-index: 15;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: calc(2.5*var(--default-font-size));
-  color: #888888;
+// Vuetify assigns each opened overlay an incrementing z-index, so whichever
+// of the Information dialog / speed control popup was opened more recently
+// would otherwise win. Pin the Information dialog above regardless of
+// open order.
+#text-bottom-sheet {
+  z-index: 9999 !important;
 }
 
 .bottom-sheet {
-
-  .tab-title {
-    font-size: calc(1.2 * var(--default-font-size));
-  }
 
   #learn-more-content{
     display: flex;
@@ -5574,53 +5194,70 @@ video, #info-video {
     align-self: center;
     padding: unset;
     margin: unset;
+
+    // Vuetify's own default dialog sizing (width AND max-width both
+    // calc(100% - 48px), a fixed 24px margin per side -- overriding
+    // only width leaves max-width still clamping it right back down)
+    // leaves too little room on very narrow screens for the two tab
+    // labels + close button below to fit without overlapping.
+    @media (max-width: 400px) {
+      width: calc(100% - 16px) !important;
+      max-width: calc(100% - 16px) !important;
+    }
   }
-  
+
   .bottom-sheet-card {
     height: fit-content;
     width: 100%;
 
     align-self: center;
+    // Thin border all around, then the thicker dark accent stripe
+    // specifically along the bottom edge overrides just that one side.
+    border: 1px solid var(--accent-color-2);
     border-bottom: solid #212121 0.5em;
   }
-  
+
   #tabs {
-    width: calc(100% - 3em);
+    // The tab bar sat flush against the card's own top-left corner, which
+    // clips overflow -- leaving the oreo focus ring no room to render.
+    // Inset the bar slightly and lift it above its sibling; there are
+    // only ever these two short tabs, so there's no visual loss.
+    width: calc(100% - 3em - 12px);
+    margin: 12px 0 12px 12px;
     align-self: left;
-  }
-  
-  .v-card-title {
-    display: flex;
-    justify-content: center;
-    align-self: stretch;
-    border-bottom: 2px solid var(--accent-color);
-    
-    h3 {
-      color: var(--accent-color);
-      align-self: center;
-      text-transform: uppercase;
-      font-weight: bold;
+    position: relative;
+    z-index: 1;
+    overflow: visible !important;
+
+    // v-tabs' own slide-group scaffolding also clips overflow at the
+    // bar's own height regardless of the overflow property above --
+    // .v-slide-group__container additionally sets `contain: content`,
+    // and paint containment clips descendant painting (the ring)
+    // independent of `overflow`, so it has to be disabled explicitly too.
+    .v-slide-group__container {
+      overflow: visible !important;
+      contain: none !important;
+    }
+
+    // Each v-tab otherwise renders at Vuetify's own default min-width
+    // regardless of how narrow #tabs itself is, which is what actually
+    // overflowed past the card and under the close button -- shrink the
+    // padding/font and let them size to content instead.
+    .info-tabs {
+      min-width: 0;
+      padding-inline: 0.5em;
+      flex: 0 1 auto;
+
+      h3 {
+        margin: 0;
+        font-size: calc(1.05 * var(--default-font-size));
+        white-space: nowrap;
+      }
     }
   }
 
   .v-card-text {
     height: 40vh;
-  }
-
-  .close-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 15;
-
-    &:hover {
-      cursor: pointer;
-    }
-
-    &:focus {
-      color: white;
-      border: 2px solid white;
-    }
   }
 
   .scrollable {
@@ -5640,13 +5277,6 @@ video, #info-video {
     
   }
   
-
-  #close-text-icon {
-    position: absolute;
-    top: 0.25em;
-    right: calc((3em - 0.6875em) / 3); // font-awesome-icons have width 0.6875em
-    color: var(--accent-color);
-  }
 
   // This prevents the tabs from having some extra space to the left when the screen is small
   // (around 400px or less)
@@ -5670,57 +5300,53 @@ video, #info-video {
       font-size: calc(1.2 * var(--default-font-size));
     }
 
-    .user-guide-emphasis {
-      color: var(--accent-color);
-      font-weight: bold;
-    }
-
     .user-guide-emphasis-white {
       font-weight: bold;
     }
     
-    li.switch-bullets {
-      margin-top: -1em;
-
-      padding-left: 0.5ch;
-      .v-switch {
-        transform: translateY(15%);
-      }
-
-      .user-guide-emphasis {
-        padding-left: 1ch;
-      }
-    }
-
-    .display-only-switch {
-    
-      display: inline-block;
-      position: relative;
-      bottom: calc(-0.5 * var(--default-line-height));
-
-      .v-selection-control--density-default {
-        --v-selection-control-size:var(--default-line-height);
-      }
-
-      .v-selection-control--disabled {
-      opacity: 100%;
-      pointer-events: none;
-
-        .v-switch__thumb {
-          background-color: black;
-        }
-
-        .v-icon {
-          color: var(--accent-color);
-          background-color: black;
-        }
-      }
-    }
-
     .solid-divider {
       margin-top: 1rem;
       color: var(--sky-color);
       opacity: 0.7;
+    }
+  }
+}
+
+// A real, solidly-sized clickable box rather than a bare icon enlarged via
+// negative margin/padding — some mobile browsers (Safari in particular)
+// only hit-test the icon's painted SVG content, not that kind of CSS-only
+// hit-area expansion, so taps near the edge of the icon can miss entirely.
+.dialog-close-button {
+  position: absolute;
+  // Flush against the card's own corner left no room for the oreo focus
+  // ring, which got clipped by the card's own overflow on the top/right
+  // edges. Inset it slightly instead.
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  // At least Apple/Google's recommended ~44px minimum touch target —
+  // the icon itself is much smaller, but the tap target shouldn't be.
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  // Tells the browser this element is a simple tap target, so it doesn't
+  // wait to see if a second tap is coming (double-tap-to-zoom) before
+  // committing to the click — that wait is a common source of taps that
+  // "look right" but silently don't register on mobile.
+  touch-action: manipulation;
+}
+
+#eclipse-prediction-sheet {
+  .v-card {
+    border: 1px solid var(--accent-color-2);
+  }
+
+  @media (max-width: 350px) {
+    .v-card-text {
+      padding-inline: 12px;
     }
   }
 }
@@ -5785,45 +5411,114 @@ video, #info-video {
     }
   }
 
-  .v-slider-thumb__label::before {
-    color: var(--accent-color);
+  // Vuetify's pointer/wedge is a real child element (.v-slider-thumb__label-wedge),
+  // not a ::before pseudo-element, and it just inherits the label's background.
+  // Give it the accent-color border by stacking a smaller dark triangle over a
+  // solid accent-color one, mimicking a mitered continuation of the label's border.
+  .v-slider-thumb__label-wedge {
+    background: var(--accent-color);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      clip-path: inherit;
+      background: rgba(0, 0, 0, 0.5);
+      transform: scale(0.7);
+      transform-origin: top center;
+    }
   }
 }
 
 #slider {
-  width: 100% !important;
-  margin-left: 5px;
-  margin-right: 0;
-  position: relative
-  
+  // The time label (.v-slider-thumb__label) is centered on the thumb and
+  // stays put at min-width: fit-content -- when the thumb sits at either
+  // end of the track, half the label's width extends past the track's own
+  // edge. Without side margin here, that overhang runs off the edge of
+  // the screen instead of just the track. Width has to shrink by the same
+  // amount the margins add, since a flex item's own `width` isn't reduced
+  // automatically to make room for its margins.
+  width: calc(100% - 11rem) !important;
+  margin-left: 5.5rem;
+  margin-right: 5.5rem;
+  position: relative;
+
+  @media (max-width: 600px) {
+    width: calc(100% - 9rem) !important;
+    margin-left: 4.5rem;
+    margin-right: 4.5rem;
+  }
 }
 
 .v-container {
   max-width: 100%;
 }
 
-// Only ever shown while the top content box is hidden (see v-show above),
-// to reopen it.
 #closed-top-container {
     position: absolute;
     left: 0.5rem;
     z-index: 500;
     top: calc(var(--default-font-size) + 1px);
-    // Match the open-state title's size (1.3em over --default-font-size);
-    // this button sits outside #guided-content-container so it doesn't
-    // inherit that sizing on its own.
-    font-size: calc(1.3 * var(--default-font-size));
+    font-size: calc(1.2 * var(--default-font-size));
     font-weight: bold;
+
+    @media (max-width: 600px) {
+      font-size: var(--default-font-size);
+    }
+
+    #show-guided-content-button {
+      width: fit-content;
+      height: fit-content;
+      padding: 6px 12px;
+      border-radius: var(--normal-border-radius);
+
+      @media (max-width: 600px) {
+        padding-left: 6px;
+      }
+    }
   }
+
+#guided-content-wrapper {
+  // #top-container-resize-handle used to be a child of
+  // #guided-content-container, positioned bottom:0 against it -- but
+  // that container's overflow-y: auto (needed for its own scrollable
+  // text content) clipped the handle's keyboard focus ring right at
+  // the same edge, with no room to render. Moved the handle out to be
+  // a sibling here instead, so it escapes that clipping. This wrapper's
+  // own box includes the container's outer margin (below), so --margin
+  // is hoisted up here for the handle to also offset by, keeping it
+  // flush against the container's actual bottom border rather than the
+  // outer edge of its margin.
+  --margin: 0.5rem;
+  position: relative;
+
+  // On mobile, while open, becomes a full-screen overlay covering the
+  // WWT canvas and all its floating buttons. This is also what fixes the
+  // map appearing blank on mobile: #map-column's flex-grow only has
+  // real remaining space to grow into once this wrapper (and, via the
+  // 100% overrides below, #guided-content-container itself) has a
+  // genuinely definite height -- the container's own calc(100% - 1rem)
+  // needs a definite-height ancestor to resolve against, and one was
+  // never available before (the wrapper had no explicit height either).
+  @media (max-width: 600px) {
+    &.mobile-fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 700;
+
+      #guided-content-container {
+        margin: 0;
+        width: 100%;
+        --top-content-max-height: 100%;
+        --top-content-min-height: 100%;
+        border-radius: 0;
+      }
+    }
+  }
+}
 
 #guided-content-container {
   --top-content-max-height: max(30vmin, 35vh);
-  // fit-content (rather than a fixed px floor) means the default,
-  // un-resized height always accommodates the title/instructions/buttons
-  // without needing to scroll — min-height wins over max-height when they
-  // conflict, so this only grows past --top-content-max-height for
-  // content that genuinely needs more room. Scrolling only kicks in once
-  // the user explicitly drags the container shorter than this.
   --top-content-min-height: fit-content;
   z-index: 400;
 
@@ -5832,14 +5527,12 @@ video, #info-video {
     --top-content-min-height: calc(100% - 1rem);
     box-sizing: border-box;
   }
-  
+
   font-size: var(--default-font-size);
   @media (max-width: 350px) and (max-height: 600px) {
       font-size: min(3vw, 1.75vh);
   }
-  
-  --map-max-height: var(--top-content-max-height); // Keep this about 3 smaller than above // not used any more
-  --margin: 0.5rem;
+
   --container-padding: 0.5rem;
   position: relative;
   margin: var(--margin);
@@ -5857,12 +5550,6 @@ video, #info-video {
   
   line-height: var(--default-line-height);
   .thin-scrollbar();
-  // Content is now fully contained by #non-map-container's own internal
-  // scroll and #map-column's sizing, so this outer container practically
-  // never overflows — scrollbar-gutter: stable was permanently reserving
-  // space on the right for a scrollbar that's essentially never shown,
-  // which looked like doubled right-side padding. Drop the reservation
-  // here; overflow-y: auto above still lets it scroll in a pinch.
   scrollbar-gutter: auto;
 
   transition: height 0.5s ease-in-out;
@@ -5872,9 +5559,6 @@ video, #info-video {
   
   @media (max-width: 600px) {
     flex-direction: column;
-    // This gap sits directly above/below #mobile-map-height-resize-handle
-    // (the only other flex child on mobile), so it reads as dead space
-    // around the handle rather than breathing room between sections.
     gap: 0.25rem;
   }
   
@@ -5885,28 +5569,6 @@ video, #info-video {
     border-radius: 0.25em;;
   }
   
-  #scrollButton-button {
-    position: fixed;
-    top: calc(var(--top-content-height) - 2.5rem);
-    right: 1rem;
-    z-index: 1000;
-  }
-
-  #non-map-container {
-    flex-basis: 100%;
-    min-width: 0;
-    @media (max-width: 600px) {
-      // Always its natural content height on mobile — never grows, never
-      // shrinks — so the title/instructions/buttons are never forced to
-      // scroll by default; #map-column (below) is the one that gives up
-      // height to make room for it.
-      flex: 0 0 auto;
-    }
-    @media (min-width: 960px) {
-      flex: 0 1 38%;
-    }
-  }
-
   #map-column {
     flex-basis: 100%;
 
@@ -5916,9 +5578,6 @@ video, #info-video {
     align-items: center;
 
     @media (max-width: 600px) {
-      // Fills whatever vertical space #non-map-container's content
-      // doesn't need, instead of being pinned to a fixed aspect ratio
-      // that could force it (and the box as a whole) taller than needed.
       flex: 1 1 auto;
       min-height: 120px;
     }
@@ -5987,14 +5646,14 @@ video, #info-video {
 
   #non-map-container { // Keep content away from the x to close
     height: 100%;
+    flex-basis: 100%;
+    min-width: 0;
     @media (max-width: 600px) {
-      // On mobile, height is this element's flex *main* axis (the layout
-      // is a column). flex-basis: auto (set below) defers to the height
-      // property when present, so leaving height: 100% here made this
-      // element claim the container's entire height, leaving nothing for
-      // #map-column. Content-based height lets it size to its own
-      // natural content instead.
       height: auto;
+      flex: 0 0 auto;
+    }
+    @media (min-width: 960px) {
+      flex: 0 1 38%;
     }
     --padding-left: 0.5rem;
     // @media (max-width: 600px) {
@@ -6002,20 +5661,10 @@ video, #info-video {
     // }
     padding-left: var(--padding-left);
     padding-right: calc(var(--padding-left) + var(--container-padding));
-    
+
     display: flex;
     flex-direction: column;
-    // Center the title/instructions/buttons group when it doesn't fill
-    // the (possibly resized-tall) container; #instructions-row still
-    // shrinks (and scrolls internally) rather than overflowing if the
-    // container is too short for everything to fit at natural size.
-    justify-content: center;
-    // "safe" falls back to start-alignment once content overflows, so the
-    // top of an overflowing group stays reachable by scrolling instead of
-    // being clipped off — plain "center" leaves start-side overflow
-    // unreachable even with a scrollbar. (Ignored by browsers that don't
-    // support safe/unsafe alignment, which keep the plain "center" above.)
-    justify-content: safe center;
+    justify-content: flex-start;
     align-items: stretch;
     gap: 0.5em;
     .thin-scrollbar();
@@ -6026,13 +5675,11 @@ video, #info-video {
     .non-map-row {
       margin: 0;
       padding: 0;
-      // Title and button rows stay at their natural content height.
       flex: 0 0 auto;
     }
 
   }
     
-    // .v-row.non-map-row#title-row
   #title-row {
     display: flex;
     align-items: center;
@@ -6050,28 +5697,22 @@ video, #info-video {
 
     #hide-guided-content-button {
       flex: 0 0 auto;
-      // The icon-button's border prop is a no-op in the installed
-      // @cosmicds/vue-toolkit version — its .icon-wrapper always renders
-      // a border — so it has to be overridden directly here to match the
-      // borderless chevron used for the controls box.
       border: none;
+      // The global .icon-wrapper rule hardcodes a dark translucent
+      // background regardless of the icon-button's own background-color
+      // prop (that prop only sets an inline --background-color CSS var,
+      // which .icon-wrapper's background never reads) -- override it
+      // directly here so this specific chevron stays transparent.
+      background: transparent;
     }
   }
   
-  .v-btn#toggle-instruction-text {
-    position: absolute;
-    right: 1.8em;
-    top: 2.3em;
-    color: var(--accent-color)
-    // transform: translate(-25%, 75%);
-  }
-    
-    // .v-row.non-map-row#instructions-row
   #instructions-row {
-    // Size to content (don't force-grow to fill leftover space — that's
-    // what let the whole group get vertically centered above), but still
-    // allow shrinking so it scrolls internally instead of overflowing.
-    flex: 0 1 auto;
+    // Grows to fill the space between the title row (pinned top) and the
+    // button row (pinned bottom) when non-map-container is taller than its
+    // content -- blank space inside the box is fine, the text itself stays
+    // top-aligned via #top-container-main-text's own layout below.
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     border: 1.5px solid var(--sky-color);
@@ -6140,6 +5781,7 @@ video, #info-video {
         padding-block: 4px;
         // be as large as you can but shrink if needed
         width: 100%;
+        height: auto;
         min-width: 0;
         flex-shrink: 1;
 
@@ -6157,106 +5799,167 @@ video, #info-video {
     transition: none !important;
   }
 
-  #top-container-resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 10px;
-    z-index: 20;
-    cursor: row-resize;
-    touch-action: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+}
 
-    &::before {
-      content: "";
-      width: 40px;
-      height: 4px;
-      border-radius: 2px;
-      background-color: var(--accent-color);
-      opacity: 0.6;
-    }
+// A sibling of #guided-content-container now (see #guided-content-wrapper
+// above) rather than a child, so its focus ring isn't clipped by that
+// container's own overflow-y: auto.
+#top-container-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  // Offset by the wrapper's --margin so this sits flush against the
+  // container's own bottom border, not the outer edge of its margin.
+  bottom: var(--margin);
+  height: 10px;
+  // Now a sibling of #guided-content-container (z-index: 400) rather
+  // than a child, so it has to outrank that z-index directly to avoid
+  // being painted over and losing pointer events in their overlap area.
+  z-index: 401;
+  cursor: row-resize;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    &:hover::before,
-    &:active::before {
-      opacity: 1;
-    }
+  &::before {
+    content: "";
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--accent-color);
+    opacity: 0.6;
   }
 
+  &:hover::before,
+  &:active::before {
+    opacity: 1;
+  }
 }
 
 #map-column { // v-col
   position: relative;
-  --map-max-height: calc(var(--top-content-max-height) - 2*var(--margin) - 2*var(--container-padding));
   --map-edge-gap: 4px;
-  height: 100%;
+  // #guided-content-container has no explicit `height` (only min/max, to
+  // stay fit-content-sized) and uses align-items: center rather than
+  // stretch, so this column's own `height: 100%` had no definite parent
+  // height to resolve against -- it (and, cascading down, the Leaflet map
+  // inside it) collapsed to 0 until something else (dragging the resize
+  // handle) happened to hand the row an explicit height. align-self:
+  // stretch sizes this one item to the row's actual (content-determined)
+  // cross size directly, independent of that -- but only takes effect
+  // if this item's own cross-size property is auto, not an (even if
+  // unresolvable) explicit value, hence dropping `height: 100%` entirely
+  // rather than just adding align-self alongside it.
+  align-self: stretch;
   width: 100%;
   min-height: 0;
   // outline: 1px solid red;
-  // (No mobile aspect-ratio here anymore — it forced a minimum height via
-  // the flex "automatic minimum size" mechanism, which is what was
-  // squeezing #non-map-container. #map-column's height on mobile is now
-  // driven purely by the flex-basis/min-height set above instead.)
 
   #map-container {
-    height: 100%;
+    // #map-column is itself a column flex container, and its own height
+    // only counts as "definite" for a percentage-height child like this
+    // one when it was resolved via align-self/items: stretch (a cross-
+    // axis size) -- on mobile #map-column's height instead comes from
+    // its own flex-grow (a main-axis size in that column context), which
+    // the flex spec does NOT carry through as definite to descendants.
+    // height: 100% silently failed there, collapsing this to its own
+    // near-zero content height. flex-grow sidesteps percentage
+    // resolution entirely and works in both the row (desktop) and
+    // column (mobile) cases.
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
     padding: var(--map-edge-gap);
     position: relative;
 
     display: flex;
-    align-items: center;
+    // LocationSelector's own root (.map-container, lowercase -- a
+    // different element than this #map-container wrapper) has an
+    // explicit height: 100% that needs this to be align-items: stretch
+    // (not center) to resolve at all -- same reasoning as #map-column
+    // above, one level deeper.
+    align-items: stretch;
     justify-content: center;
 
 
-    .location-search-overmap {
-      height: fit-content;
+    // Small, consistent margin from the small map's own edges for all
+    // overlay buttons below.
+    --map-overlay-margin: 0.5em;
+
+    // Location details (mobile only, no date -- see the template comment)
+    // stacked directly above the search box, both anchored bottom-left.
+    .map-bottomleft-stack {
       position: absolute;
       z-index: 600;
-      right: 1.25em;
-      top: 1em;
-      
-      &.overmap-low {
-        top: 2em;
+      bottom: var(--map-overlay-margin);
+      left: var(--map-overlay-margin);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+
+    #location-status-box-overmap {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      color: white;
+      border: 2px solid var(--accent-color);
+      border-radius: var(--tight-border-radius);
+      padding: 0.35em 0.5em;
+      font-size: calc(0.8 * var(--default-font-size));
+      text-align: center;
+      // Narrower than #location-status-box (the WWT-canvas version of
+      // this box) -- this one sits over the small map, where space is
+      // tighter -- but still fixed, so it doesn't grow/shrink with the
+      // length of the location name.
+      width: 8rem;
+      max-width: 70vw;
+
+      .location-status-name {
+        font-size: calc(0.9 * var(--default-font-size));
+        // Lets the "\n" in the plain lat/long fallback (no place name
+        // found) render as an actual line break: latitude on one line,
+        // longitude on the next.
+        white-space: pre-line;
       }
-      
-      
-      &.overmap-budge {
-        right: 4.5em;
+
+      .eclipse-status-line {
+        // Lets the "\n" before "(Xm Ys of totality)" in the computed
+        // text actually render as a line break, same as the top-left
+        // cluster's own copy of this text.
+        white-space: pre-line;
       }
     }
 
+    // "Use my location", bottom-right corner of the small map.
     #my-location-overmap-button {
-      height: fit-content;
-      position: absolute;
-      z-index: 550;
-      right: 1.25em;
-      bottom: 1rem;
-      
-    }
-    
-    #my-location-overmap-budge-button {
-      height: fit-content;
-      position: absolute;
-      z-index: 550;
-      right: 4.5em;
-      bottom: 1rem;
-      
-    }
-    
-
-    
-    #eclipse-details-overmap-button {
-      height: fit-content;
       position: absolute;
       z-index: 600;
-      bottom: 1rem;
-      left: 1rem;
+      bottom: var(--map-overlay-margin);
+      right: var(--map-overlay-margin);
     }
-    
+
+    // Eclipse-timer button + "reset to Antiguita, Spain" (below it),
+    // stacked in the top-right corner of the small map (mobile only --
+    // desktop keeps its own eclipse-timer copy in the top-left cluster).
+    // Leaflet's own attribution control now also lives in that same
+    // top-right corner (see LocationSelector.vue's
+    // map.attributionControl.setPosition('topright')) -- clear its
+    // "Credit: © Leaflet.js" label by the same small margin instead of
+    // sitting flush against the map's top edge.
+    .map-topright-stack {
+      position: absolute;
+      z-index: 600;
+      top: calc(1em + var(--map-overlay-margin));
+      right: var(--map-overlay-margin);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
     .map-container {
       height: 100%;
       width: 100%;
@@ -6269,18 +5972,6 @@ video, #info-video {
       margin: 0;
     }
     
-    #eclipse-path-map > img {
-      display: block;
-      max-width: 100%;
-      max-height: 100%;
-      // position: absolute;
-      // top: 50%;
-      // left: 50%;
-      // transform: translateX(-50%) translateY(-50%);
-      
-      
-    }
-
     .leaflet-control-zoom-in, .leaflet-control-zoom-out {
 
       background-color: #fff;
@@ -6314,16 +6005,6 @@ video, #info-video {
   width: 1.5em;
 }
 
-#intro-window-close-button {
-    position: absolute;
-    top: 0.25em;
-    right: 0.25em;
-
-    &:hover {
-      cursor: pointer;
-    }
-}
-
 #instruction-overlay {
   
   --width: 80dvw;
@@ -6351,25 +6032,19 @@ video, #info-video {
   height: var(--height);
   min-height: max-content;
   padding: 1rem;
-  grid-template-columns: 1fr 1.35fr;
+  // Equal columns now that both quadrants' text wraps to similarly-short
+  // lines -- the old 1.35fr right column (sized for longer text) shifted
+  // that quadrant's content further right, making the close X (centered
+  // on the overall box) look off-center relative to the two quadrants.
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: 0.5fr 0.5fr;
   gap: 1em;
   
   border: 2px solid white;
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
-  border-radius: 24px;
+  border-radius: var(--tight-border-radius);
   
-  
-  
-  #instructions-close-button {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: min(4vw, 3.5vh);
-    text-align: center;
-  }
   
   
   div.inst-quad {
@@ -6412,8 +6087,10 @@ video, #info-video {
     grid-area: 1 / 1 / 2 / 2;
     margin-bottom: auto;
     .the-arrow {
-      // flip right to left
-      transform: translateY(-5px) rotateZ(-90deg);
+      // Mirror image of top-right's rotateZ(30deg) -- same angle off
+      // vertical, opposite direction, so it points diagonally toward
+      // this quadrant's own top-left corner instead of straight left.
+      transform: translateY(-5px) rotateZ(-30deg);
     }
   }
   
@@ -6435,33 +6112,16 @@ video, #info-video {
   }
   
   div.inst-quad.bottom-left {
-    grid-area: 2 / 1 / 3 / 2;
+    grid-area: 2 / 1 / 3 / 3;
     flex-direction: column-reverse;
+    align-items: center;
     margin-top: auto;
+    text-align: center;
+    .inst-text {
+      justify-content: center;
+    }
     .the-arrow {
       transform: translateY(5px) rotateX(180deg);
-    }
-  }
-  
-  div.inst-quad.bottom-right {
-    grid-area: 2 / 2 / 3 / 3;
-    flex-direction: column-reverse;
-    margin-top: auto;
-    text-align: right;
-    .inst-text {
-      justify-content: flex-end;
-    }
-    .inst-arrow {
-      align-self: end;
-    }
-    .the-arrow {
-      transform: translateY(5px) rotateX(180deg) rotateZ(90deg);
-    } 
-    
-    @media (min-height: 500px) {
-      .the-arrow {
-        transform: translateY(5px) rotateX(180deg) rotateZ(45deg);
-      } 
     }
   }
   
@@ -6475,7 +6135,7 @@ video, #info-video {
   transform: translateX(-50%) translateY(-50%);
   height: fit-content;
   // outline: 5px solid var(--accent-color);
-  border-radius: 1em;
+  border-radius: var(--normal-border-radius);
 
   @media (max-width: 700px) {
     width: 95%;
@@ -6535,11 +6195,7 @@ video, #info-video {
       font-size: calc(0.9 * var(--default-font-size));
     }    
   
-    #intro-reminder {
-      outline: 1px solid red;
-    }
-    
-    #intro-next-button {
+    #intro-next-button, #intro-back-button {
       background-color: rgba(18, 18, 18,.5);
     }
   }
@@ -6551,65 +6207,67 @@ video, #info-video {
   align-items: flex-end;
   gap: 5px;
   margin-left: 10px;
-  
+
   @media (orientation: landscape) {
     margin-left: 3rem;
   }
-  
+
   @media (max-width: 370px) {
     justify-content: center;
   }
 
-  .icon-wrapper {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-    border: 2px solid var(--accent-color);
+  @media (max-width: 600px) {
+    .icon-wrapper {
+      width: 30px;
+      height: 34px;
+    }
+    margin-bottom: 10px;
   }
-
 }
 
 #enclosing-playback-container.desktop-playback-control {
   --tick-font-size: 12px;
   margin-bottom: calc(2.5rem + 5px);
+  margin-left: 5px;
   padding-right: 1rem;
-  
+  max-width: 235px;
+
+  // The popup is positioned via Vuetify's "connected" location strategy,
+  // which doesn't reactively re-track the activator button's position
+  // after a CSS media query (not a prop/data change) shifts it. #speed-control
+  // gets a 3rem left margin in landscape orientation, so mirror it here to
+  // keep the popup aligned above the button row instead of stuck 38px left.
+  @media (orientation: landscape) {
+    margin-left: 3rem;
+  }
 }
 
 #enclosing-playback-container.inset.mobile-playback-control {
   padding-right: 1rem;
 }
 
-#enclosing-playback-container > #playback-play-pause-button {
-  pointer-events: auto!important;
-}
-
 #inline-speed-control {
-  display: flex; 
-  flex-grow:1; 
-  align-items: flex-end; 
-  position: relative; 
+  display: flex;
+  flex-grow:1;
+  align-items: flex-end;
+  position: relative;
   gap: 5px;
-  
-  // when the screen is small enough we want to hide the buttons in inline mode
-  @media (min-width: 369px) {
-    #enclosing-playback-container > #playback-play-pause-button {
-      display: none;
-    }
-    
-    #enclosing-playback-container > #playback-close-button {
-      display: none;
-    }
-  }
-  // when small enough we want to cover the controls
+
+  // Below this width there isn't room for the popup to sit to the right of
+  // the toggle button without overlapping the play/pause row (and blocking
+  // it). Instead, stack the popup above the whole row with a 5px gap.
+  // position:static here (overriding the relative above) lets the popup's
+  // absolute positioning resolve against the play/pause row's own wrapper,
+  // not just this toggle button, so it centers over the full row.
   @media (max-width: 370px) {
-    // position: absolute;
     flex-grow: 0;
+    position: static;
     #enclosing-playback-container.mobile-playback-control {
-      position: fixed;
+      position: absolute;
       width: calc(90% - 1rem);
       left: 50%;
-      --off: calc(50% - 5px);
-      transform: translateX(-50%) translateY(var(--off)) !important;
+      bottom: calc(100% + 5px);
+      transform: translateX(-50%);
     }
   }
 }
@@ -6640,12 +6298,40 @@ video, #info-video {
     width: 100%;
 }
 
+// Styled to match #speed-text. top/left are set inline (see
+// updateEclipsedIndicatorPosition) relative to the WWT canvas
+// (#main-content, its positioning parent here) -- the exact placement
+// differs between wide and vertical screens. transform centers the
+// element itself on that computed point in both dimensions.
+#eclipse-percent-indicator {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  padding-inline: 0.4em;
+  padding-block: 0.15em;
+  border-radius: 0.3em;
+  font-size: calc(1 * var(--default-font-size));
+  text-wrap: nowrap;
+  width: fit-content;
+  color: white;
+  z-index: 50;
+  pointer-events: none;
+}
+
+// Top-right cluster: share, info, and controls, positioned under the
+// info+map container rather than overlapping its top edge. The open
+// controls panel (#control-checkboxes) stacks below the button row.
 #top-wwt-content {
   position: absolute;
   right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
 
-  // Same top offsets as #left-buttons-wrapper while the Map & Weather box
-  // is open, so the two stay vertically aligned.
+  // #main-content (the positioned ancestor here) already starts in
+  // normal flow right below the guided-content box -- these are small
+  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -6654,131 +6340,21 @@ video, #info-video {
     top: 0.7rem;
   }
 
-  // Once it's closed, align with the closed Map & Weather button
+  // Once it's closed, align with the closed Path & Weather button
   // (#closed-top-container) instead — #left-buttons-wrapper's own .budge
   // offset drops further still, to leave a gap below that button.
   &.budge {
     top: calc(var(--default-font-size) + 1px);
   }
 
-  #location-date-display {
+  #top-right-buttons {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-
-    @media (max-width: 250px) {
-      padding-top: 3.5em;
-    }
-  }
-
-  // Styled to match the location-button box from the Seasons data story:
-  // dark background, accent-colored border, bold location name with
-  // unbolded details underneath.
-  #location-status-box {
-    cursor: pointer;
-    pointer-events: auto;
-    background: black;
-    color: white;
-    border: 1px solid var(--accent-color);
-    border-radius: 5px;
-    padding: 0.5rem;
-    font-size: calc(0.9 * var(--default-font-size));
-    text-align: center;
-    // Fixed width so the box doesn't grow/shrink with the length of the
-    // location name — long names wrap instead (max-width guards against
-    // overflow on very narrow screens).
-    width: 12rem;
-    max-width: 70vw;
-    transition: border-color 0.2s ease;
-
-    @media (max-width: 600px) {
-      width: 10rem;
-    }
-
-    &:hover,
-    &:focus-visible {
-      border-color: color-mix(in srgb, var(--accent-color) 70%, black);
-    }
-
-    .location-status-name {
-      font-size: calc(0.95 * var(--default-font-size));
-      margin-bottom: 0.25rem;
-    }
-
-    .eclipse-status-line {
-      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
-      // actually render as a line break.
-      white-space: pre-line;
-      // Same vertical space as between the location name and this line.
-      margin-block: 0.25rem;
-    }
-  }
-
-  .icon-wrapper {
-    @media (max-width: 750px) { //SMALL
-      margin-top: 0.5rem;
-    }
-
-    @media (min-width: 751px) { //LARGE
-      margin-top: 0.7rem;
-    }
-  }
-
-  .v-switch__thumb {
-    color: var(--accent-color);
-    background-color: black;
-
-    @media (min-width: 751px) { //LARGE
-      height: 2.1rem;
-      width: 2.2rem;
-    }
-  }
-
-  .v-input--density-default {
-    --v-input-control-height: 0;
-  }
-
-  .v-selection-control--density-default {
-    --v-selection-control-size: auto;
-  } 
-
-  .v-switch__track {
-    background-color: #737373 !important;
-  }
-
-  .v-switch--inset .v-switch__track {
-    @media (min-width: 751px) { //LARGE
-      height: 2.5rem;
-      width: 4.2rem;
-    }
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
   }
 
   pointer-events: auto;
-
-  #top-switches {
-    position: absolute;
-    right: 0;
-    text-align: right;
-
-    @media (max-width: 750px) { //SMALL
-      margin-top: 0.5rem;
-    } 
-
-    @media (min-width: 751px) { //LARGE
-      margin-top: 0.7rem;
-    } 
-
-  }
- 
-  #track-sun-switch {
-    @media (max-width: 750px) { //SMALL
-      margin-top: 0.5rem;
-    } 
-
-    @media (min-width: 751px) { //LARGE
-      margin-top: 0.7rem;
-    } 
-  }
 }
 
 #change-optout {
@@ -6789,10 +6365,15 @@ video, #info-video {
     right: 0.5rem;
   }
   
+  // Deliberately excluded from the unified icon-button size — this one
+  // stays small.
   .icon-wrapper {
+    width: auto;
+    height: auto;
     margin: 0;
     padding: 0.15em;
     border: none;
+    border-radius: 4px;
     min-width: 0;
   }
 }
@@ -6823,125 +6404,21 @@ video, #info-video {
 a {
     text-decoration: none;
     font-weight: bold;
-    color: #7996DA; // lighter variant of CosmicDS logo blue
+    color: var(--accent-color-2);
     pointer-events: auto;
   }
 
-#inline-open-icon {
-  background-color: var(--accent-color);
-  border-radius: 50%;
-  border: 1.5px solid var(--accent-color);
-}
-
-
-#mobile-zoom-control {
-  position: absolute;
-  top: 50%;
-  left: 1rem;
-  transform: translateY(-50%);
-  
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  
-  .vue-slider {    
-    .vue-slider-rail {
-      width: 10px;
-      left: calc(-10px / 2 + 2.5px);
-    }
-  }
-  
-  
-  .slider-padding {
-    margin-block: 1em;
-    color: var(--accent-color);
-  }
-  
-}
-
-
-// this is class called blink that makes a span look like a round blinking circle period of 1 sec
-.blink {
-  animation: blinker 1s linear infinite;
-  border-radius: 50%;
-  width: 1em;
-  height: 1em;
-  background-color: #29ff29;
-  display: inline-block;
-}
-
-@keyframes blinker {
-  10% {
-    opacity: 0;
-  }
-}
-
 .icon-wrapper {
-  width: fit-content;
+  box-sizing: border-box;
+  width: 35px;
+  height: 37px;
+  padding: 0;
+  border-radius: var(--normal-border-radius);
+  border: 2px solid var(--color);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
 }
 
-#forward-geocoding-container {
-  position: relative;
-  width: fit-content;
-  color: var(--accent-color);
-  background-color: black;
-  border: 2px solid var(--accent-color);
-  border-radius: 20px;
-  padding: var(--fg-container-padding);
-
-  .v-text-field {
-    min-width: 150px;
-    width: min(200px, 20vw);
-  }
-  
-  .forward-geocoding-input.geocode-success label {
-    color: var(--accent-color);
-    opacity: 1;
-  }
-
-  #forward-geocoding-input-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    gap: 10px;
-    align-items: center;
-  }
-
-  #geocoding-search-icon {
-    padding-inline: calc(0.3 * var(--default-line-height));
-    padding-block: calc(0.4 * var(--default-line-height));
-  }
-
-  #geocoding-search-icon:hover, #geocoding-close-icon:hover {
-    cursor: pointer;
-  }
-
-  // For some reason setting width: 100% makes the search results 2px too small
-  // It's probably some Vuetify styling thing
-  // Maybe there's a better workaround, but this gets the job done for now
-  #forward-geocoding-results {
-    position: absolute;
-    top: 42px;
-    left: -1px;
-    width: calc(100% + 2px);
-    background: black;
-    border: 1px solid var(--accent-color);
-    border-top: 0px;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-    padding: 0px 10px;
-
-    .forward-geocoding-result {
-      border-top: 1px solid var(--accent-color);
-      font-size: 12pt;
-      pointer-events: auto;
-
-      &:hover {
-        cursor: pointer;
-      }
-    }
-  }
-}
 
 
 .rating-root {
@@ -6954,7 +6431,7 @@ a {
   // transform: translateX(-50%);
   gap: 0 !important;
   border: solid 1px #EFEFEF !important;
-  border-radius: 10px !important;
+  border-radius: var(--tight-border-radius) !important;
   background-color: #222222 !important;
   opacity: 0.95 !important;
   z-index: 20000 !important;
