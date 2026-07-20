@@ -16,7 +16,7 @@ import PlaybackControl from "./PlaybackControl.vue";
 
 import ColorBar from "./ColorBar.vue";
 import EclipseTimer from "./EclipseTimer.vue";
-import DebugEclipseTimer from "./DebugEclipseTimer.vue";
+// import DebugEclipseTimer from "./DebugEclipseTimer.vue";
 import LocationSearch from "./LocationSearch.vue";
 import ArrowSVG from "./ArrowSVG.vue";
 import OpenMeteoForecast from "./OpenMeteoForecast.vue";
@@ -168,7 +168,7 @@ createApp(SolarEclipse2026, {
   .component('playback-control', PlaybackControl)
   .component('color-bar', ColorBar)
   .component('eclipse-timer', EclipseTimer)
-  .component('debug-eclipse-timer', DebugEclipseTimer)
+  // .component('debug-eclipse-timer', DebugEclipseTimer)
   .component('location-search', LocationSearch)
   .component('arrow-svg', ArrowSVG)
   .component('open-meteo-forecast', OpenMeteoForecast)
