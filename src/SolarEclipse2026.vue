@@ -1702,8 +1702,6 @@ console.log("cloud cover data loaded");
 
 const MAX_PLAYBACK_RATE = 5**6;
 
-const wwtMove = WWTControl.singleton.move;
-
 /* READ IN Eclipse Umbra */
 import eclipseUmbra from "./assets/upath_lo.json";
 
@@ -1826,8 +1824,6 @@ export default defineComponent({
       sheet: null as SheetType,
       layersLoaded: false,
       positionSet: false,
-
-      wwtMove: null as ((x: number, y: number) => void) | null,
 
       searchOpen: true,
       searchText: null as string | null,
@@ -2047,13 +2043,10 @@ export default defineComponent({
       // @ts-ignore
       this.wwtControl._updateViewParameters = updateViewParameters.bind(this.wwtControl);
 
-      this.wwtMove = this.wwtControl.move;
-
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       this.wwtControl.roll = function(_angle) {};
       this.wwtControl._tilt = function(_angle) {};
-      this.updatePanForMobile();
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -2554,14 +2547,6 @@ export default defineComponent({
       
       this.playingWaitCount = this.playingWaitCount === 0 ? 0 : this.playingWaitCount - 1;
 
-    },
-
-    updatePanForMobile() {
-      if (this.showNewMobileUI) {
-        this.wwtControl.move = function(_x, _y) {};
-      } else {
-        this.wwtControl.move = wwtMove;
-      }
     },
 
     onScroll() {
@@ -3944,7 +3929,6 @@ export default defineComponent({
     },
 
     showNewMobileUI(narrow: boolean) {
-      this.updatePanForMobile();
       // showNewMobileUI is driven by `narrow`, so this fires whenever the
       // viewport crosses the 600px boundary. Apply the default layout for the
       // mode we just entered — the same defaults used at mount — so the book
