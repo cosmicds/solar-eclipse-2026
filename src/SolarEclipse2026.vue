@@ -1865,8 +1865,6 @@ export default defineComponent({
 
       syncDateTimeWithWWTCurrentTime: true,
 
-      sunOffset: null as { x: number; y: number } | null,
-
       initialMapOptions,
 
       userSelectedMapOptions: {
@@ -2463,11 +2461,7 @@ export default defineComponent({
 
     trackingSun: {
       set(value: boolean) {
-        if(this.sunOffset === null) {
-          this.sunCenteredTracking = value;
-        } else {
-          this.sunCenteredTracking = false;
-        }
+        this.sunCenteredTracking = value;
       },
 
       get(): boolean {
@@ -2611,44 +2605,12 @@ export default defineComponent({
     },
 
     async trackSun(): Promise<void> {
-      this.sunOffset = null;
       return this.gotoTarget({
         place: this.sunPlace,
         instant: true,
         noZoom: true,
         trackObject: true
       });
-    },
-
-    async trackSunOffset(): Promise<void> {
-      this.sunCenteredTracking = false;
-      const place = this.getSunOffsetWorldPosition();
-      if (place !== null) {
-        return this.gotoTarget({
-          place,
-          noZoom: true,
-          instant: true,
-          trackObject: true
-        });
-      } else {
-        return Promise.resolve();
-      }
-    },
-
-    getSunOffsetWorldPosition(): Place | null {
-      if (this.sunOffset === null) {
-        return null;
-      }
-
-      const sunLocation = Planets['_planetLocations'][0];
-      const sunPoint = getScreenPosForCoordinates(this.wwtControl, sunLocation.RA, sunLocation.dec);
-      const offsetPoint = { x: sunPoint.x + this.sunOffset.x, y: sunPoint.y + this.sunOffset.y };
-      const offsetLocation = this.findRADecForScreenPoint(offsetPoint);
-      const place = new Place();
-      place.set_RA(offsetLocation.ra / 15);
-      place.set_dec(offsetLocation.dec);
-
-      return place;
     },
 
     angleInZeroToTwoPi(angle: number): number {
@@ -2877,7 +2839,6 @@ export default defineComponent({
       overlay.set_lineColor(color);
       locations.forEach(pt => overlay.addPoint(pt.ra, pt.dec));
       Annotation2.addAnnotation(overlay);
-      
     },
 
 
@@ -2889,13 +2850,6 @@ export default defineComponent({
           this.trackSun();
         }
         return;
-      } else {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        this.trackingSun = (wwtControl._trackingObject === this.sunPlace) || (this.sunOffset !== null);
-        if (this.trackingSun && this.sunOffset !== null) {
-          this.trackSunOffset();
-        }
       }
     },
 
@@ -3356,7 +3310,6 @@ export default defineComponent({
     },
 
     onPointerDown(event: PointerEvent) {
-      this.sunOffset = null;
       this.isPointerMoving = false;
       this.pointerStartPosition = { x: event.pageX, y: event.pageY };
       this.activePointer = true;
@@ -3365,13 +3318,6 @@ export default defineComponent({
     onPointerUp(_event: PointerEvent) {
       this.pointerStartPosition = null;
       this.isPointerMoving = false;
-
-      const sunLocation = Planets['_planetLocations'][0];
-      const sunPoint = getScreenPosForCoordinates(this.wwtControl, sunLocation.RA, sunLocation.dec);
-      this.sunOffset = {
-        x: this.wwtControl.renderContext.width / 2 - sunPoint.x,
-        y: this.wwtControl.renderContext.height / 2 - sunPoint.y
-      };
       this.activePointer = false;
     },
 
@@ -4108,7 +4054,6 @@ export default defineComponent({
     },
 
     wwtZoomDeg(_zoom: number, _oldZoom: number) {
-      this.sunOffset = null;
       this.updateIntersection();
     },
 
@@ -4174,11 +4119,6 @@ export default defineComponent({
       this.wwtControl.renderOneFrame();
       this.getEclipsePrediction();
       this.updateFrontAnnotations();
-
-
-      if (!this.trackingSun) {
-        this.trackSunOffset();
-      }
     },
 
     playing(play: boolean) {
@@ -4341,12 +4281,7 @@ export default defineComponent({
     toggleTrackSun(val: boolean) {
       if (val) {
         this.trackSun();
-        if(this.sunOffset === null) {
-          this.sunCenteredTracking = true;
-          return;
-        } else {
-          return;
-        }
+        this.sunCenteredTracking = true;
       } else {
         this.sunCenteredTracking = false;
         const currentPlace = new Place();
@@ -4358,16 +4293,6 @@ export default defineComponent({
           noZoom: true,
           trackObject: false
         });
-        return;
-      }
-    },
-
-    sunOffset(val: {x: number, y: number}) {
-      if (val === null && this.toggleTrackSun) {
-        this.sunCenteredTracking = true;
-        return;
-      } else {
-        this.sunCenteredTracking = false;
         return;
       }
     },
