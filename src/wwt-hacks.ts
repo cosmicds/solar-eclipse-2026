@@ -3,14 +3,16 @@
 
 /* eslint-disable */
 
-import { Annotation2 } from "./Annotation2";
-
 import {
   Annotation, Color, Colors, Constellations, Coordinates, Grids,
   LayerManager, Matrix3d, Planets, RenderContext, RenderTriangle, Settings, SpaceTimeController,
   Text3d, Text3dBatch, Tile, TileCache, TourPlayer, URLHelpers,
   Vector2d, Vector3d, WWTControl
 } from "@wwtelescope/engine";
+
+import { Annotation2 } from "./Annotation2";
+
+import { drawHorizon, drawSky } from "./horizon_sky";
 
 export function drawSkyOverlays() {
   if (Settings.get_active().get_showConstellationLabels()) {
@@ -178,7 +180,7 @@ export function updateViewParameters() {
   this.renderContext.viewCamera.angle = dc * this.renderContext.viewCamera.angle + oneMinusDragCoefficient * this.renderContext.targetCamera.angle;
 }
 
-export function renderOneFrame() {
+export function renderOneFrame(showHorizon=true, showSky=true) {
   if (this.renderContext.get_backgroundImageset() != null) {
     this.renderType = this.renderContext.get_backgroundImageset().get_dataSetType();
   } else {
@@ -272,6 +274,9 @@ export function renderOneFrame() {
     this.uiController.render(this.renderContext);
   }
   else {
+    if (showSky) {
+      drawSky(this.renderContext, { opacity: 0.95, color: "#4190ED" });
+    }
     const index = 0;
     Annotation.prepBatch(this.renderContext);
     for (const item of this._annotations) {
@@ -303,6 +308,10 @@ export function renderOneFrame() {
     item.draw(this.renderContext);
   }
   Annotation2.drawBatch(this.renderContext);
+
+  if (showHorizon) {
+    drawHorizon(this.renderContext, { opacity: 0.9, color: "#01362C" });
+  }
 
   const worldSave = this.renderContext.get_world();
   const viewSave = this.renderContext.get_view();

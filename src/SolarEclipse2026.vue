@@ -1550,7 +1550,7 @@ import { defineComponent, toRaw, PropType } from "vue";
 import { MiniDSBase, BackgroundImageset, skyBackgroundImagesets, API_BASE_URL, UserExperienceRating } from "@cosmicds/vue-toolkit";
 import { GotoRADecZoomParams } from "@wwtelescope/engine-pinia";
 import { Classification, SolarSystemObjects } from "@wwtelescope/engine-types";
-import { Grids, LayerManager, Planets, Poly, Settings, WWTControl, Place, Texture, CAAMoon } from "@wwtelescope/engine";
+import { Grids, LayerManager, Planets, Settings, WWTControl, Place, Texture, CAAMoon } from "@wwtelescope/engine";
 import { Annotation2, Poly2 } from "./Annotation2";
 
 import { getTimezoneOffset, formatInTimeZone } from "date-fns-tz";
@@ -1562,6 +1562,7 @@ import pointInPolygon from 'point-in-polygon';
 
 import { recalculateForObserverUTC } from "./eclipse_predict";
 import { EclipseData } from "./eclipse_types";
+import { sunPlace } from "./horizon_sky";
 import { spaceHMS } from './utils';
 import nso from './nso_coordinates';
 
@@ -1736,12 +1737,6 @@ export default defineComponent({
   },
   data() {
     const totalEclipseTimeUTC = new Date("2026-08-12T18:30:59Z");
-
-    const sunPlace = new Place();
-    sunPlace.set_names(["Sun"]);
-    sunPlace.set_classification(Classification.solarSystem);   
-    sunPlace.set_target(SolarSystemObjects.sun);
-    sunPlace.set_zoomLevel(20);
 
     const moonPlace = new Place();
     moonPlace.set_names(["Moon"]);
@@ -2065,7 +2060,18 @@ export default defineComponent({
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      this.wwtControl.renderOneFrame = renderOneFrame.bind(this.wwtControl);
+      const boundRenderOneFrame = renderOneFrame.bind(this.wwtControl);
+
+      // NB: Unlike in the Seasons story,
+      // this has to be an arrow function so that we can use the component `this`.
+      // This is ultimately a Composition vs. Options API difference
+      const newFrameRender = () => {
+        boundRenderOneFrame(
+          this.showHorizon,
+          this.showSky,
+        );
+      };
+      this.wwtControl.renderOneFrame = newFrameRender;
 
       // Force the render of one frame so that planet textures will be loaded
       // We don't want to attach the callback before this so that we don't mess up sun tracking
@@ -2870,7 +2876,6 @@ export default defineComponent({
         if (this.toggleTrackSun && wwtControl._trackingObject !== this.sunPlace) {
           this.trackSun();
         }
-        return;
       }
     },
 
@@ -3251,69 +3256,6 @@ export default defineComponent({
 
     },
 
-    createHorizon(when: Date | null = null) {
-
-      const color = '#01362C';
-      const date = when || this.dateTime || new Date();
-
-      // The initial coordinates are given in Alt/Az, then converted to RA/Dec
-      // Use N annotations to cover below the horizon
-      const n = 6;
-      const delta = 2 * Math.PI / n;
-      for (let i = 0; i < n; i++) {
-        let points: [number, number][] = [
-          [0, i * delta],
-          [-Math.PI / 2, i * delta],
-          [0, (i + 1) * delta]
-        ];
-        points = points.map((point) => {
-          const raDec = this.horizontalToEquatorial(...point, this.location.latitudeRad, this.location.longitudeRad, date);
-          return [R2D * raDec.raRad, R2D * raDec.decRad];
-        });
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const poly = new Poly2();
-        points.forEach(point => poly.addPoint(...point));
-        poly.set_lineColor(color);
-        poly.set_fill(true);
-        poly.set_fillColor(color);
-        poly.set_opacity(this.horizonOpacity);
-
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        Annotation2.addAnnotation(poly);
-      }
-    },
-
-    createSky(when: Date | null = null) {
-      const color = this.skyColor || '#4190ED';
-      const date = when || this.dateTime || new Date();
-
-      // The initial coordinates are given in Alt/Az, then converted to RA/Dec
-      // Use N annotations to cover below the horizon
-      const n = 6;
-      const delta = 2 * Math.PI / n;
-      for (let i = 0; i < n; i++) {
-        let points: [number, number][] = [
-          [0, i * delta],
-          [0, (i + 1) * delta],
-          [Math.PI / 2, i * delta] // In addition to using +pi/2 instead of -pi/2, I had to switch the order of the 2nd & 3rd points relative to the horizon set. I don't know why, but before I switched them, the polygons didn't render.
-        ];
-        points = points.map((point) => {
-          const raDec = this.horizontalToEquatorial(...point, this.location.latitudeRad, this.location.longitudeRad, date);
-          return [R2D * raDec.raRad, R2D * raDec.decRad];
-        });
-        const poly = new Poly();
-        points.forEach(point => poly.addPoint(...point));
-        poly.set_fill(true);
-        poly.set_fillColor(color);
-        poly.set_opacity(this.skyOpacity);
-        poly.set_lineWidth(0); // This removes the seam that appears between the polygons when opacity < 1
-        this.addAnnotation(poly);
-      }
-
-    },
-
     removeAnnotations() {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -3328,18 +3270,12 @@ export default defineComponent({
       this.updateFrontAnnotations(this.dateTime);
     },
 
-    updateFrontAnnotations(when: Date | null = null) {
+    updateFrontAnnotations(_when: Date | null = null) {
       try {
         this.removeAnnotations();
       }
       finally {
         this.updateIntersection();
-        if (this.showHorizon) {
-          this.createHorizon(when);
-          if (this.showSky) {
-            this.createSky(when);
-          }
-        }
       }
     },
 
