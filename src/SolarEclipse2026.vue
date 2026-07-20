@@ -2043,7 +2043,7 @@ export default defineComponent({
     
     let initialMapOptions = initialView;
     if (latitudeDeg !== undefined && longitudeDeg !== undefined) {
-      userSelectedLocations.push([latitudeDeg, longitudeDeg]);
+      userSelectedLocations.push([longitudeDeg, latitudeDeg]);
       initialMapOptions = {
         initialLocation: { latitudeDeg, longitudeDeg },
         initialZoom: 5
@@ -3394,7 +3394,7 @@ export default defineComponent({
       this.updateSelectedLocationText();
 
       if (addToLocations) {
-        const visitedLocation: [number, number] = [location.latitudeDeg, location.longitudeDeg];
+        const visitedLocation: [number, number] = [location.longitudeDeg, location.latitudeDeg];
         if (this.learnerPath === "Clouds" || this.learnerPath === "CloudDetail") {
           this.cloudCoverSelectedLocations.push(visitedLocation);
           this.cloudCoverSelectedCount += 1;
@@ -4464,7 +4464,7 @@ export default defineComponent({
 
     learnerPath(path: LearnerPath) {
       if (!this.visitedCloudCover && ((path === "Clouds") || (path === "CloudDetail"))) {
-        this.cloudCoverSelectedLocations.push([this.locationDeg.latitudeDeg, this.locationDeg.longitudeDeg]);
+        this.cloudCoverSelectedLocations.push([this.locationDeg.longitudeDeg, this.locationDeg.latitudeDeg]);
         this.cloudCoverSelectedCount += 1;
         this.visitedCloudCover = true;
       }
