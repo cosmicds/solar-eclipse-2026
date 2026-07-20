@@ -742,8 +742,6 @@
     </div>
     <WorldWideTelescope
       :wwt-namespace="wwtNamespace"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
     ></WorldWideTelescope>
     <div
       id="eclipse-percent-indicator"
@@ -1846,11 +1844,6 @@ export default defineComponent({
 
       showEclipsePredictionSheet: false,
 
-
-      pointerMoveThreshold: 6,
-      isPointerMoving: false,
-      pointerStartPosition: null as { x: number; y: number } | null,
-
       totalEclipseTimeUTC,
       // Captured once here so the reset button can return to this exact
       // value later, rather than independently recomputing the same
@@ -1896,7 +1889,6 @@ export default defineComponent({
       playing: false,
       playingWaitCount: 0,
 
-      activePointer: false,
       showControls: false,
       showAltAzGrid: false,
       showHorizon: true,
@@ -3288,28 +3280,6 @@ export default defineComponent({
       Annotation2.clearAll();
       this.clearAnnotations();
     },
-
-    onPointerMove(event: PointerEvent) {
-      if (!this.isPointerMoving && this.pointerStartPosition !== null) {
-        const dist = Math.sqrt((event.pageX - this.pointerStartPosition.x) ** 2 + (event.pageY - this.pointerStartPosition.y) ** 2);
-        if (dist > this.pointerMoveThreshold) {
-          this.isPointerMoving = true;
-        }
-      }
-    },
-
-    onPointerDown(event: PointerEvent) {
-      this.isPointerMoving = false;
-      this.pointerStartPosition = { x: event.pageX, y: event.pageY };
-      this.activePointer = true;
-    },
-
-    onPointerUp(_event: PointerEvent) {
-      this.pointerStartPosition = null;
-      this.isPointerMoving = false;
-      this.activePointer = false;
-    },
-
 
     updateForDateTime() {
       if (this.syncDateTimeWithWWTCurrentTime) {
