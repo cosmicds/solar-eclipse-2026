@@ -749,8 +749,6 @@
     </div>
     <WorldWideTelescope
       :wwt-namespace="wwtNamespace"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
     ></WorldWideTelescope>
     <div
       id="eclipse-percent-indicator"
@@ -1853,11 +1851,6 @@ export default defineComponent({
 
       showEclipsePredictionSheet: false,
 
-
-      pointerMoveThreshold: 6,
-      isPointerMoving: false,
-      pointerStartPosition: null as { x: number; y: number } | null,
-
       totalEclipseTimeUTC,
       // Captured once here so the reset button can return to this exact
       // value later, rather than independently recomputing the same
@@ -1871,8 +1864,6 @@ export default defineComponent({
       defaultLocationText,
 
       syncDateTimeWithWWTCurrentTime: true,
-
-      sunOffset: null as { x: number; y: number } | null,
 
       initialMapOptions,
 
@@ -1905,9 +1896,7 @@ export default defineComponent({
       playing: false,
       playingWaitCount: 0,
 
-      activePointer: false,
       showControls: false,
-      sunCenteredTracking: true,
       showAltAzGrid: false,
       showHorizon: true,
 
@@ -2072,7 +2061,7 @@ export default defineComponent({
       // @ts-ignore
       this.wwtControl.roll = function(_angle) {};
       this.wwtControl._tilt = function(_angle) {};
-      this.updatePanForMobile();
+      this.updatePan();
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -2488,20 +2477,6 @@ export default defineComponent({
       return `Eclipsed: ${percentEclipsed}%`;
     },
 
-    trackingSun: {
-      set(value: boolean) {
-        if(this.sunOffset === null) {
-          this.sunCenteredTracking = value;
-        } else {
-          this.sunCenteredTracking = false;
-        }
-      },
-
-      get(): boolean {
-        return this.toggleTrackSun;
-      }
-    },
-
     inEclipse(): boolean | null {
       if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null) {
         return this.wwtCurrentTime.getTime() >= this.eclipseStart && this.wwtCurrentTime.getTime() <= this.eclipseEnd;
@@ -2625,12 +2600,8 @@ export default defineComponent({
 
     },
 
-    updatePanForMobile() {
-      if (this.showNewMobileUI) {
-        this.wwtControl.move = function(_x, _y) {};
-      } else {
-        this.wwtControl.move = wwtMove;
-      }
+    updatePan() {
+      this.wwtControl.move = this.toggleTrackSun ? function(_x, _y) {} : wwtMove;
     },
 
     onScroll() {
@@ -2655,44 +2626,12 @@ export default defineComponent({
     },
 
     async trackSun(): Promise<void> {
-      this.sunOffset = null;
       return this.gotoTarget({
         place: this.sunPlace,
         instant: true,
         noZoom: true,
         trackObject: true
       });
-    },
-
-    async trackSunOffset(): Promise<void> {
-      this.sunCenteredTracking = false;
-      const place = this.getSunOffsetWorldPosition();
-      if (place !== null) {
-        return this.gotoTarget({
-          place,
-          noZoom: true,
-          instant: true,
-          trackObject: true
-        });
-      } else {
-        return Promise.resolve();
-      }
-    },
-
-    getSunOffsetWorldPosition(): Place | null {
-      if (this.sunOffset === null) {
-        return null;
-      }
-
-      const sunLocation = Planets['_planetLocations'][0];
-      const sunPoint = getScreenPosForCoordinates(this.wwtControl, sunLocation.RA, sunLocation.dec);
-      const offsetPoint = { x: sunPoint.x + this.sunOffset.x, y: sunPoint.y + this.sunOffset.y };
-      const offsetLocation = this.findRADecForScreenPoint(offsetPoint);
-      const place = new Place();
-      place.set_RA(offsetLocation.ra / 15);
-      place.set_dec(offsetLocation.dec);
-
-      return place;
     },
 
     angleInZeroToTwoPi(angle: number): number {
@@ -2921,7 +2860,6 @@ export default defineComponent({
       overlay.set_lineColor(color);
       locations.forEach(pt => overlay.addPoint(pt.ra, pt.dec));
       Annotation2.addAnnotation(overlay);
-      
     },
 
 
@@ -2933,13 +2871,6 @@ export default defineComponent({
           this.trackSun();
         }
         return;
-      } else {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        this.trackingSun = (wwtControl._trackingObject === this.sunPlace) || (this.sunOffset !== null);
-        if (this.trackingSun && this.sunOffset !== null) {
-          this.trackSunOffset();
-        }
       }
     },
 
@@ -3389,36 +3320,6 @@ export default defineComponent({
       Annotation2.clearAll();
       this.clearAnnotations();
     },
-
-    onPointerMove(event: PointerEvent) {
-      if (!this.isPointerMoving && this.pointerStartPosition !== null) {
-        const dist = Math.sqrt((event.pageX - this.pointerStartPosition.x) ** 2 + (event.pageY - this.pointerStartPosition.y) ** 2);
-        if (dist > this.pointerMoveThreshold) {
-          this.isPointerMoving = true;
-        }
-      }
-    },
-
-    onPointerDown(event: PointerEvent) {
-      this.sunOffset = null;
-      this.isPointerMoving = false;
-      this.pointerStartPosition = { x: event.pageX, y: event.pageY };
-      this.activePointer = true;
-    },
-
-    onPointerUp(_event: PointerEvent) {
-      this.pointerStartPosition = null;
-      this.isPointerMoving = false;
-
-      const sunLocation = Planets['_planetLocations'][0];
-      const sunPoint = getScreenPosForCoordinates(this.wwtControl, sunLocation.RA, sunLocation.dec);
-      this.sunOffset = {
-        x: this.wwtControl.renderContext.width / 2 - sunPoint.x,
-        y: this.wwtControl.renderContext.height / 2 - sunPoint.y
-      };
-      this.activePointer = false;
-    },
-
 
     updateForDateTime() {
       if (this.syncDateTimeWithWWTCurrentTime) {
@@ -4083,7 +3984,6 @@ export default defineComponent({
     },
 
     showNewMobileUI(narrow: boolean) {
-      this.updatePanForMobile();
       // showNewMobileUI is driven by `narrow`, so this fires whenever the
       // viewport crosses the 600px boundary. Apply the default layout for the
       // mode we just entered — the same defaults used at mount — so the book
@@ -4152,7 +4052,6 @@ export default defineComponent({
     },
 
     wwtZoomDeg(_zoom: number, _oldZoom: number) {
-      this.sunOffset = null;
       this.updateIntersection();
     },
 
@@ -4218,11 +4117,6 @@ export default defineComponent({
       this.wwtControl.renderOneFrame();
       this.getEclipsePrediction();
       this.updateFrontAnnotations();
-
-
-      if (!this.trackingSun) {
-        this.trackSunOffset();
-      }
     },
 
     playing(play: boolean) {
@@ -4383,16 +4277,10 @@ export default defineComponent({
     },
 
     toggleTrackSun(val: boolean) {
+      this.updatePan();
       if (val) {
         this.trackSun();
-        if(this.sunOffset === null) {
-          this.sunCenteredTracking = true;
-          return;
-        } else {
-          return;
-        }
       } else {
-        this.sunCenteredTracking = false;
         const currentPlace = new Place();
         currentPlace.set_RA(this.wwtRARad * R2D / 15);
         currentPlace.set_dec(this.wwtDecRad * R2D);
@@ -4402,16 +4290,6 @@ export default defineComponent({
           noZoom: true,
           trackObject: false
         });
-        return;
-      }
-    },
-
-    sunOffset(val: {x: number, y: number}) {
-      if (val === null && this.toggleTrackSun) {
-        this.sunCenteredTracking = true;
-        return;
-      } else {
-        this.sunCenteredTracking = false;
         return;
       }
     },
