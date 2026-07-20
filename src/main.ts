@@ -11,6 +11,7 @@ import DefineTerm from "./DefineTerm.vue";
 import PlaybackControl from "./PlaybackControl.vue";
 
 import EclipseTimer from "./EclipseTimer.vue";
+// import DebugEclipseTimer from "./DebugEclipseTimer.vue";
 import LocationSearch from "./LocationSearch.vue";
 import OpenMeteoForecast from "./OpenMeteoForecast.vue";
 import CDSPrivacyPolicy from "./CDSPrivacyPolicy.vue";
@@ -128,6 +129,7 @@ createApp(SolarEclipse2026, {
   .component('define-term', DefineTerm)
   .component('playback-control', PlaybackControl)
   .component('eclipse-timer', EclipseTimer)
+  // .component('debug-eclipse-timer', DebugEclipseTimer)
   .component('location-search', LocationSearch)
   .component('open-meteo-forecast', OpenMeteoForecast)
   .component('user-experience', UserExperience)
