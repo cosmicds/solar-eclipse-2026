@@ -1898,7 +1898,6 @@ export default defineComponent({
 
       activePointer: false,
       showControls: false,
-      sunCenteredTracking: true,
       showAltAzGrid: false,
       showHorizon: true,
 
@@ -2457,16 +2456,6 @@ export default defineComponent({
         percentEclipsed = "99";
       }
       return `Eclipsed: ${percentEclipsed}%`;
-    },
-
-    trackingSun: {
-      set(value: boolean) {
-        this.sunCenteredTracking = value;
-      },
-
-      get(): boolean {
-        return this.toggleTrackSun;
-      }
     },
 
     inEclipse(): boolean | null {
@@ -4281,9 +4270,7 @@ export default defineComponent({
     toggleTrackSun(val: boolean) {
       if (val) {
         this.trackSun();
-        this.sunCenteredTracking = true;
       } else {
-        this.sunCenteredTracking = false;
         const currentPlace = new Place();
         currentPlace.set_RA(this.wwtRARad * R2D / 15);
         currentPlace.set_dec(this.wwtDecRad * R2D);
