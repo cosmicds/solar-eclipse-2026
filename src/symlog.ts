@@ -89,22 +89,3 @@ export class SymmetricalLogTransform {
 
 }
 
-
-export function makeSymmetric(right: number[]): number[] {
-  const left = right.map((value) => -value).reverse();
-  return left.concat([0]).concat(right);
-}
-
-// generate sequence using step size
-export function linspace(start: number, stop: number, delta: number): number[] {
-  const out = [];
-  for (let i = start; i <= stop; i += delta) {
-    out.push(i);
-  }
-  return out;
-}
-
-export function symmLinspace(start: number, stop: number, delta: number): number[] {
-  const right = linspace(start, stop, delta);
-  return makeSymmetric(right);
-}

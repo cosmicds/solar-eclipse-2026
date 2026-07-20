@@ -75,12 +75,6 @@ export class Observer {
     
 }
   
-export type Degrees = number;
-export type Radians = number;
-export type JulianDate = number;
-export type Altitude = number;
-export type Timezone = number;
-
 export type SunBSR = 'b' | 's' | 'r' | null;
 export type BSRArray<T> = [T, SunBSR];
 type ConditionalNullBSRArray<TimeType, R=null, X=''> = TimeType extends Date ? BSRArray<R> : BSRArray<X>;

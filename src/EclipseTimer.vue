@@ -7,30 +7,6 @@
         {{ timeText }} {{ location !== '' ? 'at ' + location : '' }}
       </div>
     </div>
-<!--     
-    print out the time conditions as a table
-    <table>
-      <tr>
-        <td>Before Max:</td>
-        <td>{{ beforeMax() }}</td>
-      </tr>
-      <tr>
-        <td>After Max:</td>
-        <td>{{ afterMax() }}</td>
-      </tr>
-      <tr>
-        <td>Before End Partial:</td>
-        <td>{{ beforeEndPartial() }}</td>
-      </tr>
-      <tr>
-        <td>Before Totality:</td>
-        <td>{{ beforeTotality() }}</td>
-      </tr>
-      <tr>
-        <td>In Totality:</td>
-        <td>{{ inTotality() }}</td>
-      </tr>
-    </table> -->
 
     <div v-if="noEclipse">
       <p>No eclipse is predicted for this location.</p>
@@ -170,16 +146,7 @@ export default defineComponent({
   
   data() {
     return {
-      pred: this.prediction,
       tzPref: 'Local' as 'UTC' | 'Local',
-      // partialStart: this.prediction.partialStart[0],
-      // centralStart: this.prediction.centralStart[0],
-      // maxTime: this.prediction.maxTime[0],
-      // centralEnd: this.prediction.centralEnd[0],
-      // partialEnd: this.prediction.partialEnd[0],
-      // magnitude: this.prediction.magnitude[0],
-      // coverage: this.prediction.coverage[0],
-      // duration: this.prediction.duration,
       timeToEclipse: '',
       timeToEndPartial: '',
       timeToEndTotality: '',
@@ -238,9 +205,6 @@ export default defineComponent({
     },
     maxTime() {
       return this.circumstance(this.prediction.maxTime, 'Max Eclipse');
-    },
-    magnitude(): number {
-      return this.prediction.magnitude[0];
     },
     coverage(): number {
       return this.prediction.coverage[0];
@@ -307,14 +271,6 @@ export default defineComponent({
       if (this.type !== 'Total') return false;
       if (this.centralEnd[0] === null) return false;
       return Date.now() > this.centralEnd[0].getTime();
-    },
-    
-    updateTimeConditions() {
-      this.beforeMax();
-      this.afterMax();
-      this.beforeEndPartial();
-      this.beforeTotality();
-      this.inTotality();
     },
     
     toUtcString(date: Date | null): string {
@@ -430,7 +386,6 @@ export default defineComponent({
 
     updateTimeData() {
       if (this.showTimer) {
-        this.updateTimeConditions();
         this.updateTime();
         this.timeText = this.getTimeText();
         this.timeToShow = this.getTimeToShow();
@@ -448,7 +403,8 @@ export default defineComponent({
 <style lang="less">
 
 #eclipse-timer-container {
-  width: max-content;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.5em;
 }
 
@@ -475,6 +431,10 @@ hr.eclipse-timer-dividier {
   aspect-ratio: 1/1;
   width: 10em;
   background-size: contain;
+
+  @media (max-width: 350px) {
+    width: 6em;
+  }
 }
 
 .eclipse-icon-total {
@@ -489,14 +449,14 @@ hr.eclipse-timer-dividier {
   background-image: url('./assets/annular.png');
 }
 
-.eclipse-icon- {
-  background-image: url('./assets/none.png');
-}
-
 .eclipse-countdown {
   text-align: center;
   margin-bottom: 0.5em;
   min-width: 20em;
+
+  @media (max-width: 350px) {
+    min-width: 0;
+  }
 }
 
 .ec-timer {
@@ -539,14 +499,6 @@ table#time-container {
 
 #time-container td.time-value {
   text-align: right;
-}
-
-label {
-  display: block;
-  font-size: 1.5em;
-  margin-bottom: 0.5em;
-  margin-inline: auto;
-  
 }
 
 </style>

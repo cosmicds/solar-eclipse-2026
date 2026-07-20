@@ -1,14 +1,12 @@
 <script lang ="ts">
 import { defineComponent, PropType } from "vue";
 import { VIcon } from "vuetify/components/VIcon";
-// import { VTooltip } from "vuetify/components/VTooltip";
 
 export default defineComponent({
   name: 'CloudCover',
-  
+
   components: {
     'v-icon':VIcon,
-    // 'v-tooltip':VTooltip
   },
   
   props: {

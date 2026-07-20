@@ -1,23 +1,17 @@
-import Vue, { createApp } from "vue";
+import { createApp } from "vue";
 
 import { CreditLogos, IconButton } from "@cosmicds/vue-toolkit";
 import LocationSelector from "./LocationSelector.vue";
 import { FundingAcknowledgment, UserExperience } from "@cosmicds/vue-toolkit";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import SolarEclipse2026 from "./SolarEclipse2026.vue";
-import TransitionExpand from "./TransitionExpand.vue";
 import GifPlayPause from "./GifPlayPause.vue";
-import ImageLabel from "./ImageLabel.vue";
 import GeolocationButton from "./GeolocationButton.vue";
-import HoverTooltip from "./HoverTooltip.vue";
 import CloudCover from "./CloudCover.vue";
 import DefineTerm from "./DefineTerm.vue";
 import PlaybackControl from "./PlaybackControl.vue";
 
-import ColorBar from "./ColorBar.vue";
 import EclipseTimer from "./EclipseTimer.vue";
 import LocationSearch from "./LocationSearch.vue";
-import ArrowSVG from "./ArrowSVG.vue";
 import OpenMeteoForecast from "./OpenMeteoForecast.vue";
 import CDSPrivacyPolicy from "./CDSPrivacyPolicy.vue";
 
@@ -25,9 +19,6 @@ import "./polyfills";
 
 import VueSlider from "vue-slider-component";
 import 'vue-slider-component/theme/default.css';
-
-import Datepicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css';
 
 import Notifications from "@kyvg/vue3-notification";
 
@@ -39,9 +30,8 @@ import { WWTComponent, wwtPinia } from "@wwtelescope/engine-pinia";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
-  faBookOpen,
   faTimes,
-  faVideo,
+  faXmark,
   faGear,
   faChevronDown,
   faClock,
@@ -69,18 +59,17 @@ import {
   faAnglesLeft,
   faAnglesRight,
   faMagnifyingGlass,
-  faCircleXmark,
   faChartColumn,
   faLocationCrosshairs,
   faHouse,
   faAnglesUp,
   faAnglesDown,
+  faSliders,
 
 } from "@fortawesome/free-solid-svg-icons";
 
-library.add(faBookOpen);
 library.add(faTimes);
-library.add(faVideo);
+library.add(faXmark);
 library.add(faGear);
 library.add(faChevronDown);
 library.add(faClock);
@@ -108,67 +97,38 @@ library.add(faGaugeHigh);
 library.add(faAnglesLeft);
 library.add(faAnglesRight);
 library.add(faMagnifyingGlass);
-library.add(faCircleXmark);
 library.add(faChartColumn);
 library.add(faLocationCrosshairs);
 library.add(faHouse);
 library.add(faAnglesUp);
 library.add(faAnglesDown);
+library.add(faSliders);
 
-
-/** v-hide directive taken from https://www.ryansouthgate.com/2020/01/30/vue-js-v-hide-element-whilst-keeping-occupied-space/ */
-// Extract the function out, up here, so I'm not writing it twice
-const update = (el: HTMLElement, binding: Vue.DirectiveBinding) => el.style.visibility = (binding.value) ? "hidden" : "";
 
 createApp(SolarEclipse2026, {
   wwtNamespace: "wwt-minids-solar-eclipse-2026",
-  // wtml: { // use this just as a test for the sun
-  //   eclipse: "https://raw.githubusercontent.com/patudom/star-life-cycle/master/content/BUACStellarLifeCycles.wtml",
-  // },
 })
- 
+
   // Plugins
   .use(wwtPinia)
   .use(vuetify)
   .use(Notifications)
-
-  // Directives
-  .directive(
-    /**
-    * Hides an HTML element, keeping the space it would have used if it were visible (css: Visibility)
-    */
-    "hide", {
-      // Run on initialisation (first render) of the directive on the element
-      beforeMount(el, binding, _vnode, _prevVnode) {
-        update(el, binding);
-      },
-      // Run on subsequent updates to the value supplied to the directive
-      updated(el, binding, _vnode, _prevVnode) {
-        update(el, binding);
-      }
-    })
 
   // Components
   .component("WorldWideTelescope", WWTComponent)
   .component('font-awesome-icon', FontAwesomeIcon)
   .component('icon-button', IconButton)
   .component('location-selector', LocationSelector)
-  .component('vue-slider', VueSlider)  
-  .component('transition-expand', TransitionExpand)
+  .component('vue-slider', VueSlider)
   .component('gif-play-pause', GifPlayPause)
   .component('credit-logos', CreditLogos)
-  .component('date-picker', Datepicker)
-  .component('image-label', ImageLabel)
   .component('funding-acknowledgment', FundingAcknowledgment)
   .component('geolocation-button', GeolocationButton)
-  .component('hover-tooltip', HoverTooltip)
   .component('cloud-cover', CloudCover)
   .component('define-term', DefineTerm)
   .component('playback-control', PlaybackControl)
-  .component('color-bar', ColorBar)
   .component('eclipse-timer', EclipseTimer)
   .component('location-search', LocationSearch)
-  .component('arrow-svg', ArrowSVG)
   .component('open-meteo-forecast', OpenMeteoForecast)
   .component('user-experience', UserExperience)
   .component('cds-privacy-policy', CDSPrivacyPolicy)
