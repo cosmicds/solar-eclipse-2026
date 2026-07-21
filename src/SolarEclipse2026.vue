@@ -955,7 +955,7 @@
       :close-on-content-click="true"
       :style="cssVars"
       >
-      <div id="instruction-overlay">
+      <div class="instruction-overlay instruction-overlay-mobile">
         <div class="inst-quad top-left">
           <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
@@ -978,8 +978,65 @@
       </div>
     </v-overlay>
 
+    <v-overlay
+      v-if="!showNewMobileUI && introSlide === 2"
+      v-model="inIntro"
+      id="intro-overlay-desktop"
+      opacity="1"
+      :scrim="false"
+      :style="cssVars"
+      >
+      <div class="instruction-overlay instruction-overlay-desktop">
+        <div class="inst-quad top-left">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            Location,<br> Path, &amp; <br> Timing
+          </div>
+        </div>
+        <div class="inst-quad top-center">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            Eclipse path &amp; weather
+          </div>
+        </div>
+        <div class="inst-quad top-right">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            Settings, <br> Info &amp; <br> Sharing
+          </div>
+        </div>
+        <div class="inst-quad bottom-left">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
+            <template v-else>Control time yourself!</template>
+          </div>
+        </div>
+
+        <div class="intro-bottom-controls">
+          <v-btn
+            class="intro-back-button"
+            :color="accentColor"
+            @click="introSlide--"
+            elevation="0"
+            >
+            Back
+          </v-btn>
+
+          <v-btn
+            class="intro-next-button"
+            :color="accentColor"
+            @click="introSlide++"
+            elevation="0"
+            >
+            Get Started
+          </v-btn>
+        </div>
+      </div>
+    </v-overlay>
+
     <v-dialog
-      v-if="!showNewMobileUI"
+      v-if="!showNewMobileUI && introSlide === 1"
       v-model="inIntro"
       id="intro-dialog"
       :style="cssVars"
@@ -1005,7 +1062,7 @@
           <v-window-item :value="1">
             <div class="intro-text">
               <p class="mb-5">
-              On August 12, 2026, parts of Europe will witness 
+              On August 12, 2026, parts of Europe will witness
               a solar eclipse, where the Moon will appear to travel across the Sun, blocking out its light.
               </p>
               <p  class="mb-5">
@@ -1014,64 +1071,27 @@
               <p class="mb-5">
               See what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
               </p>
-            </div>
-          </v-window-item>
-          
-          <v-window-item :value="2">
-            <div class="intro-text mb-3">
-              <div v-if="xSmallSize" class="mb-3">
-                <p class="mb-3">
-                Access these features in  
-                </p> 
-                <span class="px-2 py-1 my-2 mr-1" style="border: 1px solid #eac402; border-radius: 1em; color:#eac402; white-space: nowrap">Path & Weather</span>
-              </div>
-              <p v-else class="mb-3">
-                In this interactive page you can:
-              </p>
-              <ul>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <v-icon icon="mdi-map-search" size="xl" class="bullet-icon"></v-icon>
-                  </template>
-                    <strong>Select any location</strong> around the world. See and share how the eclipse would look from there.
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <font-awesome-icon icon="cloud-sun" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>View historical cloud data</strong> for the week of August 12 from 2003&#8211;2023. 
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <font-awesome-icon icon="circle-info" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>Learn more</strong> about solar eclipses, and access the <strong>User Guide</strong> on how to navigate this app.
-                </v-list-item>
-              </ul>
+              <v-checkbox
+                v-model="dontShowIntro"
+                @keyup.enter="dontShowIntro = !dontShowIntro"
+                label="Don't show this introduction at launch"
+                :color="accentColor"
+                hide-details
+              />
             </div>
           </v-window-item>
         </v-window>
 
-        <div id="intro-bottom-controls">
-          <div>
-            <v-btn
-              v-if="(introSlide > 1) && (!showNewMobileUI)"
-              id="intro-back-button"
-              :color="accentColor"
-              @click="introSlide--"
-              elevation="0"
-              >
-              Back
-            </v-btn>
-          </div>
+        <div class="intro-bottom-controls">
+          <div></div>
 
           <v-btn
-            id="intro-next-button"
+            class="intro-next-button"
             :color="accentColor"
             @click="introSlide++"
             elevation="0"
             >
-            {{ introSlide < 2 ? 'Next' : 'Get Started' }}
+            Next
           </v-btn>
         </div>
       </div>
@@ -1671,6 +1691,7 @@ let queryData: QueryData = {};
 const UUID_KEY = "eclipse-2026-mini-uuid" as const;
 const OPT_OUT_KEY = "eclipse-2026-mini-optout" as const;
 const RATING_OPT_OUT_KEY = "eclipse-2026-mini-rating-optout" as const;
+const DONT_SHOW_INTRO_KEY = "eclipse-2026-mini-dontshowintro" as const;
 
 
 const RELEVANT_FEATURE_TYPES = ["postcode", "place", "region", "country"];
@@ -1783,7 +1804,9 @@ export default defineComponent({
     
     const storedRatingOptOut = window.localStorage.getItem(RATING_OPT_OUT_KEY);
     const ratingOptOut = typeof storedRatingOptOut === "string" ? storedRatingOptOut === "true" : null;
-    
+
+    const dontShowIntro = window.localStorage.getItem(DONT_SHOW_INTRO_KEY) === "true";
+
     // Captured once here so the reset button can return to this exact
     // location later, rather than independently recomputing the same
     // literal (and risking the two silently drifting apart).
@@ -1946,7 +1969,8 @@ export default defineComponent({
       tab: 0,
       infoPage: 1,
       introSlide: 1,
-      
+      dontShowIntro,
+
       viewerMode: 'Horizon' as ViewerMode,
 
       showSky: true,
@@ -4073,11 +4097,18 @@ export default defineComponent({
 
     showSplashScreen(val: boolean) {
       if (!val) {
-        this.inIntro = true; 
+        if (this.dontShowIntro && !this.showNewMobileUI) {
+          return;
+        }
+        this.inIntro = true;
         if (this.showNewMobileUI) {
           this.introSlide = 2;
         }
       }
+    },
+
+    dontShowIntro(val: boolean) {
+      window.localStorage.setItem(DONT_SHOW_INTRO_KEY, val.toString());
     },
 
     showInfoSheet(show: boolean) {
@@ -5832,35 +5863,27 @@ body {
 .bullet-icon {
   color: var(--accent-color);
   width: 1.5em;
+
+  // Vuetify sets opacity: var(--v-medium-emphasis-opacity) (0.7 in the
+  // dark theme) on any real <v-icon> used as a list-item prepend/append
+  // icon, washing out its color -- font-awesome icons aren't .v-icon
+  // components, so they're unaffected. Match specificity so this wins
+  // regardless of source order.
+  &.v-icon {
+    opacity: 1;
+  }
 }
 
-#instruction-overlay {
-  
-  --width: 80dvw;
-  // --height: 60dvh;
+// Shared chrome/grid for the arrow-callout intro overlays -- the mobile
+// variant (below) and the desktop variant (further down, near
+// #introduction-overlay-desktop) both apply this class, adding their own
+// modifier class for position/size, since those differ enough (desktop's
+// real UI clusters sit in different places than mobile's) that they can't
+// share a single set of top/left/width/height values.
+.instruction-overlay {
   position: relative;
-  // top: 7rem;
-  
-
-  --height: 50dvh;
-  top: calc(5rem + 1vh);
-  
-  @media (min-height: 500px) {
-    top: calc(5rem + 11vh);
-  }
-
-  @media (orientation: landscape) {
-    --height: 60dvh;
-    top: calc(3rem + 5vh);
-  }
-  
-  left: calc((100dvw - var(--width)) / 2);
-  
   display: grid;
-  width: var(--width);
-  height: var(--height);
   min-height: max-content;
-  padding: 1rem;
   // Equal columns now that both quadrants' text wraps to similarly-short
   // lines -- the old 1.35fr right column (sized for longer text) shifted
   // that quadrant's content further right, making the close X (centered
@@ -5868,14 +5891,13 @@ body {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 0.5fr 0.5fr;
   gap: 1em;
-  
-  border: 2px solid white;
+
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
   border-radius: var(--tight-border-radius);
-  
-  
-  
+
+
+
   div.inst-quad {
     display: flex;
     flex-direction: column;
@@ -5953,8 +5975,125 @@ body {
       transform: translateY(5px) rotateX(180deg);
     }
   }
-  
-  
+
+
+}
+
+.instruction-overlay-mobile {
+  --width: 80dvw;
+  --height: 50dvh;
+  border: 2px solid white;
+  padding: 1rem;
+  top: calc(5rem + 1vh);
+
+  @media (min-height: 500px) {
+    top: calc(5rem + 11vh);
+  }
+
+  @media (orientation: landscape) {
+    --height: 60dvh;
+    top: calc(3rem + 5vh);
+  }
+
+  left: calc((100dvw - var(--width)) / 2);
+  width: var(--width);
+  height: var(--height);
+
+  .inst-arrow .the-arrow {
+    max-width: calc(0.1 * var(--width)) !important;
+    max-height: calc(0.1 * var(--height)) !important;
+  }
+}
+
+// Points at desktop's own UI clusters instead of mobile's: the map/location
+// panel sits at the very top of the page (not a corner of the overlay's own
+// quadrant grid the way mobile's does), the share/info/controls cluster
+// sits at the top right of the WWT canvas below it, and the time slider
+// sits at the bottom -- all of that leaves a wide, mostly-empty band in the
+// middle of the screen (between the button row and the slider) to float
+// this callout in, with arrows pointing up-left/up-right/down to reach them.
+.instruction-overlay-desktop {
+  --width: 68dvw;
+  --height: 36dvh;
+  border: 1px solid var(--accent-color-2);
+  padding: 0.5rem;
+  // Center on #main-content (the WWT canvas), not the full viewport --
+  // it starts below the map/location panel (--top-content-height) and
+  // fills the rest of the viewport (--app-content-height: 100%), so its
+  // own vertical center sits lower than the viewport's own center by
+  // half of --top-content-height.
+  top: calc(50dvh + var(--top-content-height) / 2 - var(--height) / 2);
+  left: calc((100dvw - var(--width)) / 2);
+  width: var(--width);
+  height: var(--height);
+
+  // A third top column for the new top-center quadrant (pointing at the
+  // map/weather panel itself), with the bottom quadrant now spanning all
+  // three instead of just the original two, plus a third row (auto-sized
+  // to its own content) for the Back/Get Started buttons.
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 0.45fr 0.45fr auto;
+
+  .intro-bottom-controls {
+    grid-area: 3 / 1 / 4 / 4;
+    margin-top: 0;
+  }
+
+  .inst-arrow .the-arrow {
+    max-width: calc(0.07 * var(--width)) !important;
+    max-height: calc(0.07 * var(--height)) !important;
+  }
+
+  .inst-text {
+    font-size: min(1.6vw, 2.2vh);
+  }
+
+  // Same-size gap above the top row of arrows as the (now halved) card
+  // padding gives the bottom-controls row on its sides/bottom. The rotated
+  // arrow icons' own bounding boxes overflow well above their layout box
+  // (rotateZ() on a diagonal icon extends the rendered shape past its
+  // un-rotated box), so this margin has to be much bigger than the actual
+  // visible gap it produces -- calibrated against the rendered result,
+  // not the box model alone.
+  div.inst-quad.top-left, div.inst-quad.top-center, div.inst-quad.top-right {
+    margin-top: 1.75rem;
+  }
+
+  div.inst-quad.top-left {
+    grid-area: 1 / 1 / 2 / 2;
+  }
+
+  // The desktop share/info/controls cluster sits close to the same height
+  // as this box's top edge, but far off to the right (not up-and-over the
+  // way mobile's equivalent cluster is) -- mobile's ~30deg-off-vertical
+  // angle would point well short of it, so aim these two flatter, more
+  // sideways than up, to actually reach toward their real targets.
+  div.inst-quad.top-left .the-arrow {
+    transform: translateY(-5px) rotateZ(-60deg);
+  }
+
+  div.inst-quad.top-center {
+    grid-area: 1 / 2 / 2 / 3;
+    margin-bottom: auto;
+    align-items: center;
+    text-align: center;
+
+    .inst-text {
+      justify-content: center;
+    }
+  }
+
+  div.inst-quad.top-right {
+    grid-area: 1 / 3 / 2 / 4;
+  }
+
+  div.inst-quad.top-right .the-arrow {
+    transform: translateY(-5px) rotateZ(60deg);
+  }
+
+  div.inst-quad.bottom-left {
+    grid-area: 2 / 1 / 3 / 4;
+  }
 }
 
 #introduction-overlay {
@@ -5963,37 +6102,45 @@ body {
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
   height: fit-content;
-  // outline: 5px solid var(--accent-color);
-  border-radius: var(--normal-border-radius);
+  // Matches the arrow-callout overlay's own card styling, so both intro
+  // slides read as the same object rather than two different designs.
+  border: 1px solid var(--accent-color-2);
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  border-radius: var(--tight-border-radius);
 
+  // Top padding is left at its original size (unlike bottom/sides) since
+  // shrinking it too pulls the text right up against the close button in
+  // the corner.
   @media (max-width: 700px) {
     width: 95%;
-    padding: 1em;
+    padding: 1em 0.5em 0.5em;
   }
 
   @media (min-width: 701px) {
     width: 75%;
-    padding: 2em;
+    padding: 2em 1em 1em;
   }
 
   .span-accent {
     color: var(--accent-color);
   }
 
-  // rotated translucent background gradient
-  background: linear-gradient(45deg,
-                            rgb(14, 30, 40), 
-                            rgb(22, 50, 65), 
-                            rgb(30 70 90));
-
-  
   font-size: calc(1.1 * var(--default-font-size));
   line-height: var(--default-line-height);
 
   .v-list-item__prepend {
     margin-right: 0.75em;
+
+    // Vuetify reserves an extra 32px spacer after a <v-icon> specifically
+    // (not after a plain font-awesome <svg>), so an mdi bullet icon here
+    // would otherwise sit further from its text than its font-awesome
+    // siblings in the same bullet list.
+    > .v-icon ~ .v-list-item__spacer {
+      width: 0;
+    }
   }
-  
+
   .v-list-item {
     color: #eee;
   }
@@ -6005,28 +6152,30 @@ body {
   strong {
     color: white;
   }
-  
-  div#intro-bottom-controls {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
+}
 
-    gap: 1em;
-    margin-top:0.5em;
+// Shared by both intro cards' Back/Next/Get Started row -- the text
+// dialog's own and the arrow-callout overlay's.
+.intro-bottom-controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
 
-    .v-btn.v-btn--density-default {
-        max-height: calc(1.6 * var(--default-line-height));
-      }  
+  gap: 1em;
+  margin-top:0.5em;
 
-    .v-btn--size-default {
-      font-size: calc(0.9 * var(--default-font-size));
-    }    
-  
-    #intro-next-button, #intro-back-button {
-      background-color: rgba(18, 18, 18,.5);
+  .v-btn.v-btn--density-default {
+      max-height: calc(1.6 * var(--default-line-height));
     }
+
+  .v-btn--size-default {
+    font-size: calc(0.9 * var(--default-font-size));
+  }
+
+  .intro-next-button, .intro-back-button {
+    background-color: rgba(18, 18, 18,.5);
   }
 }
 
