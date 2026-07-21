@@ -486,7 +486,7 @@
                   </v-chip>
                 </v-col>
                 <v-col cols="8" class="pt-1">
-                  <strong>{{ touchscreen ? "press + drag" : "click + drag" }}</strong>  {{ touchscreen ? "" : "or" }}  <strong>{{ touchscreen ? "" : "W-A-S-D" }}</strong> {{ touchscreen ? "" : "keys" }}<br>
+                  <strong>{{ touchscreen ? "press + drag" : "click + drag" }}</strong>  {{ touchscreen ? "" : "or" }}  <strong>{{ touchscreen ? "" : "W-A-S-D" }}</strong> {{ touchscreen ? "" : "keys" }} <br>(Disabled if tracking Sun)<br>
                 </v-col>
               </v-row>
               <v-row align="center">
@@ -508,81 +508,87 @@
                       style="min-height: 120px;"
                   >                   
                     <h4 class="user-guide-header">Time Controls:</h4>
-                    <p  class="mb-3">(Bottom-left of the screen)</p>
+                    <p  class="mb-3">(Bottom of the screen)</p>
                     <p>
                       By default, time is moving forward at 500x the real speed. Time slows down to 10x the real speed as the eclipse approaches totality.
                     </p>
                     <ul class="text-list">
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
-                              class="bullet-icon"
-                              icon="angles-left"
-                              size="lg" 
-                            ></font-awesome-icon>
-                        to reverse time, or to increase reverse speed by 10x if time was already reversed. 
-                      </li>
-                      <li>
-                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                           class="bullet-icon"
                           icon="play"
-                          size="lg" 
+                          size="lg"
                         ></font-awesome-icon>/
                         <font-awesome-icon
                           class="bullet-icon"
                           icon="pause"
-                          size="lg" 
+                          size="lg"
                         ></font-awesome-icon>
-                        to play or pause time. 
-                      </li>
-                      <li>
-                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
-                          class="bullet-icon"
-                          icon="angles-right"
-                          size="lg" 
-                        ></font-awesome-icon>
-                        to increase speed by 10x, or to move time forward if time was reversed.                        
+                        to play or pause time.
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
-                              icon="rotate"
-                              size="lg" 
+                              icon="angles-down"
+                              size="lg"
                             ></font-awesome-icon>
-                        to reset starting time and speed. 
+                        to decrease speed by 5x.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
+                          class="bullet-icon"
+                          icon="angles-up"
+                          size="lg"
+                        ></font-awesome-icon>
+                        to increase speed by 5x.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }} <v-icon
+                          class="bullet-icon"
+                          icon="mdi-step-backward-2"
+                          size="medium">
+                        </v-icon>/
+                        <v-icon
+                          class="bullet-icon"
+                          icon="mdi-step-forward-2"
+                          size="medium">
+                        </v-icon>
+                        to play time backward or forward.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
+                              class="bullet-icon"
+                              icon="house"
+                              size="lg"
+                            ></font-awesome-icon>
+                        to reset starting time, speed, and location.
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
                               icon="gauge-high"
-                              size="lg" 
+                              size="lg"
                             ></font-awesome-icon>
-                        to open more speed controls. 
+                        to open more speed controls.
                       </li>
                         <ul>
                           <li class="ml-5">
-                            {{ touchscreen ? "Tap" : "Click" }} 
-                            <v-icon
-                              class="bullet-icon"
-                              icon="mdi-step-forward-2"
-                              size="medium">
-                            </v-icon>
-                            or
-                            <v-icon
-                              class="bullet-icon"
-                              icon="mdi-step-backward-2"
-                              size="medium">
-                            </v-icon>
-                            to move time forward and backward.
+                            Use the slider to fine-tune desired speed.
                           </li>
                           <li class="ml-5">
-                            Use the slider to fine-tune desired speed.
+                            {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
+                              class="bullet-icon"
+                              icon="times"
+                              size="lg"
+                            ></font-awesome-icon>
+                            to close speed controls.
                           </li>
                         </ul>
                       <li>
                         Drag <v-icon
                           class="bullet-icon"
                           icon="mdi-circle"
-                          size="medium" 
+                          size="medium"
                         ></v-icon> along the main slider to move to any time.
                       </li>
                     </ul>
@@ -5101,6 +5107,15 @@ body {
   #user-guide {
     font-size: var(--default-font-size);
     line-height: calc(1.1 * var(--default-line-height));
+
+    // On narrow screens each bullet's text wraps across multiple lines,
+    // and the default line-height above reads as cramped once wrapped
+    // lines from adjacent bullets sit this close together.
+    @media (max-width: 600px) {
+      .text-list {
+        line-height: calc(1.5 * var(--default-line-height));
+      }
+    }
 
     .v-chip {
       color: unset;
