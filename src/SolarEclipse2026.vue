@@ -955,21 +955,21 @@
       :close-on-content-click="true"
       :style="cssVars"
       >
-      <div class="instruction-overlay instruction-overlay-mobile">
+      <div class="instruction-overlay instruction-overlay-mobile elevation-10">
         <div class="inst-quad top-left">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16,70)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Location,<br> Path, &amp; <br> Timing
+            Location,<br> Path, + <br> Timing
           </div>
         </div>
         <div class="inst-quad top-right">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16,70)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Settings, <br> Info &amp; <br> Sharing
+            Settings, <br> Info + <br> Sharing
           </div>
         </div>
         <div class="inst-quad bottom-left">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16,70)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
             <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
             <template v-else>Control time yourself!</template>
@@ -986,33 +986,25 @@
       :scrim="false"
       :style="cssVars"
       >
-      <div class="instruction-overlay instruction-overlay-desktop">
+      <div class="instruction-overlay instruction-overlay-desktop elevation-10">
         <div class="inst-quad top-left">
-          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Location,<br> Path, &amp; <br> Timing
+            Location<br>+ Timing
           </div>
         </div>
         <div class="inst-quad top-center">
-          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Eclipse path &amp; weather
+            Eclipse path <br>+ weather
           </div>
         </div>
         <div class="inst-quad top-right">
-          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Settings, <br> Info &amp; <br> Sharing
+            Settings, <br> Info +<br> Sharing
           </div>
         </div>
-        <div class="inst-quad bottom-left">
-          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07)">mdi-arrow-up-bold</v-icon></div>
-          <div class="inst-text">
-            <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
-            <template v-else>Control time yourself!</template>
-          </div>
-        </div>
-
         <div class="intro-bottom-controls">
           <v-btn
             class="intro-back-button"
@@ -1023,13 +1015,21 @@
             Back
           </v-btn>
 
+          <div class="inst-quad bottom-left">
+            <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
+            <div class="inst-text">
+              <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
+              <template v-else>Control time yourself!</template>
+            </div>
+          </div>
+
           <v-btn
             class="intro-next-button"
             :color="accentColor"
             @click="introSlide++"
             elevation="0"
             >
-            Get Started
+            Let's go!
           </v-btn>
         </div>
       </div>
@@ -1071,19 +1071,21 @@
               <p class="mb-5">
               See what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
               </p>
-              <v-checkbox
-                v-model="dontShowIntro"
-                @keyup.enter="dontShowIntro = !dontShowIntro"
-                label="Don't show this introduction at launch"
-                :color="accentColor"
-                hide-details
-              />
             </div>
           </v-window-item>
         </v-window>
 
         <div class="intro-bottom-controls">
-          <div></div>
+          <div>
+            <v-checkbox
+              v-model="dontShowIntro"
+              @keyup.enter="dontShowIntro = !dontShowIntro"
+              label="Don't show this introduction at launch"
+              :color="accentColor"
+              hide-details
+            />
+          </div>
+
 
           <v-btn
             class="intro-next-button"
@@ -1428,7 +1430,7 @@
                 </div>
             </div>
             <div id="speed-text">
-              Speed: {{ niceRound(playbackRate) }}x real time<span v-if="!playing"> (paused)</span><span v-else-if="forceRate"> (slowed for totality)</span>
+              {{ niceRound(playbackRate) }}x Real Time<span v-if="!playing"> (paused)</span><span v-else-if="forceRate"> (slowed for totality)</span>
             </div>
           </div>
           <div id="slider">
@@ -5915,14 +5917,14 @@ body {
   }
   
   .inst-text {
-    font-size: min(3.5vw, 3vh);
+    font-size: clamp(0.8rem, min(3.5vw, 3vh), 1.1rem);
     color: white;
     font-weight: bold;
-    
+
     @media (orientation: landscape) {
-      font-size: min(3vw, 4vh);
+      font-size: clamp(0.8rem, min(3vw, 4vh), 1.1rem);
     }
-    
+
   }
   
   
@@ -5982,7 +5984,7 @@ body {
 .instruction-overlay-mobile {
   --width: 80dvw;
   --height: 50dvh;
-  border: 2px solid white;
+  border: 1px solid var(--accent-color-2);
   padding: 1rem;
   top: calc(5rem + 1vh);
 
@@ -6003,49 +6005,63 @@ body {
     max-width: calc(0.1 * var(--width)) !important;
     max-height: calc(0.1 * var(--height)) !important;
   }
+
+  div.inst-quad.top-left, div.inst-quad.top-right {
+    margin-top: 1rem;
+  }
+
+  div.inst-quad.bottom-left {
+    margin-bottom: 1rem;
+  }
 }
 
-// Points at desktop's own UI clusters instead of mobile's: the map/location
-// panel sits at the very top of the page (not a corner of the overlay's own
-// quadrant grid the way mobile's does), the share/info/controls cluster
-// sits at the top right of the WWT canvas below it, and the time slider
-// sits at the bottom -- all of that leaves a wide, mostly-empty band in the
-// middle of the screen (between the button row and the slider) to float
-// this callout in, with arrows pointing up-left/up-right/down to reach them.
 .instruction-overlay-desktop {
   --width: 68dvw;
   --height: 36dvh;
   border: 1px solid var(--accent-color-2);
   padding: 0.5rem;
-  // Center on #main-content (the WWT canvas), not the full viewport --
-  // it starts below the map/location panel (--top-content-height) and
-  // fills the rest of the viewport (--app-content-height: 100%), so its
-  // own vertical center sits lower than the viewport's own center by
-  // half of --top-content-height.
+  padding-inline: 1rem;
   top: calc(50dvh + var(--top-content-height) / 2 - var(--height) / 2);
   left: calc((100dvw - var(--width)) / 2);
   width: var(--width);
   height: var(--height);
-
-  // A third top column for the new top-center quadrant (pointing at the
-  // map/weather panel itself), with the bottom quadrant now spanning all
-  // three instead of just the original two, plus a third row (auto-sized
-  // to its own content) for the Back/Get Started buttons.
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 0.45fr 0.45fr auto;
+  grid-template-rows: 1fr auto;
 
   .intro-bottom-controls {
-    grid-area: 3 / 1 / 4 / 4;
+    grid-area: 2 / 1 / 3 / 4;
     margin-top: 0;
+    margin-bottom: 0.5em;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: end;
+
+    .intro-back-button {
+      justify-self: start;
+    }
+
+    .intro-next-button {
+      justify-self: end;
+    }
+
+    .inst-quad.bottom-left {
+      grid-area: auto / 2 / auto / 3;
+      justify-self: center;
+      margin-top: 0;
+      margin-bottom: 1.6rem;
+    }
   }
 
+  // Both of these were unbounded vw/vh-based sizes -- fine on typical
+  // laptop screens, but with no upper bound they just keep growing on
+  // very wide/tall monitors.
   .inst-arrow .the-arrow {
-    max-width: calc(0.07 * var(--width)) !important;
-    max-height: calc(0.07 * var(--height)) !important;
+    max-width: clamp(20px, calc(0.07 * var(--width)), 48px) !important;
+    max-height: clamp(20px, calc(0.07 * var(--height)), 48px) !important;
   }
 
   .inst-text {
-    font-size: min(1.6vw, 2.2vh);
+    font-size: clamp(0.9rem, min(1.6vw, 2.2vh), 1.3rem);
   }
 
   // Same-size gap above the top row of arrows as the (now halved) card
@@ -6089,10 +6105,6 @@ body {
 
   div.inst-quad.top-right .the-arrow {
     transform: translateY(-5px) rotateZ(60deg);
-  }
-
-  div.inst-quad.bottom-left {
-    grid-area: 2 / 1 / 3 / 4;
   }
 }
 
@@ -6147,6 +6159,7 @@ body {
   
   .intro-text {
     color: white;
+    padding-inline: 1rem;
   }
   
   strong {
