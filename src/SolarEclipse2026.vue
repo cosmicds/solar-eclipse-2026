@@ -336,7 +336,7 @@
           id="tabs"
           dense
         >
-          <v-tab class="info-tabs" tabindex="0"><h3>Information</h3></v-tab>
+          <v-tab class="info-tabs" tabindex="0"><h3>Eclipse Science</h3></v-tab>
           <v-tab class="info-tabs" tabindex="0"><h3>User Guide</h3></v-tab>
         </v-tabs>
         <div
@@ -435,8 +435,16 @@
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container  id="user-guide">
+              <v-checkbox
+                v-model="showIntroAtLaunch"
+                @keyup.enter="showIntroAtLaunch = !showIntroAtLaunch"
+                label="Show quickstart introduction when app opens"
+                :color="accentColor"
+                hide-details
+                class="mb-3"
+              />
               <p style="font-size: calc(1.1 * var(--default-font-size))" class="mb-5">
-                This Cosmic Data Story allows you to display the August 12, 2026 Total Solar Eclipse from any location. 
+                This Cosmic Data Story allows you to display the August 12, 2026 Total Solar Eclipse from any location.
               </p>
               <v-row align="center">
               <v-col cols="4">
@@ -556,35 +564,50 @@
                     </ul>
 
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
-                    
-                    <h4 class="user-guide-header">Viewing Mode:</h4>
-                    <p  class="mb-3">(Upper-right of the screen)</p>
+
+                    <h4 class="user-guide-header">Map Options:</h4>
+                    <p v-if="!showNewMobileUI" class="mb-3">(Top of the screen)</p>
+                    <p v-else class="mb-3">
+                      (Tap <v-icon
+                        class="bullet-icon"
+                        icon="mdi-map-search"
+                        size="large">
+                      </v-icon> to open)
+                    </p>
                     <ul class="text-list">
                       <li class="mb-2">
-                        The view of the eclipse is shown for the location selected.
-                      </li>
-                      <li class="mb-2">
-                        Eclipse status: The type of eclipse — "No Eclipse", "Partial Eclipse", or "Total Eclipse (+length of totality)" — visible from your selected location on August 12, 2026.
+                        Type a location into the search box to find a specific location.
                       </li>
                       <li>
-                        Eclipsed: The fraction of the Sun that is eclipsed in the current view (for the selected time and location).
+                        {{ touchscreen ? "Tap" : "Click" }}
+                        <font-awesome-icon
+                          class="bullet-icon"
+                          icon="location-crosshairs"
+                          size="lg"
+                        ></font-awesome-icon> to view from <strong>My Location</strong>. (If icon is grayed out, consult your device's user guide to enable location services. This feature works most reliably on Chrome and might not be available on every browser+operating system combination.)
                       </li>
                     </ul>
 
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
-                    
-                    <h4 class="user-guide-header">Display Options:</h4>
-                    <p  class="mb-3">(Bottom-right of the screen)</p>
+
+                    <h4 class="user-guide-header">Location and Eclipse Status:</h4>
+                    <p  class="mb-3">(Upper-left of the screen)</p>
                     <ul class="text-list">
-                      <li class="mb-2" v-if="showNewMobileUI">
-                        {{ touchscreen ? "Tap" : "Click" }}
-                        <font-awesome-icon
-                          class="bullet-icon"
-                          icon="circle-info"
-                          size="lg"
-                        ></font-awesome-icon> to open <span class="user-guide-emphasis-white">Information &amp; User Guide</span> on why eclipses happen and more.
+                      <li class="mb-2">
+                        Selected Location: the location currently displayed in the view.
                       </li>
                       <li class="mb-2">
+                        Eclipse Status: The type of eclipse (total, partial, or no eclipse) visible from your selected location on August 12, 2026.
+                        <ul>
+                          <li class="ml-5">
+                            If Total: (amount of time in totality)
+                          </li>
+                          <li class="ml-5">
+                            If Partial: (Maximum % eclipsed).
+                          </li>
+                        </ul>
+                      </li>
+                      <li>
                         {{ touchscreen ? "Tap" : "Click" }}
                         <v-icon
                           class="bullet-icon"
@@ -592,64 +615,48 @@
                           size="large">
                         </v-icon> to display detailed <span class="user-guide-emphasis-white">eclipse timing</span> predictions for your selected location.
                       </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Track Sun:</span> Camera follows the Sun. Turn off to keep the camera fixed and show motion of Sun (and Moon) against the sky.
-                      </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
-                      </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Horizon/Daytime Sky:</span> Display a virtual "ground" that delineates where the Sun rises and sets. Show a blue sky when the Sun is above the horizon.                     
-                      </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
-                      </li>
                     </ul>
-                          
+
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
 
-                    <h4 class="user-guide-header">Location <span v-if="showNewMobileUI">and other</span> Options:</h4>
-                    <p  class="mb-3">(Top-left of the screen)</p>
+                    <h4 class="user-guide-header">Display Options:</h4>
+                    <p  class="mb-3">(Upper-right of the screen)</p>
                     <ul class="text-list">
-                      <li>
+                      <li class="mb-2">
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
-                              icon="magnifying-glass"
-                              size="lg" 
-                            ></font-awesome-icon> to search for a specific location name.
+                              icon="sliders"
+                              size="lg"
+                            ></font-awesome-icon> to open controls.
+                        <ul>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Track Sun:</span> Camera follows the Sun. Turn off to keep the camera fixed and show motion of Sun (and Moon) against the sky.
+                          </li>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Horizon / Sky:</span> Display a virtual "ground" that delineates where the Sun rises and sets. Show a blue sky when the Sun is above the horizon.
+                          </li>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
+                          </li>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.
+                          </li>
+                        </ul>
                       </li>
-                      <li>
+                      <li class="mb-2">
                         {{ touchscreen ? "Tap" : "Click" }}
                         <font-awesome-icon
                           class="bullet-icon"
-                          icon="location-crosshairs"
-                          size="lg" 
-                        ></font-awesome-icon> to view from <strong>My Location</strong>. (If icon is grayed out, consult your device's user guide to enable location services. This feature works most reliably on Chrome and might not be available on every browser+operating system combination.)                    
+                          icon="circle-info"
+                          size="lg"
+                        ></font-awesome-icon> to open this guide.
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
                               icon="share-nodes"
-                              size="lg" 
+                              size="lg"
                             ></font-awesome-icon> to copy <strong>share-url</strong> for a specific location.
-                      </li>
-                    </ul>
-                    <p v-if="showNewMobileUI" class="mt-3 mb-1">
-                      Tap <font-awesome-icon
-                          class="bullet-icon"
-                          icon="gear"
-                          size="lg" 
-                        ></font-awesome-icon> to access more options:
-                    </p>     
-                    <ul>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
-                      </li>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Horizon/Daytime Sky:</span> Display a virtual "ground" that delineates where the Sun rises and sets. Show a blue sky when the Sun is above the horizon.                     
-                      </li>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
                     </ul>
 
@@ -676,7 +683,6 @@
                 John Lewis<br>
                 Jon Carifio<br>
                 Pat Udomprasert<br>
-                Jack Hayes<br>
                 Alyssa Goodman<br>
                 Harry Houghton<br>
                 Evaluator: Sue Sunbury<br>
@@ -2155,6 +2161,18 @@ export default defineComponent({
   },
 
   computed: {
+
+    // The User Guide's checkbox reads more naturally phrased as "show",
+    // but the underlying stored preference (and the intro dialog's own
+    // checkbox) is phrased as "don't show" -- this just flips the sense.
+    showIntroAtLaunch: {
+      get(): boolean {
+        return !this.dontShowIntro;
+      },
+      set(value: boolean) {
+        this.dontShowIntro = !value;
+      }
+    },
 
     eclipsePredictionText(): string {
       if (!this.eclipsePrediction) {
@@ -5051,6 +5069,13 @@ body {
       contain: none !important;
     }
 
+    // Tabs otherwise sit flush against each other -- give them a little
+    // breathing room so the two labels aren't crowded together on narrow
+    // screens.
+    .v-slide-group__content {
+      gap: 0.5em;
+    }
+
     // Each v-tab otherwise renders at Vuetify's own default min-width
     // regardless of how narrow #tabs itself is, which is what actually
     // overflowed past the card and under the close button -- shrink the
@@ -5106,6 +5131,14 @@ body {
     @media (max-width: 600px) {
       .text-list {
         line-height: calc(1.5 * var(--default-line-height));
+      }
+    }
+
+    // Desktop bullets rarely wrap, but sat a little too close together
+    // even so -- a smaller bump than the wrapped-line mobile case above.
+    @media (min-width: 601px) {
+      .text-list {
+        line-height: calc(1.25 * var(--default-line-height));
       }
     }
 
