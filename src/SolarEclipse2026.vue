@@ -2530,8 +2530,15 @@ export default defineComponent({
     nearTotality(): boolean {
       let nearEclipseMax = false;
       if (this.eclipsePrediction) {
-        if (this.eclipsePrediction.maxTime[0]) {
-          nearEclipseMax = Math.abs(this.eclipsePrediction.maxTime[0].getTime() - this.wwtCurrentTime.getTime()) < 120_000;
+        const { centralStart, centralEnd, maxTime } = this.eclipsePrediction;
+        const start = centralStart[0];
+        const end = centralEnd[0];
+        const now = this.wwtCurrentTime.getTime();
+        if (start instanceof Date && end instanceof Date) {
+          nearEclipseMax = (now >= start.getTime() - 30_000) && (now <= end.getTime() + 30_000);
+        } else if (maxTime[0]) {
+          // Fallback for eclipse types without a central start/end (e.g. partial).
+          nearEclipseMax = Math.abs(maxTime[0].getTime() - now) < 120_000;
         }
       }
 
