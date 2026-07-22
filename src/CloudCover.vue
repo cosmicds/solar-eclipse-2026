@@ -55,7 +55,7 @@ export default defineComponent({
 
 <template>
   <div class="cloud-cover-container my-2 py-1">
-    <div> 
+    <div class="cloud-cover-icon">
       <v-icon size="35">{{ cloudIcon }}</v-icon>
     </div>
     
@@ -107,6 +107,45 @@ export default defineComponent({
   width: 4.5em;
   flex-shrink: 0;
   text-align: center;
+}
+
+/* Only named as a size container on desktop (min-width: 601px matches the
+   app's own narrow/mobile breakpoint) -- on mobile this box is always full
+   width and doesn't need the narrow-box handling below, and since the
+   @container rule can't match without a named container ancestor, leaving
+   container-name unset there is what keeps this desktop-only. */
+@media (min-width: 601px) {
+  .cloud-cover-container {
+    container-type: inline-size;
+    container-name: cloud-cover;
+  }
+}
+
+/* The icon plus the label's fixed-width columns have a combined minimum
+   width wider than this box can get on desktop once its resize handle is
+   dragged narrow -- text and the % value then spilled out past the box's
+   own outline instead of shrinking. Below that width, drop the icon and
+   let the label wrap instead. */
+@container cloud-cover (max-width: 300px) {
+  .cloud-cover-icon {
+    display: none;
+  }
+
+  .cloud-cover-label {
+    flex-wrap: wrap;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .cloud-cover-label-text,
+  .cloud-cover-label-value {
+    width: auto;
+    flex-shrink: 1;
+    /* Flex items default to min-width: auto, which floors their size at
+       their unwrapped content width and defeats flex-shrink/wrapping --
+       without this override the text/value still overflow the container. */
+    min-width: 0;
+  }
 }
 
 </style>

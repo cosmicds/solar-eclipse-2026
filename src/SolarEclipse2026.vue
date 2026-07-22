@@ -36,11 +36,24 @@
     :class="{ 'no-height-transition': isResizingTopContainer }"
   >
     <div id="non-map-container" :style="nonMapContainerStyle">
+        <!-- On mobile, the box is closed via a small overlaid X in the
+             upper-right corner instead -- there's no room for both a
+             reserved-space close control and the title next to it. -->
+        <div
+          v-if="narrow"
+          class="dialog-close-button"
+          @click="() => { showGuidedContent = false; onResize(); }"
+          @keyup.enter="() => { showGuidedContent = false; onResize(); }"
+          tabindex="0"
+        >
+          <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
+        </div>
         <div id="title-row" class="non-map-row">
 
             <!-- In-flow (not overlaid) close control, so it always has its
                  own reserved space and never overlaps the title text. -->
             <icon-button
+              v-if="!narrow"
               v-model="showGuidedContent"
               id="hide-guided-content"
               fa-icon="chevron-up"
@@ -57,10 +70,10 @@
 
             <div id="title">
               <span v-if="learnerPath=='Location'"
-                >Choose Any Location
+                >Pick your spot!
               </span>
               <span v-if="learnerPath=='Clouds'"
-                >View Historical Cloud Data
+                >Historical Weather
               </span>
               <span v-if="!showNewMobileUI && learnerPath=='CloudDetail'"
                 >Explore Detailed Cloud Data
@@ -73,74 +86,23 @@
             <!-- Choose Path -->
             <div class="instructions-text" v-if="learnerPath=='Location'">
 
-              <span class="description">                
-                <div v-if="infoPage==1">
-                  <p v-if="queryData.latitudeDeg == undefined || queryData.longitudeDeg == undefined">
-                    "Watch" the eclipse from the location marked by the red dot on the map, or <strong>drag</strong> the yellow dot along the bottom slider to change time.
-                  </p>
-                  <p v-if="queryData.latitudeDeg !== undefined && queryData.longitudeDeg !== undefined">
-                    "Watch" the eclipse from the location shared in your link, or <strong>drag</strong> the yellow dot along the bottom slider to change time.
-                  </p>
-                  <p>
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong> the map to select any <span v-if="queryData.latitudeDeg !== undefined && queryData.longitudeDeg !== undefined">other</span> location and view the eclipse from there, or
-                  </p>
-                  <p v-if="narrow">
-                    <font-awesome-icon icon="magnifying-glass" class="bullet-icon"
-                    size="lg"/> Search for a location
-                  </p>
-                  <p v-if="narrow">
-                    <font-awesome-icon icon="location-crosshairs" class="bullet-icon"
-                    size="lg"/> Use my location (if enabled)
-                  </p>
-                  <p v-if="narrow">
-                    <v-icon icon="mdi-sun-clock" size="small" class="bullet-icon"></v-icon>
-                    See detailed eclipse times
-                  </p>
-                  <p v-else>
-                    <strong>Enter a location</strong> in the search box below.
-                  </p>
-                </div>
-
-                <div v-if="infoPage==2 && !narrow">
-                  <p>
-                    <strong><span class="highlighted bg-red">Red line</span></strong> + <span class="highlighted bg-grey text-black">Grey  band</span>: path of total eclipse on map
-                  </p>
-                  <p class="mt-2">
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong><v-icon icon="mdi-sun-clock" size="large" class="bullet-icon"></v-icon> to see detailed eclipse times
-                  </p>
-                  <p v-if="getMyLocation">
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong>
-                    <font-awesome-icon icon="location-crosshairs" class="bullet-icon"/>
-                    to view eclipse from <strong>My Location</strong> (Location services must be enabled on device)
-                  </p>
-                  <p>
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong> <font-awesome-icon icon="share-nodes" class="bullet-icon"/> to copy url to share a location
-                  </p>
-                </div>
+              <span class="description">
+                <p v-if="narrow">
+                  Close this view to "watch" the eclipse from the location marked by the red dot on the map.
+                </p>
+                <p v-else>
+                  "Watch" the eclipse from the location marked by the red dot on the map.
+                </p>
+                <p>
+                  <strong>{{ touchscreen ? "Tap" : "Click" }}</strong> the map to select any location and view the eclipse from there, or
+                </p>
+                <p v-if="narrow">
+                  <strong>Enter a location</strong> in the search box below.
+                </p>
+                <p v-else>
+                  <strong>Enter a location</strong> in the search box to the right.
+                </p>
               </span>
-            </div>
-            <div class="d-flex justify-end" id="info-text-button" v-if="learnerPath=='Location' && !narrow">
-              <v-btn
-                class="mr-2 mb-2"
-                v-if="infoPage==1"
-                density="compact"
-                hide-details
-                :color="accentColor"
-                @click="infoPage++"
-                elevation="0"
-                >
-                More
-              </v-btn>
-              <v-btn
-                v-if="infoPage==2"
-                class="mr-2 mb-2"
-                density="compact"
-                :color="accentColor"
-                @click="infoPage--"
-                elevation="0"
-                >
-                Back
-              </v-btn>
             </div>
 
             <!-- Clouds Path -->
@@ -716,9 +678,7 @@
                 Pat Udomprasert<br>
                 Jack Hayes<br>
                 Alyssa Goodman<br>
-                Mary Dussault<br>
                 Harry Houghton<br>
-                Anna Nolin<br>
                 Evaluator: Sue Sunbury<br>
                 
                 <h4><a href="https://www.worldwidetelescope.org/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a> Team:</h4>
@@ -1066,7 +1026,7 @@
               a solar eclipse, where the Moon will appear to travel across the Sun, blocking out its light.
               </p>
               <p  class="mb-5">
-              A lucky segment of Iceland and Spain will witness an awe-inspiring <b>total eclipse</b>. Other parts of Europe will still see a <em>partial</em> eclipse, where the Moon blocks out some, but not all of the Sun's light.
+              A lucky stretch of Spain, Iceland, and Greenland will witness an awe-inspiring <b>total eclipse</b>. Other parts of Europe will still see a <em>partial</em> eclipse, where the Moon blocks out some, but not all of the Sun's light.
               </p>
               <p class="mb-5">
               See what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
@@ -1969,7 +1929,6 @@ export default defineComponent({
       showRatingPrivacyPolicy: false,
 
       tab: 0,
-      infoPage: 1,
       introSlide: 1,
       dontShowIntro,
 
@@ -5380,8 +5339,15 @@ body {
 }
 
 #guided-content-container {
-  --top-content-max-height: max(30vmin, 35vh);
-  --top-content-min-height: fit-content;
+  // Fixed (min == max, rather than fit-content) so the box is the same
+  // height on both the "Pick your spot" and "Historical Weather" tabs
+  // instead of visibly resizing when switching between them. The 340px
+  // floor is tall enough for the weather tab's text + cloud-cover readout
+  // to fit without an internal scrollbar, and for the map (fixed zoom,
+  // centered between Iceland and the path in Spain) to show both without
+  // cropping either one.
+  --top-content-max-height: max(340px, 35vh);
+  --top-content-min-height: var(--top-content-max-height);
   z-index: 400;
 
   @media (max-width: 600px) {
@@ -5424,12 +5390,6 @@ body {
     gap: 0.25rem;
   }
   
-  
-  span.highlighted {
-    font-weight: bold;
-    padding-inline: 0.5em;
-    border-radius: 0.25em;;
-  }
   
   #map-column {
     flex-basis: 100%;
@@ -5615,15 +5575,6 @@ body {
         }
 
       }
-
-      #info-text-button {
-          margin-right: 0.1rem;
-          margin-block: 0.1rem;
-
-          .v-btn--size-default{
-          font-size: var(--default-font-size) !important;
-        }
-      }
     }
   }
 
@@ -5651,7 +5602,15 @@ body {
         &.active {
           border: 2px solid var(--sky-color);
 
-
+          // .icon-wrapper:focus (global rule, below) forces border-color
+          // back to --color with !important to suppress vue-toolkit's own
+          // built-in focus-color flash -- that also clobbers this active
+          // border the instant a button is clicked/focused, since
+          // !important wins regardless of specificity. Restate it here,
+          // also !important, so the active button stays blue on focus.
+          &:focus {
+            border-color: var(--sky-color) !important;
+          }
         }
       }
     }
