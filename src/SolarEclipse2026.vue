@@ -5233,13 +5233,13 @@ body {
     }
 
     #show-guided-content-button {
-      width: fit-content;
-      height: fit-content;
-      padding: 6px 12px;
-      border-radius: var(--normal-border-radius);
+      width: fit-content !important;
+      height: fit-content !important;
+      padding: 6px 12px !important;
+      border-radius: var(--normal-border-radius) !important;
 
       @media (max-width: 600px) {
-        padding-left: 6px;
+        padding-left: 6px !important;
       }
     }
   }
@@ -5439,8 +5439,8 @@ body {
 
     #hide-guided-content-button {
       flex: 0 0 auto;
-      border: none;
-      background: transparent;
+      border: none !important;
+      background: transparent !important;
     }
 
     .title-row-close-button {
@@ -5504,19 +5504,19 @@ body {
       gap: 0.5em;
 
       .icon-wrapper {
-        background-color: rgba(209, 209, 209, .2);
-        border: none;
-        border-radius: 5px;
-        padding-block: 4px;
+        background-color: rgba(209, 209, 209, .2) !important;
+        border: none !important;
+        border-radius: 5px !important;
+        padding-block: 4px !important;
         // be as large as you can but shrink if needed
-        width: 100%;
-        height: auto;
+        width: 100% !important;
+        height: auto !important;
         min-width: 0;
         flex-shrink: 1;
 
 
         &.active {
-          border: 2px solid var(--sky-color);
+          border: 2px solid var(--sky-color) !important;
 
           &:focus {
             border-color: var(--sky-color) !important;
@@ -6130,12 +6130,12 @@ body {
   }
   
   .icon-wrapper {
-    width: auto;
-    height: auto;
+    width: auto !important;
+    height: auto !important;
     margin: 0;
-    padding: 0.15em;
-    border: none;
-    border-radius: 4px;
+    padding: 0.15em !important;
+    border: none !important;
+    border-radius: 4px !important;
     min-width: 0;
   }
 }
