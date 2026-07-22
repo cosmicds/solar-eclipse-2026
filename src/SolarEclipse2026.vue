@@ -41,6 +41,7 @@
             <!-- In-flow (not overlaid) close control, so it always has its
                  own reserved space and never overlaps the title text. -->
             <icon-button
+              v-if="!narrow"
               v-model="showGuidedContent"
               id="hide-guided-content"
               fa-icon="chevron-up"
@@ -57,14 +58,29 @@
 
             <div id="title">
               <span v-if="learnerPath=='Location'"
-                >Choose Any Location
+                >Who Sees Totality?
               </span>
               <span v-if="learnerPath=='Clouds'"
-                >View Historical Cloud Data
+                >Historical Cloud Data
               </span>
               <span v-if="!showNewMobileUI && learnerPath=='CloudDetail'"
                 >Explore Detailed Cloud Data
               </span>
+            </div>
+
+            <!-- On mobile, the box is closed via this X (in place of the
+                 desktop chevron above) instead -- there's no room for both
+                 a reserved-space close control and the title next to it.
+                 A flex sibling of the title (not an overlaid corner badge)
+                 so it lines up vertically with the title text itself. -->
+            <div
+              v-if="narrow"
+              class="dialog-close-button title-row-close-button"
+              @click="() => { showGuidedContent = false; onResize(); }"
+              @keyup.enter="() => { showGuidedContent = false; onResize(); }"
+              tabindex="0"
+            >
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
             </div>
 
         </div>
@@ -73,74 +89,24 @@
             <!-- Choose Path -->
             <div class="instructions-text" v-if="learnerPath=='Location'">
 
-              <span class="description">                
-                <div v-if="infoPage==1">
-                  <p v-if="queryData.latitudeDeg == undefined || queryData.longitudeDeg == undefined">
-                    "Watch" the eclipse from the location marked by the red dot on the map, or <strong>drag</strong> the yellow dot along the bottom slider to change time.
-                  </p>
-                  <p v-if="queryData.latitudeDeg !== undefined && queryData.longitudeDeg !== undefined">
-                    "Watch" the eclipse from the location shared in your link, or <strong>drag</strong> the yellow dot along the bottom slider to change time.
-                  </p>
-                  <p>
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong> the map to select any <span v-if="queryData.latitudeDeg !== undefined && queryData.longitudeDeg !== undefined">other</span> location and view the eclipse from there, or
-                  </p>
-                  <p v-if="narrow">
-                    <font-awesome-icon icon="magnifying-glass" class="bullet-icon"
-                    size="lg"/> Search for a location
-                  </p>
-                  <p v-if="narrow">
-                    <font-awesome-icon icon="location-crosshairs" class="bullet-icon"
-                    size="lg"/> Use my location (if enabled)
-                  </p>
-                  <p v-if="narrow">
-                    <v-icon icon="mdi-sun-clock" size="small" class="bullet-icon"></v-icon>
-                    See detailed eclipse times
-                  </p>
-                  <p v-else>
-                    <strong>Enter a location</strong> in the search box below.
-                  </p>
-                </div>
-
-                <div v-if="infoPage==2 && !narrow">
-                  <p>
-                    <strong><span class="highlighted bg-red">Red line</span></strong> + <span class="highlighted bg-grey text-black">Grey  band</span>: path of total eclipse on map
-                  </p>
-                  <p class="mt-2">
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong><v-icon icon="mdi-sun-clock" size="large" class="bullet-icon"></v-icon> to see detailed eclipse times
-                  </p>
-                  <p v-if="getMyLocation">
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong>
-                    <font-awesome-icon icon="location-crosshairs" class="bullet-icon"/>
-                    to view eclipse from <strong>My Location</strong> (Location services must be enabled on device)
-                  </p>
-                  <p>
-                    <strong>{{ touchscreen ? "Tap" : "Click" }}</strong> <font-awesome-icon icon="share-nodes" class="bullet-icon"/> to copy url to share a location
-                  </p>
-                </div>
+              <span class="description">
+                <p>The path of totality is displayed across the map as a gray band with a red center line.</p>
+                <p v-if="narrow">
+                  Close this view to "watch" the eclipse from the location marked by the red dot on the map.
+                </p>
+                <p v-else>
+                  "Watch" the eclipse from the location marked by the red dot on the map.
+                </p>
+                <p>
+                  <strong>{{ touchscreen ? "Tap" : "Click" }}</strong> the map to select any location and view the eclipse from there, or
+                </p>
+                <p v-if="narrow">
+                  <strong>Enter a location</strong> in the search box below.
+                </p>
+                <p v-else>
+                  <strong>Enter a location</strong> in the search box to the right.
+                </p>
               </span>
-            </div>
-            <div class="d-flex justify-end" id="info-text-button" v-if="learnerPath=='Location' && !narrow">
-              <v-btn
-                class="mr-2 mb-2"
-                v-if="infoPage==1"
-                density="compact"
-                hide-details
-                :color="accentColor"
-                @click="infoPage++"
-                elevation="0"
-                >
-                More
-              </v-btn>
-              <v-btn
-                v-if="infoPage==2"
-                class="mr-2 mb-2"
-                density="compact"
-                :color="accentColor"
-                @click="infoPage--"
-                elevation="0"
-                >
-                Back
-              </v-btn>
             </div>
 
             <!-- Clouds Path -->
@@ -374,7 +340,7 @@
           id="tabs"
           dense
         >
-          <v-tab class="info-tabs" tabindex="0"><h3>Information</h3></v-tab>
+          <v-tab class="info-tabs" tabindex="0"><h3>Eclipse Science</h3></v-tab>
           <v-tab class="info-tabs" tabindex="0"><h3>User Guide</h3></v-tab>
         </v-tabs>
         <div
@@ -473,9 +439,18 @@
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container  id="user-guide">
-              <p style="font-size: calc(1.1 * var(--default-font-size))" class="mb-5">
-                This Cosmic Data Story allows you to display the August 12, 2026 Total Solar Eclipse from any location. 
+              <p style="font-size: calc(1.1 * var(--default-font-size))">
+                This Cosmic Data Story allows you to display the August 12, 2026 Total Solar Eclipse from any location.
               </p>
+              <v-checkbox
+                v-model="showIntroAtLaunch"
+                @keyup.enter="showIntroAtLaunch = !showIntroAtLaunch"
+                label="Show quickstart introduction when app opens"
+                :color="accentColor"
+                hide-details
+                density="compact"
+                class="mb-5 show-intro-checkbox"
+              />
               <v-row align="center">
               <v-col cols="4">
                   <v-chip
@@ -486,7 +461,7 @@
                   </v-chip>
                 </v-col>
                 <v-col cols="8" class="pt-1">
-                  <strong>{{ touchscreen ? "press + drag" : "click + drag" }}</strong>  {{ touchscreen ? "" : "or" }}  <strong>{{ touchscreen ? "" : "W-A-S-D" }}</strong> {{ touchscreen ? "" : "keys" }}<br>
+                  <strong>{{ touchscreen ? "press + drag" : "click + drag" }}</strong>  {{ touchscreen ? "" : "or" }}  <strong>{{ touchscreen ? "" : "W-A-S-D" }}</strong> {{ touchscreen ? "" : "keys" }} <br>(Disabled if tracking Sun)<br>
                 </v-col>
               </v-row>
               <v-row align="center">
@@ -507,116 +482,137 @@
                   <div
                       style="min-height: 120px;"
                   >                   
+                    <h4 class="user-guide-header">Map Options:</h4>
+                    <p v-if="!showNewMobileUI">(Top of the screen)</p>
+                    <p v-else>
+                      (Tap <v-icon
+                        class="bullet-icon"
+                        icon="mdi-map-search"
+                        size="large">
+                      </v-icon> to open)
+                    </p>
+                    <ul class="text-list">
+                      <li>
+                        Type a location into the search box to find a specific location.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }}
+                        <font-awesome-icon
+                          class="bullet-icon"
+                          icon="location-crosshairs"
+                          size="lg"
+                        ></font-awesome-icon> to view from <strong>My Location</strong>. (If icon is grayed out, consult your device's user guide to enable location services. This feature works most reliably on Chrome and might not be available on every browser+operating system combination.)
+                      </li>
+                    </ul>
+
+                    <v-divider thickness="2px" class="solid-divider"></v-divider>
+
                     <h4 class="user-guide-header">Time Controls:</h4>
-                    <p  class="mb-3">(Bottom-left of the screen)</p>
+                    <p>(Bottom of the screen)</p>
                     <p>
                       By default, time is moving forward at 500x the real speed. Time slows down to 10x the real speed as the eclipse approaches totality.
                     </p>
                     <ul class="text-list">
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
-                              class="bullet-icon"
-                              icon="angles-left"
-                              size="lg" 
-                            ></font-awesome-icon>
-                        to reverse time, or to increase reverse speed by 10x if time was already reversed. 
-                      </li>
-                      <li>
-                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                           class="bullet-icon"
                           icon="play"
-                          size="lg" 
+                          size="lg"
                         ></font-awesome-icon>/
                         <font-awesome-icon
                           class="bullet-icon"
                           icon="pause"
-                          size="lg" 
+                          size="lg"
                         ></font-awesome-icon>
-                        to play or pause time. 
-                      </li>
-                      <li>
-                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
-                          class="bullet-icon"
-                          icon="angles-right"
-                          size="lg" 
-                        ></font-awesome-icon>
-                        to increase speed by 10x, or to move time forward if time was reversed.                        
+                        to play or pause time.
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
-                              icon="rotate"
-                              size="lg" 
+                              icon="angles-down"
+                              size="lg"
                             ></font-awesome-icon>
-                        to reset starting time and speed. 
+                        to decrease speed by 5x.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
+                          class="bullet-icon"
+                          icon="angles-up"
+                          size="lg"
+                        ></font-awesome-icon>
+                        to increase speed by 5x.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }} <v-icon
+                          class="bullet-icon"
+                          icon="mdi-step-backward-2"
+                          size="medium">
+                        </v-icon>/
+                        <v-icon
+                          class="bullet-icon"
+                          icon="mdi-step-forward-2"
+                          size="medium">
+                        </v-icon>
+                        to play time backward or forward.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
+                              class="bullet-icon"
+                              icon="house"
+                              size="lg"
+                            ></font-awesome-icon>
+                        to reset starting time, speed, and location.
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
                               icon="gauge-high"
-                              size="lg" 
+                              size="lg"
                             ></font-awesome-icon>
-                        to open more speed controls. 
+                        to open more speed controls.
                       </li>
                         <ul>
                           <li class="ml-5">
-                            {{ touchscreen ? "Tap" : "Click" }} 
-                            <v-icon
-                              class="bullet-icon"
-                              icon="mdi-step-forward-2"
-                              size="medium">
-                            </v-icon>
-                            or
-                            <v-icon
-                              class="bullet-icon"
-                              icon="mdi-step-backward-2"
-                              size="medium">
-                            </v-icon>
-                            to move time forward and backward.
+                            Use the slider to fine-tune desired speed.
                           </li>
                           <li class="ml-5">
-                            Use the slider to fine-tune desired speed.
+                            {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
+                              class="bullet-icon"
+                              icon="times"
+                              size="lg"
+                            ></font-awesome-icon>
+                            to close speed controls.
                           </li>
                         </ul>
                       <li>
                         Drag <v-icon
                           class="bullet-icon"
                           icon="mdi-circle"
-                          size="medium" 
+                          size="medium"
                         ></v-icon> along the main slider to move to any time.
                       </li>
                     </ul>
 
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
-                    
-                    <h4 class="user-guide-header">Viewing Mode:</h4>
-                    <p  class="mb-3">(Upper-right of the screen)</p>
+
+                    <h4 class="user-guide-header">Location and Eclipse Status:</h4>
+                    <p>(Upper-left of the screen)</p>
                     <ul class="text-list">
-                      <li class="mb-2">
-                        The view of the eclipse is shown for the location selected.
-                      </li>
-                      <li class="mb-2">
-                        Eclipse status: The type of eclipse — "No Eclipse", "Partial Eclipse", or "Total Eclipse (+length of totality)" — visible from your selected location on August 12, 2026.
+                      <li>
+                        Selected Location: the location currently displayed in the view.
                       </li>
                       <li>
-                        Eclipsed: The fraction of the Sun that is eclipsed in the current view (for the selected time and location).
+                        Eclipse Status: The type of eclipse (total, partial, or no eclipse) visible from your selected location on August 12, 2026.
+                        <ul>
+                          <li class="ml-5">
+                            If Total: (amount of time in totality)
+                          </li>
+                          <li class="ml-5">
+                            If Partial: (Maximum % eclipsed).
+                          </li>
+                        </ul>
                       </li>
-                    </ul>
-
-                    <v-divider thickness="2px" class="solid-divider"></v-divider>
-                    
-                    <h4 class="user-guide-header">Display Options:</h4>
-                    <p  class="mb-3">(Bottom-right of the screen)</p>
-                    <ul class="text-list">
-                      <li class="mb-2" v-if="showNewMobileUI">
-                        {{ touchscreen ? "Tap" : "Click" }}
-                        <font-awesome-icon
-                          class="bullet-icon"
-                          icon="circle-info"
-                          size="lg"
-                        ></font-awesome-icon> to open <span class="user-guide-emphasis-white">Information &amp; User Guide</span> on why eclipses happen and more.
-                      </li>
-                      <li class="mb-2">
+                      <li>
                         {{ touchscreen ? "Tap" : "Click" }}
                         <v-icon
                           class="bullet-icon"
@@ -624,64 +620,48 @@
                           size="large">
                         </v-icon> to display detailed <span class="user-guide-emphasis-white">eclipse timing</span> predictions for your selected location.
                       </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Track Sun:</span> Camera follows the Sun. Turn off to keep the camera fixed and show motion of Sun (and Moon) against the sky.
-                      </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
-                      </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Horizon/Daytime Sky:</span> Display a virtual "ground" that delineates where the Sun rises and sets. Show a blue sky when the Sun is above the horizon.                     
-                      </li>
-                      <li v-if="!showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
-                      </li>
                     </ul>
-                          
+
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
 
-                    <h4 class="user-guide-header">Location <span v-if="showNewMobileUI">and other</span> Options:</h4>
-                    <p  class="mb-3">(Top-left of the screen)</p>
+                    <h4 class="user-guide-header">Display Options:</h4>
+                    <p>(Upper-right of the screen)</p>
                     <ul class="text-list">
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
-                              icon="magnifying-glass"
-                              size="lg" 
-                            ></font-awesome-icon> to search for a specific location name.
+                              icon="sliders"
+                              size="lg"
+                            ></font-awesome-icon> to open controls.
+                        <ul>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Track Sun:</span> Camera follows the Sun. Turn off to keep the camera fixed and show motion of Sun (and Moon) against the sky.
+                          </li>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Horizon / Sky:</span> Display a virtual "ground" that delineates where the Sun rises and sets. Show a blue sky when the Sun is above the horizon.
+                          </li>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
+                          </li>
+                          <li class="ml-5">
+                            <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.
+                          </li>
+                        </ul>
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }}
                         <font-awesome-icon
                           class="bullet-icon"
-                          icon="location-crosshairs"
-                          size="lg" 
-                        ></font-awesome-icon> to view from <strong>My Location</strong>. (If icon is grayed out, consult your device's user guide to enable location services. This feature works most reliably on Chrome and might not be available on every browser+operating system combination.)                    
+                          icon="circle-info"
+                          size="lg"
+                        ></font-awesome-icon> to open this guide.
                       </li>
                       <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
                               icon="share-nodes"
-                              size="lg" 
+                              size="lg"
                             ></font-awesome-icon> to copy <strong>share-url</strong> for a specific location.
-                      </li>
-                    </ul>
-                    <p v-if="showNewMobileUI" class="mt-3 mb-1">
-                      Tap <font-awesome-icon
-                          class="bullet-icon"
-                          icon="gear"
-                          size="lg" 
-                        ></font-awesome-icon> to access more options:
-                    </p>     
-                    <ul>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Sky Grid:</span> Display altitude/azimuth grid with cardinal directions.
-                      </li>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Horizon/Daytime Sky:</span> Display a virtual "ground" that delineates where the Sun rises and sets. Show a blue sky when the Sun is above the horizon.                     
-                      </li>
-                      <li v-if="showNewMobileUI">
-                        <span class="user-guide-emphasis-white">Visible Moon:</span> Solar Eclipses occur during a New Moon, when the Moon is not normally visible in the sky. This option makes it easier to see the Moon against the sky.                     
                       </li>
                     </ul>
 
@@ -693,26 +673,23 @@
               </v-row>
               <div id="text-credits">
                 <h3>Credits:</h3>
-                <p class="mt-2">Atmospheric Physicist <a href="https://www.cfa.harvard.edu/people/caroline-nowlan" target="_blank" rel="noopener noreferrer">Caroline Nowlan</a> provided valuable guidance on interpreting the <a href="https://neo.gsfc.nasa.gov/view.php?datasetId=MYDAL2_E_CLD_FR&date=2023-04-07"  target="_blank" rel="noopener noreferrer">MODIS Cloud Cover</a> data.</p> 
+                <p>Atmospheric Physicist <a href="https://www.cfa.harvard.edu/people/caroline-nowlan" target="_blank" rel="noopener noreferrer">Caroline Nowlan</a> provided valuable guidance on interpreting the <a href="https://neo.gsfc.nasa.gov/view.php?datasetId=MYDAL2_E_CLD_FR&date=2023-04-07"  target="_blank" rel="noopener noreferrer">MODIS Cloud Cover</a> data.</p>
 
-                <p class="mt-3">The path of totality data are from <a href="https://svs.gsfc.nasa.gov/5123" target="_blank" rel="noopener noreferrer">NASA's Scientific Visualization Studio</a>.</p>
+                <p>The path of totality data are from <a href="https://svs.gsfc.nasa.gov/5123" target="_blank" rel="noopener noreferrer">NASA's Scientific Visualization Studio</a>.</p>
 
-                <p class="mt-3">Eclipse Timing Predictions are by <a href="https://eclipse.gsfc.nasa.gov/JSEX/JSEX-NA.html" target="_blank" rel="noopener noreferrer">Fred Espenak and Chris O'Byrne</a> (NASA's GSFC). <em>Adapted for TypeScript by CosmicDS Team</em></p>
-            
-                <p class="mt-3">Image of Sun is courtesy of NASA/SDO and the AIA, EVE, and HMI science teams.</p>
+                <p>Eclipse Timing Predictions are by <a href="https://eclipse.gsfc.nasa.gov/JSEX/JSEX-NA.html" target="_blank" rel="noopener noreferrer">Fred Espenak and Chris O'Byrne</a> (NASA's GSFC). <em>Adapted for TypeScript by CosmicDS Team</em></p>
 
-                <p class="my-3">This Cosmic Data Story is powered by WorldWide Telescope (WWT).</p>  
+                <p>Image of Sun is courtesy of NASA/SDO and the AIA, EVE, and HMI science teams.</p>
+
+                <p>This Cosmic Data Story is powered by WorldWide Telescope (WWT).</p>
 
                 <h4><a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">CosmicDS</a> Team:</h4> 
                 
                 John Lewis<br>
                 Jon Carifio<br>
                 Pat Udomprasert<br>
-                Jack Hayes<br>
                 Alyssa Goodman<br>
-                Mary Dussault<br>
                 Harry Houghton<br>
-                Anna Nolin<br>
                 Evaluator: Sue Sunbury<br>
                 
                 <h4><a href="https://www.worldwidetelescope.org/" target="_blank" rel="noopener noreferrer">WorldWide Telescope</a> Team:</h4>
@@ -941,39 +918,115 @@
 
   <!-- Opening Dialog Sequence -->
     <v-overlay
-      v-if="showNewMobileUI"
+      v-if="showNewMobileUI && introSlide === 2"
       v-model="inIntro"
       id="intro-overlay-mobile"
       opacity="1"
       :scrim="false"
-      :close-on-content-click="true"
       :style="cssVars"
       >
-      <div id="instruction-overlay">
+      <div class="instruction-overlay instruction-overlay-mobile elevation-10">
         <div class="inst-quad top-left">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16,70)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Location,<br> Path, &amp; <br> Timing
+            Location,<br> Path, + <br> Timing
           </div>
         </div>
         <div class="inst-quad top-right">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16,70)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
-            Settings, <br> Info &amp; <br> Sharing
+            Settings, <br> Info + <br> Sharing
           </div>
         </div>
         <div class="inst-quad bottom-left">
-          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-arrow"><v-icon  class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.16,$vuetify.display.height*0.16,70)">mdi-arrow-up-bold</v-icon></div>
           <div class="inst-text">
             <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
             <template v-else>Control time yourself!</template>
           </div>
         </div>
+
+        <div class="intro-bottom-controls">
+          <v-btn
+            class="intro-back-button"
+            :color="accentColor"
+            @click="introSlide--"
+            elevation="0"
+            >
+            Back
+          </v-btn>
+
+          <v-btn
+            class="intro-next-button"
+            :color="accentColor"
+            @click="introSlide++"
+            elevation="0"
+            >
+            Let's go!
+          </v-btn>
+        </div>
+      </div>
+    </v-overlay>
+
+    <v-overlay
+      v-if="!showNewMobileUI && introSlide === 2"
+      v-model="inIntro"
+      id="intro-overlay-desktop"
+      opacity="1"
+      :scrim="false"
+      :style="cssVars"
+      >
+      <div class="instruction-overlay instruction-overlay-desktop elevation-10">
+        <div class="inst-quad top-left">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            Location<br>+ Timing
+          </div>
+        </div>
+        <div class="inst-quad top-center">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            Eclipse path <br>+ weather
+          </div>
+        </div>
+        <div class="inst-quad top-right">
+          <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
+          <div class="inst-text">
+            Settings, <br> Info +<br> Sharing
+          </div>
+        </div>
+        <div class="intro-bottom-controls">
+          <v-btn
+            class="intro-back-button"
+            :color="accentColor"
+            @click="introSlide--"
+            elevation="0"
+            >
+            Back
+          </v-btn>
+
+          <div class="inst-quad bottom-left">
+            <div class="inst-arrow"><v-icon class="the-arrow" :color="accentColor" :size="Math.min($vuetify.display.width*0.07,$vuetify.display.height*0.07,48)">mdi-arrow-up-bold</v-icon></div>
+            <div class="inst-text">
+              <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
+              <template v-else>Control time yourself!</template>
+            </div>
+          </div>
+
+          <v-btn
+            class="intro-next-button"
+            :color="accentColor"
+            @click="introSlide++"
+            elevation="0"
+            >
+            Let's go!
+          </v-btn>
+        </div>
       </div>
     </v-overlay>
 
     <v-dialog
-      v-if="!showNewMobileUI"
+      v-if="introSlide === 1"
       v-model="inIntro"
       id="intro-dialog"
       :style="cssVars"
@@ -998,74 +1051,38 @@
           </template>
           <v-window-item :value="1">
             <div class="intro-text">
-              <p class="mb-5">
-              On August 12, 2026, parts of Europe will witness 
-              a solar eclipse, where the Moon will appear to travel across the Sun, blocking out its light.
+              <p>
+              On August 12, 2026, a lucky stretch of Spain, Iceland, and Greenland will witness an awe-inspiring <b>total eclipse</b>.
               </p>
-              <p  class="mb-5">
-              A lucky segment of Iceland and Spain will witness an awe-inspiring <b>total eclipse</b>. Other parts of Europe will still see a <em>partial</em> eclipse, where the Moon blocks out some, but not all of the Sun's light.
+              <p>
+               Other parts of Europe will see a <em>partial</em> eclipse, where the Moon blocks out some, but not all of the Sun's light.
               </p>
-              <p class="mb-5">
-              See what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
+              <p>
+              Choose your location on the map to see what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
               </p>
-            </div>
-          </v-window-item>
-          
-          <v-window-item :value="2">
-            <div class="intro-text mb-3">
-              <div v-if="xSmallSize" class="mb-3">
-                <p class="mb-3">
-                Access these features in  
-                </p> 
-                <span class="px-2 py-1 my-2 mr-1" style="border: 1px solid #eac402; border-radius: 1em; color:#eac402; white-space: nowrap">Path & Weather</span>
-              </div>
-              <p v-else class="mb-3">
-                In this interactive page you can:
-              </p>
-              <ul>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <v-icon icon="mdi-map-search" size="xl" class="bullet-icon"></v-icon>
-                  </template>
-                    <strong>Select any location</strong> around the world. See and share how the eclipse would look from there.
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <font-awesome-icon icon="cloud-sun" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>View historical cloud data</strong> for the week of August 12 from 2003&#8211;2023. 
-                </v-list-item>
-                <v-list-item density="compact">
-                  <template v-slot:prepend>
-                    <font-awesome-icon icon="circle-info" size="xl" class="bullet-icon"></font-awesome-icon>
-                  </template>
-                    <strong>Learn more</strong> about solar eclipses, and access the <strong>User Guide</strong> on how to navigate this app.
-                </v-list-item>
-              </ul>
             </div>
           </v-window-item>
         </v-window>
 
-        <div id="intro-bottom-controls">
+        <div class="intro-bottom-controls">
           <div>
-            <v-btn
-              v-if="(introSlide > 1) && (!showNewMobileUI)"
-              id="intro-back-button"
+            <v-checkbox
+              v-model="dontShowIntro"
+              @keyup.enter="dontShowIntro = !dontShowIntro"
+              label="Don't show this introduction at launch"
               :color="accentColor"
-              @click="introSlide--"
-              elevation="0"
-              >
-              Back
-            </v-btn>
+              hide-details
+            />
           </div>
 
+
           <v-btn
-            id="intro-next-button"
+            class="intro-next-button"
             :color="accentColor"
             @click="introSlide++"
             elevation="0"
             >
-            {{ introSlide < 2 ? 'Next' : 'Get Started' }}
+            Next
           </v-btn>
         </div>
       </div>
@@ -1402,7 +1419,7 @@
                 </div>
             </div>
             <div id="speed-text">
-              Speed: {{ niceRound(playbackRate) }}x real time<span v-if="!playing"> (paused)</span><span v-else-if="forceRate"> (slowed for totality)</span>
+              {{ niceRound(playbackRate) }}x Real Time<span v-if="!playing"> (paused)</span><span v-else-if="forceRate"> (slowed for totality)</span>
             </div>
           </div>
           <div id="slider">
@@ -1563,7 +1580,7 @@ import pointInPolygon from 'point-in-polygon';
 import { recalculateForObserverUTC } from "./eclipse_predict";
 import { EclipseData } from "./eclipse_types";
 import { sunPlace } from "./horizon_sky";
-import { spaceHMS } from './utils';
+import { spaceHMS, round99 } from './utils';
 import nso from './nso_coordinates';
 
 interface CloudData {
@@ -1665,6 +1682,7 @@ let queryData: QueryData = {};
 const UUID_KEY = "eclipse-2026-mini-uuid" as const;
 const OPT_OUT_KEY = "eclipse-2026-mini-optout" as const;
 const RATING_OPT_OUT_KEY = "eclipse-2026-mini-rating-optout" as const;
+const DONT_SHOW_INTRO_KEY = "eclipse-2026-mini-dontshowintro" as const;
 
 
 const RELEVANT_FEATURE_TYPES = ["postcode", "place", "region", "country"];
@@ -1777,7 +1795,9 @@ export default defineComponent({
     
     const storedRatingOptOut = window.localStorage.getItem(RATING_OPT_OUT_KEY);
     const ratingOptOut = typeof storedRatingOptOut === "string" ? storedRatingOptOut === "true" : null;
-    
+
+    const dontShowIntro = window.localStorage.getItem(DONT_SHOW_INTRO_KEY) === "true";
+
     // Captured once here so the reset button can return to this exact
     // location later, rather than independently recomputing the same
     // literal (and risking the two silently drifting apart).
@@ -1938,9 +1958,9 @@ export default defineComponent({
       showRatingPrivacyPolicy: false,
 
       tab: 0,
-      infoPage: 1,
       introSlide: 1,
-      
+      dontShowIntro,
+
       viewerMode: 'Horizon' as ViewerMode,
 
       showSky: true,
@@ -2165,11 +2185,24 @@ export default defineComponent({
 
   computed: {
 
+    // The User Guide's checkbox reads more naturally phrased as "show",
+    // but the underlying stored preference (and the intro dialog's own
+    // checkbox) is phrased as "don't show" -- this just flips the sense.
+    showIntroAtLaunch: {
+      get(): boolean {
+        return !this.dontShowIntro;
+      },
+      set(value: boolean) {
+        this.dontShowIntro = !value;
+      }
+    },
+
     eclipsePredictionText(): string {
       if (!this.eclipsePrediction) {
         return '';
       }
       const { type, maxTime, duration, partialStart, centralStart, centralEnd, partialEnd } = this.eclipsePrediction;
+      console.log(this.eclipsePrediction.magnitude, this.eclipsePrediction.coverage, this.eclipsePrediction.type);
       if (type === '' || type === null || maxTime[0] === null) {
         return "No Eclipse";
       }
@@ -2205,7 +2238,7 @@ export default defineComponent({
         }
         const maxCoverage = this.eclipsePrediction.coverage[0];
         if (maxCoverage) {
-          return `Partial Eclipse\n(Max: ${Math.round(maxCoverage * 100)}%)`;
+          return `Partial Eclipse\n(Max: ${maxCoverage < 0.01 ? '<1' : round99(maxCoverage)}%)`;
         }
         return "Partial Eclipse";
       }
@@ -2367,13 +2400,6 @@ export default defineComponent({
       };
     },
     topContainerStyle() {
-      // On mobile the guided-content box is always a full-screen overlay
-      // (see .mobile-fullscreen) -- a custom height dragged in from a
-      // previous desktop session (or an earlier drag of the outer resize
-      // handle) would otherwise pin it to a stale, much shorter height via
-      // this inline style, which outranks the CSS 100% override and left
-      // a visible gap between the box's bottom border and the true bottom
-      // of the screen.
       if (this.narrow || this.topContainerCustomHeight === null) {
         return {};
       }
@@ -2381,8 +2407,6 @@ export default defineComponent({
       return { height, minHeight: height, maxHeight: height };
     },
     nonMapContainerStyle() {
-      // Mobile stacks non-map-container above map-column (flex-direction:
-      // column), so flex-basis there governs height instead of width.
       if (this.narrow) {
         if (this.nonMapContainerMobileHeightPercent === null) {
           return {};
@@ -2476,11 +2500,9 @@ export default defineComponent({
     },
 
     percentEclipsedText(): string {
-      let percentEclipsed = Math.round(this.currentFractionEclipsed*100);//.toFixed(0);
-      if (this.currentFractionEclipsed < 0.995 && percentEclipsed === 100) {
-        percentEclipsed = 99;
-      }
-      return `Eclipsed: ${percentEclipsed}%`;
+      const frac = this.currentFractionEclipsed;
+      const pct = frac < 0.01 ? '<1' : round99(frac);
+      return `Eclipsed: ${pct}%`;
     },
 
     inEclipse(): boolean | null {
@@ -4067,11 +4089,16 @@ export default defineComponent({
 
     showSplashScreen(val: boolean) {
       if (!val) {
-        this.inIntro = true; 
-        if (this.showNewMobileUI) {
-          this.introSlide = 2;
+        if (this.dontShowIntro) {
+          return;
         }
+        this.introSlide = 1;
+        this.inIntro = true;
       }
+    },
+
+    dontShowIntro(val: boolean) {
+      window.localStorage.setItem(DONT_SHOW_INTRO_KEY, val.toString());
     },
 
     showInfoSheet(show: boolean) {
@@ -4294,13 +4321,7 @@ body:not(.keyboard-focus-only) textarea:focus-visible {
 .icon-wrapper.active:focus {
   box-shadow: 0 0 10px 3px var(--active-shadow) !important;
 }
-
-// Remove oreo focus styling from the Information/User Guide dialog, and
-// from the intro dialog/overlay -- Vuetify focuses .v-overlay__content
-// itself when either opens (for a11y), but that wrapper collapses to
-// near-zero height (its real content is positioned inside it), so the
-// outline rendered a full-width, few-pixels-tall bar instead of framing
-// anything meaningful.
+ g
 #text-bottom-sheet .v-overlay__content:focus-visible,
 #intro-dialog .v-overlay__content:focus-visible,
 #intro-overlay-mobile .v-overlay__content:focus-visible {
@@ -4308,9 +4329,6 @@ body:not(.keyboard-focus-only) textarea:focus-visible {
   box-shadow: none !important;
 }
 
-// A thin, subdued scrollbar that only takes up visible space once there's
-// something to scroll (overflow: auto, not scroll), but still reserves its
-// track via scrollbar-gutter so content doesn't reflow when it appears.
 .thin-scrollbar() {
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -4342,10 +4360,6 @@ html {
   overflow-y: hidden !important; 
   -ms-overflow-style: none;
 
-  // We don't want a scrollbar for the overall canvas.
-  // NOTE: this must use "&" so it compiles to "html::-webkit-scrollbar"
-  // (this element's own scrollbar) rather than "html ::-webkit-scrollbar",
-  // a descendant selector that would hide every scrollbar on the page.
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
@@ -4493,8 +4507,6 @@ body {
   }
 }
 
-// Top-left cluster: location label + eclipse-timer button, positioned
-// under the info+map container rather than overlapping its top edge.
 #left-buttons-wrapper {
   position: absolute;
   left: 1rem;
@@ -4504,9 +4516,6 @@ body {
   width: fit-content;
   align-items: flex-start;
 
-  // #main-content (the positioned ancestor here) already starts in
-  // normal flow right below the guided-content box -- these are small
-  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -4519,16 +4528,10 @@ body {
     left: 0.5rem;
 
     @media (max-width: 599px) {
-      // No standalone Path & Weather button to clear on mobile (it's
-      // hidden there -- see #closed-top-container) -- align with the
-      // top-right button cluster's own closed-state offset instead.
       top: calc(var(--default-font-size) + 1px);
     }
 
     @media (min-width: 600px) {
-      // Bumped from 3.5rem — at desktop font sizes the closed Map &
-      // Weather button is tall enough that 3.5rem left no visible gap
-      // below it (unlike the narrower mobile offset above).
       top: 4.3rem;
     }
   }
@@ -4551,15 +4554,9 @@ body {
     gap: 5px;
   }
 
-  // Styled to match the location-button box from the Seasons data story:
-  // dark background, accent-colored border, bold location name with
-  // unbolded details underneath.
   #location-status-box {
     pointer-events: auto;
 
-    // Clickable on mobile (opens the map), not on desktop -- the hover
-    // border-color change below implied clickability there even though
-    // nothing happened, so it's suppressed along with the click handler.
     &.non-interactive {
       pointer-events: none;
     }
@@ -4572,9 +4569,6 @@ body {
     padding: 0.5rem;
     font-size: calc(0.9 * var(--default-font-size));
     text-align: center;
-    // Fixed width so the box doesn't grow/shrink with the length of the
-    // location name — long names wrap instead (max-width guards against
-    // overflow on very narrow screens).
     width: 10rem;
     max-width: 70vw;
     transition: border-color 0.2s ease;
@@ -4590,24 +4584,16 @@ body {
     .location-status-name {
       font-size: calc(0.95 * var(--default-font-size));
       margin-bottom: 0.25rem;
-      // Lets the "\n" in the plain lat/long fallback (no place name found)
-      // render as an actual line break: latitude on one line, longitude
-      // on the next, instead of one long wrapped/truncated line.
       white-space: pre-line;
     }
 
     .eclipse-status-line {
-      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
-      // actually render as a line break.
       white-space: pre-line;
-      // Same vertical space as between the location name and this line.
       margin-block: 0.25rem;
     }
   }
 
   pointer-events: auto;
-
-  // Sizing/border now come from the unified .icon-wrapper rule.
 }
 
 
@@ -4685,20 +4671,13 @@ body {
     flex-direction: column;
     align-items: stretch;
   }
-
-  // Sizing now comes from the unified .icon-wrapper rule.
 }
 
 #controls {
-  // Just the toggle icon-button now -- the panel itself
-  // (#control-checkboxes) is a sibling that appears below the whole
-  // top-right button cluster instead of expanding inline here.
   display: flex;
   pointer-events: auto;
 }
 
-// The open controls panel, positioned below the top-right button
-// cluster (#top-right-buttons) by normal flow inside #top-wwt-content.
 #control-checkboxes {
   display: flex;
   flex-direction: column;
@@ -4845,9 +4824,6 @@ body {
     right: 1.75rem;
     color: var(--accent-color-2);
     font-size: min(8vw, 5vh);
-    // Sized in em (not just the "x" glyph's own, narrower-than-tall advance
-    // width/line-height) so the box -- and its keyboard focus outline --
-    // is a clean square instead of a tall, skinny rectangle.
     width: 1em;
     height: 1em;
     line-height: 1;
@@ -4899,11 +4875,6 @@ body {
   }
 }
 
-
-// Vuetify assigns each opened overlay an incrementing z-index, so whichever
-// of the Information dialog / speed control popup was opened more recently
-// would otherwise win. Pin the Information dialog above regardless of
-// open order.
 #text-bottom-sheet {
   z-index: 9999 !important;
 }
@@ -4934,6 +4905,9 @@ body {
   }
   #main-info-text {
     padding-inline: 0.5em;
+    p {
+      margin-bottom: 0.5em;
+    }
   }
 
   #safety-warning{
@@ -5009,11 +4983,6 @@ body {
     padding: unset;
     margin: unset;
 
-    // Vuetify's own default dialog sizing (width AND max-width both
-    // calc(100% - 48px), a fixed 24px margin per side -- overriding
-    // only width leaves max-width still clamping it right back down)
-    // leaves too little room on very narrow screens for the two tab
-    // labels + close button below to fit without overlapping.
     @media (max-width: 400px) {
       width: calc(100% - 16px) !important;
       max-width: calc(100% - 16px) !important;
@@ -5025,17 +4994,11 @@ body {
     width: 100%;
 
     align-self: center;
-    // Thin border all around, then the thicker dark accent stripe
-    // specifically along the bottom edge overrides just that one side.
     border: 1px solid var(--accent-color-2);
     border-bottom: solid #212121 0.5em;
   }
 
   #tabs {
-    // The tab bar sat flush against the card's own top-left corner, which
-    // clips overflow -- leaving the oreo focus ring no room to render.
-    // Inset the bar slightly and lift it above its sibling; there are
-    // only ever these two short tabs, so there's no visual loss.
     width: calc(100% - 3em - 12px);
     margin: 12px 0 12px 12px;
     align-self: left;
@@ -5043,20 +5006,15 @@ body {
     z-index: 1;
     overflow: visible !important;
 
-    // v-tabs' own slide-group scaffolding also clips overflow at the
-    // bar's own height regardless of the overflow property above --
-    // .v-slide-group__container additionally sets `contain: content`,
-    // and paint containment clips descendant painting (the ring)
-    // independent of `overflow`, so it has to be disabled explicitly too.
     .v-slide-group__container {
       overflow: visible !important;
       contain: none !important;
     }
 
-    // Each v-tab otherwise renders at Vuetify's own default min-width
-    // regardless of how narrow #tabs itself is, which is what actually
-    // overflowed past the card and under the close button -- shrink the
-    // padding/font and let them size to content instead.
+    .v-slide-group__content {
+      gap: 0.5em;
+    }
+
     .info-tabs {
       min-width: 0;
       padding-inline: 0.5em;
@@ -5102,6 +5060,21 @@ body {
     font-size: var(--default-font-size);
     line-height: calc(1.1 * var(--default-line-height));
 
+    .text-list li {
+      margin-bottom: 0.5em;
+    }
+
+    .text-list li + li {
+      margin-bottom: 0.5em;
+    }
+    .text-list ul {
+      margin-top: 0.5em;
+    }
+
+    p {
+      margin-bottom: 0.5em;
+    }
+
     .v-chip {
       color: unset;
       background-color: unset;
@@ -5110,6 +5083,7 @@ body {
 
     .user-guide-header {
       margin-top: 1rem;
+      margin-bottom: 0.2em;
       color: var(--accent-color);
       font-size: calc(1.2 * var(--default-font-size));
     }
@@ -5117,7 +5091,12 @@ body {
     .user-guide-emphasis-white {
       font-weight: bold;
     }
-    
+
+    .show-intro-checkbox .v-label {
+      font-size: var(--default-font-size);
+      opacity: 1;
+    }
+
     .solid-divider {
       margin-top: 1rem;
       color: var(--sky-color);
@@ -5126,30 +5105,17 @@ body {
   }
 }
 
-// A real, solidly-sized clickable box rather than a bare icon enlarged via
-// negative margin/padding — some mobile browsers (Safari in particular)
-// only hit-test the icon's painted SVG content, not that kind of CSS-only
-// hit-area expansion, so taps near the edge of the icon can miss entirely.
 .dialog-close-button {
   position: absolute;
-  // Flush against the card's own corner left no room for the oreo focus
-  // ring, which got clipped by the card's own overflow on the top/right
-  // edges. Inset it slightly instead.
   top: 6px;
   right: 6px;
   z-index: 1;
-  // At least Apple/Google's recommended ~44px minimum touch target —
-  // the icon itself is much smaller, but the tap target shouldn't be.
   min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  // Tells the browser this element is a simple tap target, so it doesn't
-  // wait to see if a second tap is coming (double-tap-to-zoom) before
-  // committing to the click — that wait is a common source of taps that
-  // "look right" but silently don't register on mobile.
   touch-action: manipulation;
 }
 
@@ -5176,7 +5142,6 @@ body {
   }
 }
 
-// Styling the slider
 #slider .v-slider {
   .v-slider-track {
     // --v-slider-track-size: 4px !important;
@@ -5202,8 +5167,6 @@ body {
     }
   }
   
-
-  // Styled to match the time-slider flag from the Seasons data story.
   .v-slider-thumb__label {
     min-width: fit-content;
     white-space: nowrap;
@@ -5225,10 +5188,6 @@ body {
     }
   }
 
-  // Vuetify's pointer/wedge is a real child element (.v-slider-thumb__label-wedge),
-  // not a ::before pseudo-element, and it just inherits the label's background.
-  // Give it the accent-color border by stacking a smaller dark triangle over a
-  // solid accent-color one, mimicking a mitered continuation of the label's border.
   .v-slider-thumb__label-wedge {
     background: var(--accent-color);
 
@@ -5245,13 +5204,6 @@ body {
 }
 
 #slider {
-  // The time label (.v-slider-thumb__label) is centered on the thumb and
-  // stays put at min-width: fit-content -- when the thumb sits at either
-  // end of the track, half the label's width extends past the track's own
-  // edge. Without side margin here, that overhang runs off the edge of
-  // the screen instead of just the track. Width has to shrink by the same
-  // amount the margins add, since a flex item's own `width` isn't reduced
-  // automatically to make room for its margins.
   width: calc(100% - 11rem) !important;
   margin-left: 5.5rem;
   margin-right: 5.5rem;
@@ -5293,27 +5245,9 @@ body {
   }
 
 #guided-content-wrapper {
-  // #top-container-resize-handle used to be a child of
-  // #guided-content-container, positioned bottom:0 against it -- but
-  // that container's overflow-y: auto (needed for its own scrollable
-  // text content) clipped the handle's keyboard focus ring right at
-  // the same edge, with no room to render. Moved the handle out to be
-  // a sibling here instead, so it escapes that clipping. This wrapper's
-  // own box includes the container's outer margin (below), so --margin
-  // is hoisted up here for the handle to also offset by, keeping it
-  // flush against the container's actual bottom border rather than the
-  // outer edge of its margin.
   --margin: 0.5rem;
   position: relative;
 
-  // On mobile, while open, becomes a full-screen overlay covering the
-  // WWT canvas and all its floating buttons. This is also what fixes the
-  // map appearing blank on mobile: #map-column's flex-grow only has
-  // real remaining space to grow into once this wrapper (and, via the
-  // 100% overrides below, #guided-content-container itself) has a
-  // genuinely definite height -- the container's own calc(100% - 1rem)
-  // needs a definite-height ancestor to resolve against, and one was
-  // never available before (the wrapper had no explicit height either).
   @media (max-width: 600px) {
     &.mobile-fullscreen {
       position: fixed;
@@ -5332,8 +5266,8 @@ body {
 }
 
 #guided-content-container {
-  --top-content-max-height: max(30vmin, 35vh);
-  --top-content-min-height: fit-content;
+  --top-content-max-height: max(340px, 35vh);
+  --top-content-min-height: var(--top-content-max-height);
   z-index: 400;
 
   @media (max-width: 600px) {
@@ -5376,12 +5310,6 @@ body {
     gap: 0.25rem;
   }
   
-  
-  span.highlighted {
-    font-weight: bold;
-    padding-inline: 0.5em;
-    border-radius: 0.25em;;
-  }
   
   #map-column {
     flex-basis: 100%;
@@ -5512,20 +5440,16 @@ body {
     #hide-guided-content-button {
       flex: 0 0 auto;
       border: none;
-      // The global .icon-wrapper rule hardcodes a dark translucent
-      // background regardless of the icon-button's own background-color
-      // prop (that prop only sets an inline --background-color CSS var,
-      // which .icon-wrapper's background never reads) -- override it
-      // directly here so this specific chevron stays transparent.
       background: transparent;
+    }
+
+    .title-row-close-button {
+      position: static;
+      flex: 0 0 auto;
     }
   }
   
   #instructions-row {
-    // Grows to fill the space between the title row (pinned top) and the
-    // button row (pinned bottom) when non-map-container is taller than its
-    // content -- blank space inside the box is fine, the text itself stays
-    // top-aligned via #top-container-main-text's own layout below.
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
@@ -5552,7 +5476,7 @@ body {
         .thin-scrollbar();
 
         padding-inline: 0.7em;
-        padding-block: 0.4em; // this plus the margin on p give .7 em on top and bottom
+        padding-block: 0.4em;
 
         // span
         .description {
@@ -5560,21 +5484,12 @@ body {
           color: white;
           text-align: left;
           user-select: text;
-          
+
           p {
-            margin-block: .3em;
+            margin-bottom: 0.5em;
           }
         }
 
-      }
-
-      #info-text-button {
-          margin-right: 0.1rem;
-          margin-block: 0.1rem;
-
-          .v-btn--size-default{
-          font-size: var(--default-font-size) !important;
-        }
       }
     }
   }
@@ -5603,7 +5518,9 @@ body {
         &.active {
           border: 2px solid var(--sky-color);
 
-
+          &:focus {
+            border-color: var(--sky-color) !important;
+          }
         }
       }
     }
@@ -5615,20 +5532,12 @@ body {
 
 }
 
-// A sibling of #guided-content-container now (see #guided-content-wrapper
-// above) rather than a child, so its focus ring isn't clipped by that
-// container's own overflow-y: auto.
 #top-container-resize-handle {
   position: absolute;
   left: 0;
   right: 0;
-  // Offset by the wrapper's --margin so this sits flush against the
-  // container's own bottom border, not the outer edge of its margin.
   bottom: var(--margin);
   height: 10px;
-  // Now a sibling of #guided-content-container (z-index: 400) rather
-  // than a child, so it has to outrank that z-index directly to avoid
-  // being painted over and losing pointer events in their overlap area.
   z-index: 401;
   cursor: row-resize;
   touch-action: none;
@@ -5654,33 +5563,12 @@ body {
 #map-column { // v-col
   position: relative;
   --map-edge-gap: 4px;
-  // #guided-content-container has no explicit `height` (only min/max, to
-  // stay fit-content-sized) and uses align-items: center rather than
-  // stretch, so this column's own `height: 100%` had no definite parent
-  // height to resolve against -- it (and, cascading down, the Leaflet map
-  // inside it) collapsed to 0 until something else (dragging the resize
-  // handle) happened to hand the row an explicit height. align-self:
-  // stretch sizes this one item to the row's actual (content-determined)
-  // cross size directly, independent of that -- but only takes effect
-  // if this item's own cross-size property is auto, not an (even if
-  // unresolvable) explicit value, hence dropping `height: 100%` entirely
-  // rather than just adding align-self alongside it.
   align-self: stretch;
   width: 100%;
   min-height: 0;
   // outline: 1px solid red;
 
   #map-container {
-    // #map-column is itself a column flex container, and its own height
-    // only counts as "definite" for a percentage-height child like this
-    // one when it was resolved via align-self/items: stretch (a cross-
-    // axis size) -- on mobile #map-column's height instead comes from
-    // its own flex-grow (a main-axis size in that column context), which
-    // the flex spec does NOT carry through as definite to descendants.
-    // height: 100% silently failed there, collapsing this to its own
-    // near-zero content height. flex-grow sidesteps percentage
-    // resolution entirely and works in both the row (desktop) and
-    // column (mobile) cases.
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
@@ -5689,21 +5577,11 @@ body {
     position: relative;
 
     display: flex;
-    // LocationSelector's own root (.map-container, lowercase -- a
-    // different element than this #map-container wrapper) has an
-    // explicit height: 100% that needs this to be align-items: stretch
-    // (not center) to resolve at all -- same reasoning as #map-column
-    // above, one level deeper.
     align-items: stretch;
     justify-content: center;
 
-
-    // Small, consistent margin from the small map's own edges for all
-    // overlay buttons below.
     --map-overlay-margin: 0.5em;
 
-    // Location details (mobile only, no date -- see the template comment)
-    // stacked directly above the search box, both anchored bottom-left.
     .map-bottomleft-stack {
       position: absolute;
       z-index: 600;
@@ -5724,30 +5602,19 @@ body {
       padding: 0.35em 0.5em;
       font-size: calc(0.8 * var(--default-font-size));
       text-align: center;
-      // Narrower than #location-status-box (the WWT-canvas version of
-      // this box) -- this one sits over the small map, where space is
-      // tighter -- but still fixed, so it doesn't grow/shrink with the
-      // length of the location name.
       width: 8rem;
       max-width: 70vw;
 
       .location-status-name {
         font-size: calc(0.9 * var(--default-font-size));
-        // Lets the "\n" in the plain lat/long fallback (no place name
-        // found) render as an actual line break: latitude on one line,
-        // longitude on the next.
         white-space: pre-line;
       }
 
       .eclipse-status-line {
-        // Lets the "\n" before "(Xm Ys of totality)" in the computed
-        // text actually render as a line break, same as the top-left
-        // cluster's own copy of this text.
         white-space: pre-line;
       }
     }
 
-    // "Use my location", bottom-right corner of the small map.
     #my-location-overmap-button {
       position: absolute;
       z-index: 600;
@@ -5755,14 +5622,6 @@ body {
       right: var(--map-overlay-margin);
     }
 
-    // Eclipse-timer button + "reset to Antiguita, Spain" (below it),
-    // stacked in the top-right corner of the small map (mobile only --
-    // desktop keeps its own eclipse-timer copy in the top-left cluster).
-    // Leaflet's own attribution control now also lives in that same
-    // top-right corner (see LocationSelector.vue's
-    // map.attributionControl.setPosition('topright')) -- clear its
-    // "Credit: © Leaflet.js" label by the same small margin instead of
-    // sitting flush against the map's top edge.
     .map-topright-stack {
       position: absolute;
       z-index: 600;
@@ -5817,50 +5676,26 @@ body {
 .bullet-icon {
   color: var(--accent-color);
   width: 1.5em;
+
+  &.v-icon {
+    opacity: 1;
+  }
 }
 
-#instruction-overlay {
-  
-  --width: 80dvw;
-  // --height: 60dvh;
+.instruction-overlay {
   position: relative;
-  // top: 7rem;
-  
-
-  --height: 50dvh;
-  top: calc(5rem + 1vh);
-  
-  @media (min-height: 500px) {
-    top: calc(5rem + 11vh);
-  }
-
-  @media (orientation: landscape) {
-    --height: 60dvh;
-    top: calc(3rem + 5vh);
-  }
-  
-  left: calc((100dvw - var(--width)) / 2);
-  
   display: grid;
-  width: var(--width);
-  height: var(--height);
   min-height: max-content;
-  padding: 1rem;
-  // Equal columns now that both quadrants' text wraps to similarly-short
-  // lines -- the old 1.35fr right column (sized for longer text) shifted
-  // that quadrant's content further right, making the close X (centered
-  // on the overall box) look off-center relative to the two quadrants.
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 0.5fr 0.5fr;
   gap: 1em;
-  
-  border: 2px solid white;
+
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
   border-radius: var(--tight-border-radius);
-  
-  
-  
+
+
+
   div.inst-quad {
     display: flex;
     flex-direction: column;
@@ -5878,14 +5713,14 @@ body {
   }
   
   .inst-text {
-    font-size: min(3.5vw, 3vh);
+    font-size: clamp(0.8rem, min(3.5vw, 3vh), 1.1rem);
     color: white;
     font-weight: bold;
-    
+
     @media (orientation: landscape) {
-      font-size: min(3vw, 4vh);
+      font-size: clamp(0.8rem, min(3vw, 4vh), 1.1rem);
     }
-    
+
   }
   
   
@@ -5901,9 +5736,6 @@ body {
     grid-area: 1 / 1 / 2 / 2;
     margin-bottom: auto;
     .the-arrow {
-      // Mirror image of top-right's rotateZ(30deg) -- same angle off
-      // vertical, opposite direction, so it points diagonally toward
-      // this quadrant's own top-left corner instead of straight left.
       transform: translateY(-5px) rotateZ(-30deg);
     }
   }
@@ -5938,8 +5770,131 @@ body {
       transform: translateY(5px) rotateX(180deg);
     }
   }
-  
-  
+
+
+}
+
+.instruction-overlay-mobile {
+  --width: 80dvw;
+  --height: 50dvh;
+  border: 1px solid var(--accent-color-2);
+  padding: 1rem;
+  top: calc(5rem + 1vh);
+
+  @media (min-height: 500px) {
+    top: calc(5rem + 11vh);
+  }
+
+  @media (orientation: landscape) {
+    --height: 60dvh;
+    top: calc(3rem + 5vh);
+  }
+
+  left: calc((100dvw - var(--width)) / 2);
+  width: var(--width);
+  height: var(--height);
+
+  grid-template-rows: 0.5fr 0.5fr auto;
+
+  .inst-arrow .the-arrow {
+    max-width: calc(0.1 * var(--width)) !important;
+    max-height: calc(0.1 * var(--height)) !important;
+  }
+
+  div.inst-quad.top-left, div.inst-quad.top-right {
+    margin-top: 1rem;
+  }
+
+  div.inst-quad.bottom-left {
+    margin-bottom: 0.25rem;
+  }
+
+  .intro-bottom-controls {
+    grid-area: 3 / 1 / 4 / 3;
+    margin-top: 0;
+
+    .v-btn {
+      padding-inline: 8px;
+    }
+  }
+}
+
+.instruction-overlay-desktop {
+  --width: 68dvw;
+  --height: 36dvh;
+  border: 1px solid var(--accent-color-2);
+  padding: 0.5rem;
+  padding-inline: 1rem;
+  top: calc(50dvh + var(--top-content-height) / 2 - var(--height) / 2);
+  left: calc((100dvw - var(--width)) / 2);
+  width: var(--width);
+  height: var(--height);
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr auto;
+
+  .intro-bottom-controls {
+    grid-area: 2 / 1 / 3 / 4;
+    margin-top: 0;
+    margin-bottom: 0.5em;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: end;
+
+    .intro-back-button {
+      justify-self: start;
+    }
+
+    .intro-next-button {
+      justify-self: end;
+    }
+
+    .inst-quad.bottom-left {
+      grid-area: auto / 2 / auto / 3;
+      justify-self: center;
+      margin-top: 0;
+      margin-bottom: 1.6rem;
+    }
+  }
+
+  .inst-arrow .the-arrow {
+    max-width: clamp(20px, calc(0.07 * var(--width)), 48px) !important;
+    max-height: clamp(20px, calc(0.07 * var(--height)), 48px) !important;
+  }
+
+  .inst-text {
+    font-size: clamp(0.9rem, min(1.6vw, 2.2vh), 1.3rem);
+  }
+
+  div.inst-quad.top-left, div.inst-quad.top-center, div.inst-quad.top-right {
+    margin-top: 1.75rem;
+  }
+
+  div.inst-quad.top-left {
+    grid-area: 1 / 1 / 2 / 2;
+  }
+
+  div.inst-quad.top-left .the-arrow {
+    transform: translateY(-5px) rotateZ(-60deg);
+  }
+
+  div.inst-quad.top-center {
+    grid-area: 1 / 2 / 2 / 3;
+    margin-bottom: auto;
+    align-items: center;
+    text-align: center;
+
+    .inst-text {
+      justify-content: center;
+    }
+  }
+
+  div.inst-quad.top-right {
+    grid-area: 1 / 3 / 2 / 4;
+  }
+
+  div.inst-quad.top-right .the-arrow {
+    transform: translateY(-5px) rotateZ(60deg);
+  }
 }
 
 #introduction-overlay {
@@ -5948,70 +5903,90 @@ body {
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
   height: fit-content;
-  // outline: 5px solid var(--accent-color);
-  border-radius: var(--normal-border-radius);
+  border: 1px solid var(--accent-color-2);
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  border-radius: var(--tight-border-radius);
 
   @media (max-width: 700px) {
     width: 95%;
-    padding: 1em;
+    padding: 4em 0.5em 0.5em;
   }
 
   @media (min-width: 701px) {
     width: 75%;
-    padding: 2em;
+    padding: 3.25em 1em 1em;
   }
 
   .span-accent {
     color: var(--accent-color);
   }
 
-  // rotated translucent background gradient
-  background: linear-gradient(45deg,
-                            rgb(14, 30, 40), 
-                            rgb(22, 50, 65), 
-                            rgb(30 70 90));
-
-  
   font-size: calc(1.1 * var(--default-font-size));
   line-height: var(--default-line-height);
 
   .v-list-item__prepend {
     margin-right: 0.75em;
+
+    > .v-icon ~ .v-list-item__spacer {
+      width: 0;
+    }
   }
-  
+
   .v-list-item {
     color: #eee;
   }
   
   .intro-text {
     color: white;
+    padding-inline: 1rem;
+
+    p {
+      margin-bottom: 0.5em;
+    }
   }
-  
+
   strong {
     color: white;
   }
-  
-  div#intro-bottom-controls {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
 
-    gap: 1em;
-    margin-top:0.5em;
+  .v-checkbox .v-label {
+    font-size: calc(1.1 * var(--default-font-size));
+    opacity: 1;
+  }
 
-    .v-btn.v-btn--density-default {
-        max-height: calc(1.6 * var(--default-line-height));
-      }  
+  @media (max-width: 500px) {
+    .intro-bottom-controls {
+      flex-direction: column;
+      align-items: stretch;
 
-    .v-btn--size-default {
-      font-size: calc(0.9 * var(--default-font-size));
-    }    
-  
-    #intro-next-button, #intro-back-button {
-      background-color: rgba(18, 18, 18,.5);
+      .intro-next-button {
+        align-self: flex-end;
+      }
     }
+  }
+}
+
+.intro-bottom-controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 1em;
+  margin-top:0.5em;
+
+  .v-btn.v-btn--density-default {
+      max-height: calc(1.6 * var(--default-line-height));
+    }
+
+  .v-btn--size-default {
+    font-size: calc(0.9 * var(--default-font-size));
+  }
+
+  .intro-next-button, .intro-back-button {
+    background-color: rgba(18, 18, 18,.5);
   }
 }
 
@@ -6046,11 +6021,6 @@ body {
   padding-right: 1rem;
   max-width: 235px;
 
-  // The popup is positioned via Vuetify's "connected" location strategy,
-  // which doesn't reactively re-track the activator button's position
-  // after a CSS media query (not a prop/data change) shifts it. #speed-control
-  // gets a 3rem left margin in landscape orientation, so mirror it here to
-  // keep the popup aligned above the button row instead of stuck 38px left.
   @media (orientation: landscape) {
     margin-left: 3rem;
   }
@@ -6067,12 +6037,6 @@ body {
   position: relative;
   gap: 5px;
 
-  // Below this width there isn't room for the popup to sit to the right of
-  // the toggle button without overlapping the play/pause row (and blocking
-  // it). Instead, stack the popup above the whole row with a 5px gap.
-  // position:static here (overriding the relative above) lets the popup's
-  // absolute positioning resolve against the play/pause row's own wrapper,
-  // not just this toggle button, so it centers over the full row.
   @media (max-width: 370px) {
     flex-grow: 0;
     position: static;
@@ -6112,11 +6076,6 @@ body {
     width: 100%;
 }
 
-// Styled to match #speed-text. top/left are set inline (see
-// updateEclipsedIndicatorPosition) relative to the WWT canvas
-// (#main-content, its positioning parent here) -- the exact placement
-// differs between wide and vertical screens. transform centers the
-// element itself on that computed point in both dimensions.
 #eclipse-percent-indicator {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -6132,9 +6091,6 @@ body {
   pointer-events: none;
 }
 
-// Top-right cluster: share, info, and controls, positioned under the
-// info+map container rather than overlapping its top edge. The open
-// controls panel (#control-checkboxes) stacks below the button row.
 #top-wwt-content {
   position: absolute;
   right: 0.5rem;
@@ -6143,9 +6099,6 @@ body {
   align-items: flex-end;
   gap: 5px;
 
-  // #main-content (the positioned ancestor here) already starts in
-  // normal flow right below the guided-content box -- these are small
-  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -6154,9 +6107,6 @@ body {
     top: 0.7rem;
   }
 
-  // Once it's closed, align with the closed Path & Weather button
-  // (#closed-top-container) instead — #left-buttons-wrapper's own .budge
-  // offset drops further still, to leave a gap below that button.
   &.budge {
     top: calc(var(--default-font-size) + 1px);
   }
@@ -6179,8 +6129,6 @@ body {
     right: 0.5rem;
   }
   
-  // Deliberately excluded from the unified icon-button size — this one
-  // stays small.
   .icon-wrapper {
     width: auto;
     height: auto;

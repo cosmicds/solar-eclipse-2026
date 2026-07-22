@@ -1,6 +1,15 @@
 import { D2R, R2D } from "@cosmicds/vue-toolkit";
 import { HorizontalRad, EquatorialRad } from "./types";
 
+export function round99(fraction: number): number {
+  const val = fraction * 100;
+  if (val >= 100) return 100;
+  const rounded1 = Math.round(val * 10) / 10;
+  if (rounded1 >= 99.9) return 99.9;
+  if (val > 99) return rounded1;
+  return Math.round(val);
+}
+
 export function toHMS(milliseconds: number): string {
   const seconds = milliseconds / 1000;
   let dur = '';

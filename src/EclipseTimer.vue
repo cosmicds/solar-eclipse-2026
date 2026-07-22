@@ -27,7 +27,7 @@
               underlined
               />:
           </td>
-          <td> {{ coverage < 0.01 ? '<1' :(coverage*100).toFixed(0) }}% </td>
+          <td> {{ coveragePercent }}% </td>
         </tr>
         <tr v-if="isTotal">
           <td>Totality Duration:</td>
@@ -89,7 +89,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { VBtnToggle } from 'vuetify/components/VBtnToggle';
 import { VBtn } from 'vuetify/components/VBtn';
 import DefineTerm from './DefineTerm.vue';
-import { toHMS, spaceHMS } from './utils';
+import { toHMS, spaceHMS, round99 } from './utils';
 
 const dayInMs = 1000 * 60 * 60 * 24;
 const hourInMs = 1000 * 60 * 60;
@@ -208,6 +208,9 @@ export default defineComponent({
     },
     coverage(): number {
       return this.prediction.coverage[0];
+    },
+    coveragePercent(): string {
+      return this.coverage < 0.01 ? '<1%' : `${round99(this.coverage)}%`;
     },
     
     eclipseDuration(): string {
