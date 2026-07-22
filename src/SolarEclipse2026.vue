@@ -2089,6 +2089,7 @@ export default defineComponent({
         boundRenderOneFrame(
           this.showHorizon,
           this.showSky,
+          this.skyOpacity,
         );
       };
       this.wwtControl.renderOneFrame = newFrameRender;
@@ -4240,9 +4241,7 @@ export default defineComponent({
     },
 
     sunPosition(pos: EquatorialRad & HorizontalRad) {
-
       this.updateSkyOpacityForSunAlt(pos.altRad);
-      return;
     },
     
     currentFractionEclipsed(_frac: number) {
