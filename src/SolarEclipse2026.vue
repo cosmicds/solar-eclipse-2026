@@ -4090,6 +4090,10 @@ export default defineComponent({
     showSplashScreen(val: boolean) {
       if (!val) {
         if (this.dontShowIntro) {
+          this.playing = true;
+          if (this.responseOptOut === null) {
+            this.showPrivacyDialog = true;
+          }
           return;
         }
         this.introSlide = 1;
