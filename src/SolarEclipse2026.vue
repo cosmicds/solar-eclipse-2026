@@ -5300,7 +5300,6 @@ body {
   width: calc(100% - 2*var(--margin));
   max-height: var(--top-content-max-height);
   min-height: var(--top-content-min-height);
-  align-items: center;
   gap: 0.5rem;
   // border-bottom: 1px solid var(--accent-color);
   background-color: #272727;
