@@ -900,7 +900,8 @@ function getmagnitude(): [number, SunBSR] {
   consoleDebug("getmagnitude");
   let a;
 
-  a = Math.floor(1000.0 * mid[37] + 0.5) / 1000.0;
+  // a = Math.floor(1000.0 * mid[37] + 0.5) / 1000.0;
+  a = mid[37];
   if (mid[40] == 1 || mid[40] == 4) {
     // below horizon
     return [a,'b'];
@@ -940,7 +941,8 @@ function getcoverage(): [number, SunBSR]{
       a = Math.PI - b - c;
       c = (mid[38] * mid[38] * a + b - mid[38] * Math.sin(c)) / Math.PI;
     }
-    a = Math.floor(1000.0 * c + 0.5) / 1000.0;
+    // a = Math.floor(1000.0 * c + 0.5) / 1000.0;
+    a = c;
   }
   if (mid[40] == 1 || mid[40] == 4) {
     // below horizon

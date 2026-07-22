@@ -1580,7 +1580,7 @@ import pointInPolygon from 'point-in-polygon';
 import { recalculateForObserverUTC } from "./eclipse_predict";
 import { EclipseData } from "./eclipse_types";
 import { sunPlace } from "./horizon_sky";
-import { spaceHMS } from './utils';
+import { spaceHMS, round99 } from './utils';
 import nso from './nso_coordinates';
 
 interface CloudData {
@@ -2202,6 +2202,7 @@ export default defineComponent({
         return '';
       }
       const { type, maxTime, duration, partialStart, centralStart, centralEnd, partialEnd } = this.eclipsePrediction;
+      console.log(this.eclipsePrediction.magnitude, this.eclipsePrediction.coverage, this.eclipsePrediction.type);
       if (type === '' || type === null || maxTime[0] === null) {
         return "No Eclipse";
       }
@@ -2237,7 +2238,7 @@ export default defineComponent({
         }
         const maxCoverage = this.eclipsePrediction.coverage[0];
         if (maxCoverage) {
-          return `Partial Eclipse\n(Max: ${Math.round(maxCoverage * 100)}%)`;
+          return `Partial Eclipse\n(Max: ${round99(maxCoverage)}%)`;
         }
         return "Partial Eclipse";
       }
@@ -2499,11 +2500,7 @@ export default defineComponent({
     },
 
     percentEclipsedText(): string {
-      let percentEclipsed = Math.round(this.currentFractionEclipsed*100);//.toFixed(0);
-      if (this.currentFractionEclipsed < 0.995 && percentEclipsed === 100) {
-        percentEclipsed = 99;
-      }
-      return `Eclipsed: ${percentEclipsed}%`;
+      return `Eclipsed: ${round99(this.currentFractionEclipsed)}%`;
     },
 
     inEclipse(): boolean | null {
