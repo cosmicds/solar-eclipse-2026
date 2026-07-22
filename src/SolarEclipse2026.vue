@@ -6171,17 +6171,15 @@ a {
   }
 
 .icon-wrapper {
-  box-sizing: border-box;
-  width: 35px;
-  height: 37px;
-  padding: 0;
-  border-radius: var(--normal-border-radius);
-  border: 2px solid var(--color);
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
+  box-sizing: border-box !important;
+  width: 35px !important;
+  height: 37px !important;
+  padding: 0 !important;
+  border-radius: var(--normal-border-radius) !important;
+  border: 2px solid var(--color) !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(6px) !important;
 }
-
-
 
 .rating-root {
   position: absolute !important;
