@@ -210,7 +210,7 @@ export default defineComponent({
       return this.prediction.coverage[0];
     },
     coveragePercent(): string {
-      return round99(this.coverage) + '%';
+      return this.coverage < 0.01 ? '<1%' : `${round99(this.coverage)}%`;
     },
     
     eclipseDuration(): string {

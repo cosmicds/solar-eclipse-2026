@@ -2238,7 +2238,7 @@ export default defineComponent({
         }
         const maxCoverage = this.eclipsePrediction.coverage[0];
         if (maxCoverage) {
-          return `Partial Eclipse\n(Max: ${round99(maxCoverage)}%)`;
+          return `Partial Eclipse\n(Max: ${maxCoverage < 0.01 ? '<1' : round99(maxCoverage)}%)`;
         }
         return "Partial Eclipse";
       }
@@ -2500,7 +2500,9 @@ export default defineComponent({
     },
 
     percentEclipsedText(): string {
-      return `Eclipsed: ${round99(this.currentFractionEclipsed)}%`;
+      const frac = this.currentFractionEclipsed;
+      const pct = frac < 0.01 ? '<1' : round99(frac);
+      return `Eclipsed: ${pct}%`;
     },
 
     inEclipse(): boolean | null {
