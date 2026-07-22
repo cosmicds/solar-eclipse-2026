@@ -36,18 +36,6 @@
     :class="{ 'no-height-transition': isResizingTopContainer }"
   >
     <div id="non-map-container" :style="nonMapContainerStyle">
-        <!-- On mobile, the box is closed via a small overlaid X in the
-             upper-right corner instead -- there's no room for both a
-             reserved-space close control and the title next to it. -->
-        <div
-          v-if="narrow"
-          class="dialog-close-button"
-          @click="() => { showGuidedContent = false; onResize(); }"
-          @keyup.enter="() => { showGuidedContent = false; onResize(); }"
-          tabindex="0"
-        >
-          <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
-        </div>
         <div id="title-row" class="non-map-row">
 
             <!-- In-flow (not overlaid) close control, so it always has its
@@ -70,14 +58,29 @@
 
             <div id="title">
               <span v-if="learnerPath=='Location'"
-                >Pick your spot!
+                >Who Sees Totality?
               </span>
               <span v-if="learnerPath=='Clouds'"
-                >Historical Weather
+                >Historical Cloud Data
               </span>
               <span v-if="!showNewMobileUI && learnerPath=='CloudDetail'"
                 >Explore Detailed Cloud Data
               </span>
+            </div>
+
+            <!-- On mobile, the box is closed via this X (in place of the
+                 desktop chevron above) instead -- there's no room for both
+                 a reserved-space close control and the title next to it.
+                 A flex sibling of the title (not an overlaid corner badge)
+                 so it lines up vertically with the title text itself. -->
+            <div
+              v-if="narrow"
+              class="dialog-close-button title-row-close-button"
+              @click="() => { showGuidedContent = false; onResize(); }"
+              @keyup.enter="() => { showGuidedContent = false; onResize(); }"
+              tabindex="0"
+            >
+              <font-awesome-icon icon="xmark" size="xl" :color="accentColor2"></font-awesome-icon>
             </div>
 
         </div>
@@ -87,6 +90,7 @@
             <div class="instructions-text" v-if="learnerPath=='Location'">
 
               <span class="description">
+                <p>The path of totality is displayed across the map as a gray band with a red center line.</p>
                 <p v-if="narrow">
                   Close this view to "watch" the eclipse from the location marked by the red dot on the map.
                 </p>
@@ -435,17 +439,18 @@
         <v-card class="no-bottom-border-radius scrollable">
           <v-card-text class="info-text no-bottom-border-radius">
             <v-container  id="user-guide">
+              <p style="font-size: calc(1.1 * var(--default-font-size))">
+                This Cosmic Data Story allows you to display the August 12, 2026 Total Solar Eclipse from any location.
+              </p>
               <v-checkbox
                 v-model="showIntroAtLaunch"
                 @keyup.enter="showIntroAtLaunch = !showIntroAtLaunch"
                 label="Show quickstart introduction when app opens"
                 :color="accentColor"
                 hide-details
-                class="mb-3"
+                density="compact"
+                class="mb-5 show-intro-checkbox"
               />
-              <p style="font-size: calc(1.1 * var(--default-font-size))" class="mb-5">
-                This Cosmic Data Story allows you to display the August 12, 2026 Total Solar Eclipse from any location.
-              </p>
               <v-row align="center">
               <v-col cols="4">
                   <v-chip
@@ -477,8 +482,33 @@
                   <div
                       style="min-height: 120px;"
                   >                   
+                    <h4 class="user-guide-header">Map Options:</h4>
+                    <p v-if="!showNewMobileUI">(Top of the screen)</p>
+                    <p v-else>
+                      (Tap <v-icon
+                        class="bullet-icon"
+                        icon="mdi-map-search"
+                        size="large">
+                      </v-icon> to open)
+                    </p>
+                    <ul class="text-list">
+                      <li>
+                        Type a location into the search box to find a specific location.
+                      </li>
+                      <li>
+                        {{ touchscreen ? "Tap" : "Click" }}
+                        <font-awesome-icon
+                          class="bullet-icon"
+                          icon="location-crosshairs"
+                          size="lg"
+                        ></font-awesome-icon> to view from <strong>My Location</strong>. (If icon is grayed out, consult your device's user guide to enable location services. This feature works most reliably on Chrome and might not be available on every browser+operating system combination.)
+                      </li>
+                    </ul>
+
+                    <v-divider thickness="2px" class="solid-divider"></v-divider>
+
                     <h4 class="user-guide-header">Time Controls:</h4>
-                    <p  class="mb-3">(Bottom of the screen)</p>
+                    <p>(Bottom of the screen)</p>
                     <p>
                       By default, time is moving forward at 500x the real speed. Time slows down to 10x the real speed as the eclipse approaches totality.
                     </p>
@@ -565,38 +595,13 @@
 
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
 
-                    <h4 class="user-guide-header">Map Options:</h4>
-                    <p v-if="!showNewMobileUI" class="mb-3">(Top of the screen)</p>
-                    <p v-else class="mb-3">
-                      (Tap <v-icon
-                        class="bullet-icon"
-                        icon="mdi-map-search"
-                        size="large">
-                      </v-icon> to open)
-                    </p>
-                    <ul class="text-list">
-                      <li class="mb-2">
-                        Type a location into the search box to find a specific location.
-                      </li>
-                      <li>
-                        {{ touchscreen ? "Tap" : "Click" }}
-                        <font-awesome-icon
-                          class="bullet-icon"
-                          icon="location-crosshairs"
-                          size="lg"
-                        ></font-awesome-icon> to view from <strong>My Location</strong>. (If icon is grayed out, consult your device's user guide to enable location services. This feature works most reliably on Chrome and might not be available on every browser+operating system combination.)
-                      </li>
-                    </ul>
-
-                    <v-divider thickness="2px" class="solid-divider"></v-divider>
-
                     <h4 class="user-guide-header">Location and Eclipse Status:</h4>
-                    <p  class="mb-3">(Upper-left of the screen)</p>
+                    <p>(Upper-left of the screen)</p>
                     <ul class="text-list">
-                      <li class="mb-2">
+                      <li>
                         Selected Location: the location currently displayed in the view.
                       </li>
-                      <li class="mb-2">
+                      <li>
                         Eclipse Status: The type of eclipse (total, partial, or no eclipse) visible from your selected location on August 12, 2026.
                         <ul>
                           <li class="ml-5">
@@ -620,9 +625,9 @@
                     <v-divider thickness="2px" class="solid-divider"></v-divider>
 
                     <h4 class="user-guide-header">Display Options:</h4>
-                    <p  class="mb-3">(Upper-right of the screen)</p>
+                    <p>(Upper-right of the screen)</p>
                     <ul class="text-list">
-                      <li class="mb-2">
+                      <li>
                         {{ touchscreen ? "Tap" : "Click" }} <font-awesome-icon
                               class="bullet-icon"
                               icon="sliders"
@@ -643,7 +648,7 @@
                           </li>
                         </ul>
                       </li>
-                      <li class="mb-2">
+                      <li>
                         {{ touchscreen ? "Tap" : "Click" }}
                         <font-awesome-icon
                           class="bullet-icon"
@@ -668,15 +673,15 @@
               </v-row>
               <div id="text-credits">
                 <h3>Credits:</h3>
-                <p class="mt-2">Atmospheric Physicist <a href="https://www.cfa.harvard.edu/people/caroline-nowlan" target="_blank" rel="noopener noreferrer">Caroline Nowlan</a> provided valuable guidance on interpreting the <a href="https://neo.gsfc.nasa.gov/view.php?datasetId=MYDAL2_E_CLD_FR&date=2023-04-07"  target="_blank" rel="noopener noreferrer">MODIS Cloud Cover</a> data.</p> 
+                <p>Atmospheric Physicist <a href="https://www.cfa.harvard.edu/people/caroline-nowlan" target="_blank" rel="noopener noreferrer">Caroline Nowlan</a> provided valuable guidance on interpreting the <a href="https://neo.gsfc.nasa.gov/view.php?datasetId=MYDAL2_E_CLD_FR&date=2023-04-07"  target="_blank" rel="noopener noreferrer">MODIS Cloud Cover</a> data.</p>
 
-                <p class="mt-3">The path of totality data are from <a href="https://svs.gsfc.nasa.gov/5123" target="_blank" rel="noopener noreferrer">NASA's Scientific Visualization Studio</a>.</p>
+                <p>The path of totality data are from <a href="https://svs.gsfc.nasa.gov/5123" target="_blank" rel="noopener noreferrer">NASA's Scientific Visualization Studio</a>.</p>
 
-                <p class="mt-3">Eclipse Timing Predictions are by <a href="https://eclipse.gsfc.nasa.gov/JSEX/JSEX-NA.html" target="_blank" rel="noopener noreferrer">Fred Espenak and Chris O'Byrne</a> (NASA's GSFC). <em>Adapted for TypeScript by CosmicDS Team</em></p>
-            
-                <p class="mt-3">Image of Sun is courtesy of NASA/SDO and the AIA, EVE, and HMI science teams.</p>
+                <p>Eclipse Timing Predictions are by <a href="https://eclipse.gsfc.nasa.gov/JSEX/JSEX-NA.html" target="_blank" rel="noopener noreferrer">Fred Espenak and Chris O'Byrne</a> (NASA's GSFC). <em>Adapted for TypeScript by CosmicDS Team</em></p>
 
-                <p class="my-3">This Cosmic Data Story is powered by WorldWide Telescope (WWT).</p>  
+                <p>Image of Sun is courtesy of NASA/SDO and the AIA, EVE, and HMI science teams.</p>
+
+                <p>This Cosmic Data Story is powered by WorldWide Telescope (WWT).</p>
 
                 <h4><a href="https://www.cosmicds.cfa.harvard.edu/" target="_blank" rel="noopener noreferrer">CosmicDS</a> Team:</h4> 
                 
@@ -913,12 +918,11 @@
 
   <!-- Opening Dialog Sequence -->
     <v-overlay
-      v-if="showNewMobileUI"
+      v-if="showNewMobileUI && introSlide === 2"
       v-model="inIntro"
       id="intro-overlay-mobile"
       opacity="1"
       :scrim="false"
-      :close-on-content-click="true"
       :style="cssVars"
       >
       <div class="instruction-overlay instruction-overlay-mobile elevation-10">
@@ -940,6 +944,26 @@
             <template v-if="onDayOfEclipse">New! Set time to "Now," or control time yourself!</template>
             <template v-else>Control time yourself!</template>
           </div>
+        </div>
+
+        <div class="intro-bottom-controls">
+          <v-btn
+            class="intro-back-button"
+            :color="accentColor"
+            @click="introSlide--"
+            elevation="0"
+            >
+            Back
+          </v-btn>
+
+          <v-btn
+            class="intro-next-button"
+            :color="accentColor"
+            @click="introSlide++"
+            elevation="0"
+            >
+            Let's go!
+          </v-btn>
         </div>
       </div>
     </v-overlay>
@@ -1002,7 +1026,7 @@
     </v-overlay>
 
     <v-dialog
-      v-if="!showNewMobileUI && introSlide === 1"
+      v-if="introSlide === 1"
       v-model="inIntro"
       id="intro-dialog"
       :style="cssVars"
@@ -1027,15 +1051,14 @@
           </template>
           <v-window-item :value="1">
             <div class="intro-text">
-              <p class="mb-5">
-              On August 12, 2026, parts of Europe will witness
-              a solar eclipse, where the Moon will appear to travel across the Sun, blocking out its light.
+              <p>
+              On August 12, 2026, a lucky stretch of Spain, Iceland, and Greenland will witness an awe-inspiring <b>total eclipse</b>.
               </p>
-              <p  class="mb-5">
-              A lucky stretch of Spain, Iceland, and Greenland will witness an awe-inspiring <b>total eclipse</b>. Other parts of Europe will still see a <em>partial</em> eclipse, where the Moon blocks out some, but not all of the Sun's light.
+              <p>
+               Other parts of Europe will see a <em>partial</em> eclipse, where the Moon blocks out some, but not all of the Sun's light.
               </p>
-              <p class="mb-5">
-              See what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
+              <p>
+              Choose your location on the map to see what the eclipse will look like where you are, and what the average cloud coverage has been during the week of August 12 from 2003&#8211;2023.
               </p>
             </div>
           </v-window-item>
@@ -2376,13 +2399,6 @@ export default defineComponent({
       };
     },
     topContainerStyle() {
-      // On mobile the guided-content box is always a full-screen overlay
-      // (see .mobile-fullscreen) -- a custom height dragged in from a
-      // previous desktop session (or an earlier drag of the outer resize
-      // handle) would otherwise pin it to a stale, much shorter height via
-      // this inline style, which outranks the CSS 100% override and left
-      // a visible gap between the box's bottom border and the true bottom
-      // of the screen.
       if (this.narrow || this.topContainerCustomHeight === null) {
         return {};
       }
@@ -2390,8 +2406,6 @@ export default defineComponent({
       return { height, minHeight: height, maxHeight: height };
     },
     nonMapContainerStyle() {
-      // Mobile stacks non-map-container above map-column (flex-direction:
-      // column), so flex-basis there governs height instead of width.
       if (this.narrow) {
         if (this.nonMapContainerMobileHeightPercent === null) {
           return {};
@@ -4076,13 +4090,11 @@ export default defineComponent({
 
     showSplashScreen(val: boolean) {
       if (!val) {
-        if (this.dontShowIntro && !this.showNewMobileUI) {
+        if (this.dontShowIntro) {
           return;
         }
+        this.introSlide = 1;
         this.inIntro = true;
-        if (this.showNewMobileUI) {
-          this.introSlide = 2;
-        }
       }
     },
 
@@ -4310,13 +4322,7 @@ body:not(.keyboard-focus-only) textarea:focus-visible {
 .icon-wrapper.active:focus {
   box-shadow: 0 0 10px 3px var(--active-shadow) !important;
 }
-
-// Remove oreo focus styling from the Information/User Guide dialog, and
-// from the intro dialog/overlay -- Vuetify focuses .v-overlay__content
-// itself when either opens (for a11y), but that wrapper collapses to
-// near-zero height (its real content is positioned inside it), so the
-// outline rendered a full-width, few-pixels-tall bar instead of framing
-// anything meaningful.
+ g
 #text-bottom-sheet .v-overlay__content:focus-visible,
 #intro-dialog .v-overlay__content:focus-visible,
 #intro-overlay-mobile .v-overlay__content:focus-visible {
@@ -4324,9 +4330,6 @@ body:not(.keyboard-focus-only) textarea:focus-visible {
   box-shadow: none !important;
 }
 
-// A thin, subdued scrollbar that only takes up visible space once there's
-// something to scroll (overflow: auto, not scroll), but still reserves its
-// track via scrollbar-gutter so content doesn't reflow when it appears.
 .thin-scrollbar() {
   overflow-y: auto;
   scrollbar-gutter: stable;
@@ -4358,10 +4361,6 @@ html {
   overflow-y: hidden !important; 
   -ms-overflow-style: none;
 
-  // We don't want a scrollbar for the overall canvas.
-  // NOTE: this must use "&" so it compiles to "html::-webkit-scrollbar"
-  // (this element's own scrollbar) rather than "html ::-webkit-scrollbar",
-  // a descendant selector that would hide every scrollbar on the page.
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
@@ -4509,8 +4508,6 @@ body {
   }
 }
 
-// Top-left cluster: location label + eclipse-timer button, positioned
-// under the info+map container rather than overlapping its top edge.
 #left-buttons-wrapper {
   position: absolute;
   left: 1rem;
@@ -4520,9 +4517,6 @@ body {
   width: fit-content;
   align-items: flex-start;
 
-  // #main-content (the positioned ancestor here) already starts in
-  // normal flow right below the guided-content box -- these are small
-  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -4535,16 +4529,10 @@ body {
     left: 0.5rem;
 
     @media (max-width: 599px) {
-      // No standalone Path & Weather button to clear on mobile (it's
-      // hidden there -- see #closed-top-container) -- align with the
-      // top-right button cluster's own closed-state offset instead.
       top: calc(var(--default-font-size) + 1px);
     }
 
     @media (min-width: 600px) {
-      // Bumped from 3.5rem — at desktop font sizes the closed Map &
-      // Weather button is tall enough that 3.5rem left no visible gap
-      // below it (unlike the narrower mobile offset above).
       top: 4.3rem;
     }
   }
@@ -4567,15 +4555,9 @@ body {
     gap: 5px;
   }
 
-  // Styled to match the location-button box from the Seasons data story:
-  // dark background, accent-colored border, bold location name with
-  // unbolded details underneath.
   #location-status-box {
     pointer-events: auto;
 
-    // Clickable on mobile (opens the map), not on desktop -- the hover
-    // border-color change below implied clickability there even though
-    // nothing happened, so it's suppressed along with the click handler.
     &.non-interactive {
       pointer-events: none;
     }
@@ -4588,9 +4570,6 @@ body {
     padding: 0.5rem;
     font-size: calc(0.9 * var(--default-font-size));
     text-align: center;
-    // Fixed width so the box doesn't grow/shrink with the length of the
-    // location name — long names wrap instead (max-width guards against
-    // overflow on very narrow screens).
     width: 10rem;
     max-width: 70vw;
     transition: border-color 0.2s ease;
@@ -4606,24 +4585,16 @@ body {
     .location-status-name {
       font-size: calc(0.95 * var(--default-font-size));
       margin-bottom: 0.25rem;
-      // Lets the "\n" in the plain lat/long fallback (no place name found)
-      // render as an actual line break: latitude on one line, longitude
-      // on the next, instead of one long wrapped/truncated line.
       white-space: pre-line;
     }
 
     .eclipse-status-line {
-      // Lets the "\n" before "(Xm Ys of totality)" in the computed text
-      // actually render as a line break.
       white-space: pre-line;
-      // Same vertical space as between the location name and this line.
       margin-block: 0.25rem;
     }
   }
 
   pointer-events: auto;
-
-  // Sizing/border now come from the unified .icon-wrapper rule.
 }
 
 
@@ -4701,20 +4672,13 @@ body {
     flex-direction: column;
     align-items: stretch;
   }
-
-  // Sizing now comes from the unified .icon-wrapper rule.
 }
 
 #controls {
-  // Just the toggle icon-button now -- the panel itself
-  // (#control-checkboxes) is a sibling that appears below the whole
-  // top-right button cluster instead of expanding inline here.
   display: flex;
   pointer-events: auto;
 }
 
-// The open controls panel, positioned below the top-right button
-// cluster (#top-right-buttons) by normal flow inside #top-wwt-content.
 #control-checkboxes {
   display: flex;
   flex-direction: column;
@@ -4861,9 +4825,6 @@ body {
     right: 1.75rem;
     color: var(--accent-color-2);
     font-size: min(8vw, 5vh);
-    // Sized in em (not just the "x" glyph's own, narrower-than-tall advance
-    // width/line-height) so the box -- and its keyboard focus outline --
-    // is a clean square instead of a tall, skinny rectangle.
     width: 1em;
     height: 1em;
     line-height: 1;
@@ -4915,11 +4876,6 @@ body {
   }
 }
 
-
-// Vuetify assigns each opened overlay an incrementing z-index, so whichever
-// of the Information dialog / speed control popup was opened more recently
-// would otherwise win. Pin the Information dialog above regardless of
-// open order.
 #text-bottom-sheet {
   z-index: 9999 !important;
 }
@@ -4950,6 +4906,9 @@ body {
   }
   #main-info-text {
     padding-inline: 0.5em;
+    p {
+      margin-bottom: 0.5em;
+    }
   }
 
   #safety-warning{
@@ -5025,11 +4984,6 @@ body {
     padding: unset;
     margin: unset;
 
-    // Vuetify's own default dialog sizing (width AND max-width both
-    // calc(100% - 48px), a fixed 24px margin per side -- overriding
-    // only width leaves max-width still clamping it right back down)
-    // leaves too little room on very narrow screens for the two tab
-    // labels + close button below to fit without overlapping.
     @media (max-width: 400px) {
       width: calc(100% - 16px) !important;
       max-width: calc(100% - 16px) !important;
@@ -5041,17 +4995,11 @@ body {
     width: 100%;
 
     align-self: center;
-    // Thin border all around, then the thicker dark accent stripe
-    // specifically along the bottom edge overrides just that one side.
     border: 1px solid var(--accent-color-2);
     border-bottom: solid #212121 0.5em;
   }
 
   #tabs {
-    // The tab bar sat flush against the card's own top-left corner, which
-    // clips overflow -- leaving the oreo focus ring no room to render.
-    // Inset the bar slightly and lift it above its sibling; there are
-    // only ever these two short tabs, so there's no visual loss.
     width: calc(100% - 3em - 12px);
     margin: 12px 0 12px 12px;
     align-self: left;
@@ -5059,27 +5007,15 @@ body {
     z-index: 1;
     overflow: visible !important;
 
-    // v-tabs' own slide-group scaffolding also clips overflow at the
-    // bar's own height regardless of the overflow property above --
-    // .v-slide-group__container additionally sets `contain: content`,
-    // and paint containment clips descendant painting (the ring)
-    // independent of `overflow`, so it has to be disabled explicitly too.
     .v-slide-group__container {
       overflow: visible !important;
       contain: none !important;
     }
 
-    // Tabs otherwise sit flush against each other -- give them a little
-    // breathing room so the two labels aren't crowded together on narrow
-    // screens.
     .v-slide-group__content {
       gap: 0.5em;
     }
 
-    // Each v-tab otherwise renders at Vuetify's own default min-width
-    // regardless of how narrow #tabs itself is, which is what actually
-    // overflowed past the card and under the close button -- shrink the
-    // padding/font and let them size to content instead.
     .info-tabs {
       min-width: 0;
       padding-inline: 0.5em;
@@ -5125,21 +5061,19 @@ body {
     font-size: var(--default-font-size);
     line-height: calc(1.1 * var(--default-line-height));
 
-    // On narrow screens each bullet's text wraps across multiple lines,
-    // and the default line-height above reads as cramped once wrapped
-    // lines from adjacent bullets sit this close together.
-    @media (max-width: 600px) {
-      .text-list {
-        line-height: calc(1.5 * var(--default-line-height));
-      }
+    .text-list li {
+      margin-bottom: 0.5em;
     }
 
-    // Desktop bullets rarely wrap, but sat a little too close together
-    // even so -- a smaller bump than the wrapped-line mobile case above.
-    @media (min-width: 601px) {
-      .text-list {
-        line-height: calc(1.25 * var(--default-line-height));
-      }
+    .text-list li + li {
+      margin-bottom: 0.5em;
+    }
+    .text-list ul {
+      margin-top: 0.5em;
+    }
+
+    p {
+      margin-bottom: 0.5em;
     }
 
     .v-chip {
@@ -5150,6 +5084,7 @@ body {
 
     .user-guide-header {
       margin-top: 1rem;
+      margin-bottom: 0.2em;
       color: var(--accent-color);
       font-size: calc(1.2 * var(--default-font-size));
     }
@@ -5157,7 +5092,12 @@ body {
     .user-guide-emphasis-white {
       font-weight: bold;
     }
-    
+
+    .show-intro-checkbox .v-label {
+      font-size: var(--default-font-size);
+      opacity: 1;
+    }
+
     .solid-divider {
       margin-top: 1rem;
       color: var(--sky-color);
@@ -5166,30 +5106,17 @@ body {
   }
 }
 
-// A real, solidly-sized clickable box rather than a bare icon enlarged via
-// negative margin/padding — some mobile browsers (Safari in particular)
-// only hit-test the icon's painted SVG content, not that kind of CSS-only
-// hit-area expansion, so taps near the edge of the icon can miss entirely.
 .dialog-close-button {
   position: absolute;
-  // Flush against the card's own corner left no room for the oreo focus
-  // ring, which got clipped by the card's own overflow on the top/right
-  // edges. Inset it slightly instead.
   top: 6px;
   right: 6px;
   z-index: 1;
-  // At least Apple/Google's recommended ~44px minimum touch target —
-  // the icon itself is much smaller, but the tap target shouldn't be.
   min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  // Tells the browser this element is a simple tap target, so it doesn't
-  // wait to see if a second tap is coming (double-tap-to-zoom) before
-  // committing to the click — that wait is a common source of taps that
-  // "look right" but silently don't register on mobile.
   touch-action: manipulation;
 }
 
@@ -5216,7 +5143,6 @@ body {
   }
 }
 
-// Styling the slider
 #slider .v-slider {
   .v-slider-track {
     // --v-slider-track-size: 4px !important;
@@ -5242,8 +5168,6 @@ body {
     }
   }
   
-
-  // Styled to match the time-slider flag from the Seasons data story.
   .v-slider-thumb__label {
     min-width: fit-content;
     white-space: nowrap;
@@ -5265,10 +5189,6 @@ body {
     }
   }
 
-  // Vuetify's pointer/wedge is a real child element (.v-slider-thumb__label-wedge),
-  // not a ::before pseudo-element, and it just inherits the label's background.
-  // Give it the accent-color border by stacking a smaller dark triangle over a
-  // solid accent-color one, mimicking a mitered continuation of the label's border.
   .v-slider-thumb__label-wedge {
     background: var(--accent-color);
 
@@ -5285,13 +5205,6 @@ body {
 }
 
 #slider {
-  // The time label (.v-slider-thumb__label) is centered on the thumb and
-  // stays put at min-width: fit-content -- when the thumb sits at either
-  // end of the track, half the label's width extends past the track's own
-  // edge. Without side margin here, that overhang runs off the edge of
-  // the screen instead of just the track. Width has to shrink by the same
-  // amount the margins add, since a flex item's own `width` isn't reduced
-  // automatically to make room for its margins.
   width: calc(100% - 11rem) !important;
   margin-left: 5.5rem;
   margin-right: 5.5rem;
@@ -5333,27 +5246,9 @@ body {
   }
 
 #guided-content-wrapper {
-  // #top-container-resize-handle used to be a child of
-  // #guided-content-container, positioned bottom:0 against it -- but
-  // that container's overflow-y: auto (needed for its own scrollable
-  // text content) clipped the handle's keyboard focus ring right at
-  // the same edge, with no room to render. Moved the handle out to be
-  // a sibling here instead, so it escapes that clipping. This wrapper's
-  // own box includes the container's outer margin (below), so --margin
-  // is hoisted up here for the handle to also offset by, keeping it
-  // flush against the container's actual bottom border rather than the
-  // outer edge of its margin.
   --margin: 0.5rem;
   position: relative;
 
-  // On mobile, while open, becomes a full-screen overlay covering the
-  // WWT canvas and all its floating buttons. This is also what fixes the
-  // map appearing blank on mobile: #map-column's flex-grow only has
-  // real remaining space to grow into once this wrapper (and, via the
-  // 100% overrides below, #guided-content-container itself) has a
-  // genuinely definite height -- the container's own calc(100% - 1rem)
-  // needs a definite-height ancestor to resolve against, and one was
-  // never available before (the wrapper had no explicit height either).
   @media (max-width: 600px) {
     &.mobile-fullscreen {
       position: fixed;
@@ -5372,13 +5267,6 @@ body {
 }
 
 #guided-content-container {
-  // Fixed (min == max, rather than fit-content) so the box is the same
-  // height on both the "Pick your spot" and "Historical Weather" tabs
-  // instead of visibly resizing when switching between them. The 340px
-  // floor is tall enough for the weather tab's text + cloud-cover readout
-  // to fit without an internal scrollbar, and for the map (fixed zoom,
-  // centered between Iceland and the path in Spain) to show both without
-  // cropping either one.
   --top-content-max-height: max(340px, 35vh);
   --top-content-min-height: var(--top-content-max-height);
   z-index: 400;
@@ -5553,20 +5441,16 @@ body {
     #hide-guided-content-button {
       flex: 0 0 auto;
       border: none;
-      // The global .icon-wrapper rule hardcodes a dark translucent
-      // background regardless of the icon-button's own background-color
-      // prop (that prop only sets an inline --background-color CSS var,
-      // which .icon-wrapper's background never reads) -- override it
-      // directly here so this specific chevron stays transparent.
       background: transparent;
+    }
+
+    .title-row-close-button {
+      position: static;
+      flex: 0 0 auto;
     }
   }
   
   #instructions-row {
-    // Grows to fill the space between the title row (pinned top) and the
-    // button row (pinned bottom) when non-map-container is taller than its
-    // content -- blank space inside the box is fine, the text itself stays
-    // top-aligned via #top-container-main-text's own layout below.
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
@@ -5593,7 +5477,7 @@ body {
         .thin-scrollbar();
 
         padding-inline: 0.7em;
-        padding-block: 0.4em; // this plus the margin on p give .7 em on top and bottom
+        padding-block: 0.4em;
 
         // span
         .description {
@@ -5601,9 +5485,9 @@ body {
           color: white;
           text-align: left;
           user-select: text;
-          
+
           p {
-            margin-block: .3em;
+            margin-bottom: 0.5em;
           }
         }
 
@@ -5635,12 +5519,6 @@ body {
         &.active {
           border: 2px solid var(--sky-color);
 
-          // .icon-wrapper:focus (global rule, below) forces border-color
-          // back to --color with !important to suppress vue-toolkit's own
-          // built-in focus-color flash -- that also clobbers this active
-          // border the instant a button is clicked/focused, since
-          // !important wins regardless of specificity. Restate it here,
-          // also !important, so the active button stays blue on focus.
           &:focus {
             border-color: var(--sky-color) !important;
           }
@@ -5655,20 +5533,12 @@ body {
 
 }
 
-// A sibling of #guided-content-container now (see #guided-content-wrapper
-// above) rather than a child, so its focus ring isn't clipped by that
-// container's own overflow-y: auto.
 #top-container-resize-handle {
   position: absolute;
   left: 0;
   right: 0;
-  // Offset by the wrapper's --margin so this sits flush against the
-  // container's own bottom border, not the outer edge of its margin.
   bottom: var(--margin);
   height: 10px;
-  // Now a sibling of #guided-content-container (z-index: 400) rather
-  // than a child, so it has to outrank that z-index directly to avoid
-  // being painted over and losing pointer events in their overlap area.
   z-index: 401;
   cursor: row-resize;
   touch-action: none;
@@ -5694,33 +5564,12 @@ body {
 #map-column { // v-col
   position: relative;
   --map-edge-gap: 4px;
-  // #guided-content-container has no explicit `height` (only min/max, to
-  // stay fit-content-sized) and uses align-items: center rather than
-  // stretch, so this column's own `height: 100%` had no definite parent
-  // height to resolve against -- it (and, cascading down, the Leaflet map
-  // inside it) collapsed to 0 until something else (dragging the resize
-  // handle) happened to hand the row an explicit height. align-self:
-  // stretch sizes this one item to the row's actual (content-determined)
-  // cross size directly, independent of that -- but only takes effect
-  // if this item's own cross-size property is auto, not an (even if
-  // unresolvable) explicit value, hence dropping `height: 100%` entirely
-  // rather than just adding align-self alongside it.
   align-self: stretch;
   width: 100%;
   min-height: 0;
   // outline: 1px solid red;
 
   #map-container {
-    // #map-column is itself a column flex container, and its own height
-    // only counts as "definite" for a percentage-height child like this
-    // one when it was resolved via align-self/items: stretch (a cross-
-    // axis size) -- on mobile #map-column's height instead comes from
-    // its own flex-grow (a main-axis size in that column context), which
-    // the flex spec does NOT carry through as definite to descendants.
-    // height: 100% silently failed there, collapsing this to its own
-    // near-zero content height. flex-grow sidesteps percentage
-    // resolution entirely and works in both the row (desktop) and
-    // column (mobile) cases.
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
@@ -5729,21 +5578,11 @@ body {
     position: relative;
 
     display: flex;
-    // LocationSelector's own root (.map-container, lowercase -- a
-    // different element than this #map-container wrapper) has an
-    // explicit height: 100% that needs this to be align-items: stretch
-    // (not center) to resolve at all -- same reasoning as #map-column
-    // above, one level deeper.
     align-items: stretch;
     justify-content: center;
 
-
-    // Small, consistent margin from the small map's own edges for all
-    // overlay buttons below.
     --map-overlay-margin: 0.5em;
 
-    // Location details (mobile only, no date -- see the template comment)
-    // stacked directly above the search box, both anchored bottom-left.
     .map-bottomleft-stack {
       position: absolute;
       z-index: 600;
@@ -5764,30 +5603,19 @@ body {
       padding: 0.35em 0.5em;
       font-size: calc(0.8 * var(--default-font-size));
       text-align: center;
-      // Narrower than #location-status-box (the WWT-canvas version of
-      // this box) -- this one sits over the small map, where space is
-      // tighter -- but still fixed, so it doesn't grow/shrink with the
-      // length of the location name.
       width: 8rem;
       max-width: 70vw;
 
       .location-status-name {
         font-size: calc(0.9 * var(--default-font-size));
-        // Lets the "\n" in the plain lat/long fallback (no place name
-        // found) render as an actual line break: latitude on one line,
-        // longitude on the next.
         white-space: pre-line;
       }
 
       .eclipse-status-line {
-        // Lets the "\n" before "(Xm Ys of totality)" in the computed
-        // text actually render as a line break, same as the top-left
-        // cluster's own copy of this text.
         white-space: pre-line;
       }
     }
 
-    // "Use my location", bottom-right corner of the small map.
     #my-location-overmap-button {
       position: absolute;
       z-index: 600;
@@ -5795,14 +5623,6 @@ body {
       right: var(--map-overlay-margin);
     }
 
-    // Eclipse-timer button + "reset to Antiguita, Spain" (below it),
-    // stacked in the top-right corner of the small map (mobile only --
-    // desktop keeps its own eclipse-timer copy in the top-left cluster).
-    // Leaflet's own attribution control now also lives in that same
-    // top-right corner (see LocationSelector.vue's
-    // map.attributionControl.setPosition('topright')) -- clear its
-    // "Credit: © Leaflet.js" label by the same small margin instead of
-    // sitting flush against the map's top edge.
     .map-topright-stack {
       position: absolute;
       z-index: 600;
@@ -5858,30 +5678,15 @@ body {
   color: var(--accent-color);
   width: 1.5em;
 
-  // Vuetify sets opacity: var(--v-medium-emphasis-opacity) (0.7 in the
-  // dark theme) on any real <v-icon> used as a list-item prepend/append
-  // icon, washing out its color -- font-awesome icons aren't .v-icon
-  // components, so they're unaffected. Match specificity so this wins
-  // regardless of source order.
   &.v-icon {
     opacity: 1;
   }
 }
 
-// Shared chrome/grid for the arrow-callout intro overlays -- the mobile
-// variant (below) and the desktop variant (further down, near
-// #introduction-overlay-desktop) both apply this class, adding their own
-// modifier class for position/size, since those differ enough (desktop's
-// real UI clusters sit in different places than mobile's) that they can't
-// share a single set of top/left/width/height values.
 .instruction-overlay {
   position: relative;
   display: grid;
   min-height: max-content;
-  // Equal columns now that both quadrants' text wraps to similarly-short
-  // lines -- the old 1.35fr right column (sized for longer text) shifted
-  // that quadrant's content further right, making the close X (centered
-  // on the overall box) look off-center relative to the two quadrants.
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 0.5fr 0.5fr;
   gap: 1em;
@@ -5932,9 +5737,6 @@ body {
     grid-area: 1 / 1 / 2 / 2;
     margin-bottom: auto;
     .the-arrow {
-      // Mirror image of top-right's rotateZ(30deg) -- same angle off
-      // vertical, opposite direction, so it points diagonally toward
-      // this quadrant's own top-left corner instead of straight left.
       transform: translateY(-5px) rotateZ(-30deg);
     }
   }
@@ -5993,6 +5795,8 @@ body {
   width: var(--width);
   height: var(--height);
 
+  grid-template-rows: 0.5fr 0.5fr auto;
+
   .inst-arrow .the-arrow {
     max-width: calc(0.1 * var(--width)) !important;
     max-height: calc(0.1 * var(--height)) !important;
@@ -6003,7 +5807,16 @@ body {
   }
 
   div.inst-quad.bottom-left {
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .intro-bottom-controls {
+    grid-area: 3 / 1 / 4 / 3;
+    margin-top: 0;
+
+    .v-btn {
+      padding-inline: 8px;
+    }
   }
 }
 
@@ -6044,9 +5857,6 @@ body {
     }
   }
 
-  // Both of these were unbounded vw/vh-based sizes -- fine on typical
-  // laptop screens, but with no upper bound they just keep growing on
-  // very wide/tall monitors.
   .inst-arrow .the-arrow {
     max-width: clamp(20px, calc(0.07 * var(--width)), 48px) !important;
     max-height: clamp(20px, calc(0.07 * var(--height)), 48px) !important;
@@ -6056,13 +5866,6 @@ body {
     font-size: clamp(0.9rem, min(1.6vw, 2.2vh), 1.3rem);
   }
 
-  // Same-size gap above the top row of arrows as the (now halved) card
-  // padding gives the bottom-controls row on its sides/bottom. The rotated
-  // arrow icons' own bounding boxes overflow well above their layout box
-  // (rotateZ() on a diagonal icon extends the rendered shape past its
-  // un-rotated box), so this margin has to be much bigger than the actual
-  // visible gap it produces -- calibrated against the rendered result,
-  // not the box model alone.
   div.inst-quad.top-left, div.inst-quad.top-center, div.inst-quad.top-right {
     margin-top: 1.75rem;
   }
@@ -6071,11 +5874,6 @@ body {
     grid-area: 1 / 1 / 2 / 2;
   }
 
-  // The desktop share/info/controls cluster sits close to the same height
-  // as this box's top edge, but far off to the right (not up-and-over the
-  // way mobile's equivalent cluster is) -- mobile's ~30deg-off-vertical
-  // angle would point well short of it, so aim these two flatter, more
-  // sideways than up, to actually reach toward their real targets.
   div.inst-quad.top-left .the-arrow {
     transform: translateY(-5px) rotateZ(-60deg);
   }
@@ -6106,24 +5904,19 @@ body {
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
   height: fit-content;
-  // Matches the arrow-callout overlay's own card styling, so both intro
-  // slides read as the same object rather than two different designs.
   border: 1px solid var(--accent-color-2);
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(5px);
   border-radius: var(--tight-border-radius);
 
-  // Top padding is left at its original size (unlike bottom/sides) since
-  // shrinking it too pulls the text right up against the close button in
-  // the corner.
   @media (max-width: 700px) {
     width: 95%;
-    padding: 1em 0.5em 0.5em;
+    padding: 4em 0.5em 0.5em;
   }
 
   @media (min-width: 701px) {
     width: 75%;
-    padding: 2em 1em 1em;
+    padding: 3.25em 1em 1em;
   }
 
   .span-accent {
@@ -6136,10 +5929,6 @@ body {
   .v-list-item__prepend {
     margin-right: 0.75em;
 
-    // Vuetify reserves an extra 32px spacer after a <v-icon> specifically
-    // (not after a plain font-awesome <svg>), so an mdi bullet icon here
-    // would otherwise sit further from its text than its font-awesome
-    // siblings in the same bullet list.
     > .v-icon ~ .v-list-item__spacer {
       width: 0;
     }
@@ -6152,15 +5941,33 @@ body {
   .intro-text {
     color: white;
     padding-inline: 1rem;
+
+    p {
+      margin-bottom: 0.5em;
+    }
   }
-  
+
   strong {
     color: white;
   }
+
+  .v-checkbox .v-label {
+    font-size: calc(1.1 * var(--default-font-size));
+    opacity: 1;
+  }
+
+  @media (max-width: 500px) {
+    .intro-bottom-controls {
+      flex-direction: column;
+      align-items: stretch;
+
+      .intro-next-button {
+        align-self: flex-end;
+      }
+    }
+  }
 }
 
-// Shared by both intro cards' Back/Next/Get Started row -- the text
-// dialog's own and the arrow-callout overlay's.
 .intro-bottom-controls {
   display: flex;
   flex-direction: row;
@@ -6215,11 +6022,6 @@ body {
   padding-right: 1rem;
   max-width: 235px;
 
-  // The popup is positioned via Vuetify's "connected" location strategy,
-  // which doesn't reactively re-track the activator button's position
-  // after a CSS media query (not a prop/data change) shifts it. #speed-control
-  // gets a 3rem left margin in landscape orientation, so mirror it here to
-  // keep the popup aligned above the button row instead of stuck 38px left.
   @media (orientation: landscape) {
     margin-left: 3rem;
   }
@@ -6236,12 +6038,6 @@ body {
   position: relative;
   gap: 5px;
 
-  // Below this width there isn't room for the popup to sit to the right of
-  // the toggle button without overlapping the play/pause row (and blocking
-  // it). Instead, stack the popup above the whole row with a 5px gap.
-  // position:static here (overriding the relative above) lets the popup's
-  // absolute positioning resolve against the play/pause row's own wrapper,
-  // not just this toggle button, so it centers over the full row.
   @media (max-width: 370px) {
     flex-grow: 0;
     position: static;
@@ -6281,11 +6077,6 @@ body {
     width: 100%;
 }
 
-// Styled to match #speed-text. top/left are set inline (see
-// updateEclipsedIndicatorPosition) relative to the WWT canvas
-// (#main-content, its positioning parent here) -- the exact placement
-// differs between wide and vertical screens. transform centers the
-// element itself on that computed point in both dimensions.
 #eclipse-percent-indicator {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -6301,9 +6092,6 @@ body {
   pointer-events: none;
 }
 
-// Top-right cluster: share, info, and controls, positioned under the
-// info+map container rather than overlapping its top edge. The open
-// controls panel (#control-checkboxes) stacks below the button row.
 #top-wwt-content {
   position: absolute;
   right: 0.5rem;
@@ -6312,9 +6100,6 @@ body {
   align-items: flex-end;
   gap: 5px;
 
-  // #main-content (the positioned ancestor here) already starts in
-  // normal flow right below the guided-content box -- these are small
-  // offsets from THAT edge, not from the top of the screen.
   @media (max-width: 599px) {
     top: 2.5rem;
   }
@@ -6323,9 +6108,6 @@ body {
     top: 0.7rem;
   }
 
-  // Once it's closed, align with the closed Path & Weather button
-  // (#closed-top-container) instead — #left-buttons-wrapper's own .budge
-  // offset drops further still, to leave a gap below that button.
   &.budge {
     top: calc(var(--default-font-size) + 1px);
   }
@@ -6348,8 +6130,6 @@ body {
     right: 0.5rem;
   }
   
-  // Deliberately excluded from the unified icon-button size — this one
-  // stays small.
   .icon-wrapper {
     width: auto;
     height: auto;
