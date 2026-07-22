@@ -5228,7 +5228,7 @@ body {
 }
 
 .v-container {
-  max-width: 100%;
+  max-width: 100% !important;
 }
 
 #closed-top-container {
