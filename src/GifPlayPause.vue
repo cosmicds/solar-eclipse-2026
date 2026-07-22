@@ -118,7 +118,6 @@ export default defineComponent({
 
 
 .wcag-gif-container {
-  /* display: inline-block; */
   display: flex;
   position: relative;
   width: 100%;
@@ -156,11 +155,6 @@ export default defineComponent({
   left: 50%;
   transform: translate(-50%, -50%);
 }
-
-/* .wcag-gif-container summary:focus {
-  box-shadow: 0 0 0 0.25rem #aade87;
-  outline: transparent;
-} */
 
 .wcag-gif-container .wcag-gif-container1 img {
   display: inline-block;

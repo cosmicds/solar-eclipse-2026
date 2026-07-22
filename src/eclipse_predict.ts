@@ -51,7 +51,6 @@ TODO:
 
 import { EclipseForm, Observer, SunBSR,BSRArray, EclipseData, NoEclipseData, PartialEclipseData, TotalAnnularEclipseData } from "./eclipse_types";
 import { SE2026 } from "./SE2026";
-// export { EclipseForm, Observer, SunBSR,BSRArray, EclipseData, SE2026 };
 //
 // Observer constants -
 // (0) North Latitude (radians)
@@ -161,7 +160,10 @@ let eclipseform = {
   loc_name: "San Diego",
 } as EclipseForm;
 
-
+// default in code is -0.00524 or -0.3 Degrees. 
+const SUN_REFRACTION_CORRECTION = 0; // radians 
+// if these were 0, sunrise/sunset would be the moment the sun's center cross altitude = 0
+// so setting this to -0.5 * Math.PI / 180.0 would make sunrise/sunset the moment the top of the sun crosses altitude = 0
 
 
 //
@@ -447,7 +449,7 @@ function observational(circumstances: any[]) {
     circumstances[5] * coslat - circumstances[18] * sinlat * circumstances[6]
   );
   // Calculate visibility
-  if (circumstances[32] > -0.00524) {
+  if (circumstances[32] > SUN_REFRACTION_CORRECTION) {
     circumstances[40] = 0;
   } else {
     circumstances[40] = 1;
@@ -496,7 +498,7 @@ function getsunriset(elements: any, circumstances: number[], riset: number) {
     iter++;
     if (iter == 4) return;
     h0 = Math.acos(
-      (Math.sin(-0.00524) - Math.sin(obsvconst[0]) * circumstances[5]) /
+      (Math.sin(SUN_REFRACTION_CORRECTION) - Math.sin(obsvconst[0]) * circumstances[5]) /
         Math.cos(obsvconst[0]) /
         circumstances[6]
     );
@@ -535,6 +537,7 @@ function copycircumstances(circumstancesfrom: any[], circumstancesto: any[]) {
 
 //
 // Populate the c1, c2, mid, c3 and c4 arrays
+// getall but don't clip below horizon
 function getall(elements: any) {
   consoleDebug("getall");
   let pattern;
@@ -575,49 +578,49 @@ function getall(elements: any) {
       }
       // Now, time to make sure that all my observational[39] and observational[40] are OK
       if (pattern == 11110) {
-        getsunset(elements, c4);
-        observational(c4);
+        // getsunset(elements, c4);
+        // observational(c4);
         c4[40] = 3;
       } else if (pattern == 11100) {
-        getsunset(elements, c3);
-        observational(c3);
+        // getsunset(elements, c3);
+        // observational(c3);
         c3[40] = 3;
-        copycircumstances(c3, c4);
+        // copycircumstances(c3, c4);
       } else if (pattern == 11000) {
         c3[40] = 4;
-        getsunset(elements, mid);
-        midobservational();
+        // getsunset(elements, mid);
+        // midobservational();
         mid[40] = 3;
-        copycircumstances(mid, c4);
+        // copycircumstances(mid, c4);
       } else if (pattern == 10000) {
-        mid[39] = 1;
-        getsunset(elements, mid);
-        midobservational();
+        // mid[39] = 1;
+        // getsunset(elements, mid);
+        // midobservational();
         mid[40] = 3;
-        copycircumstances(mid, c4);
+        // copycircumstances(mid, c4);
       } else if (pattern == 1111) {
-        getsunrise(elements, c1);
-        observational(c1);
+        // getsunrise(elements, c1);
+        // observational(c1);
         c1[40] = 2;
       } else if (pattern == 111) {
-        getsunrise(elements, c2);
-        observational(c2);
+        // getsunrise(elements, c2);
+        // observational(c2);
         c2[40] = 2;
-        copycircumstances(c2, c1);
+        // copycircumstances(c2, c1);
       } else if (pattern == 11) {
         c2[40] = 4;
-        getsunrise(elements, mid);
-        midobservational();
+        // getsunrise(elements, mid);
+        // midobservational();
         mid[40] = 2;
-        copycircumstances(mid, c1);
+        // copycircumstances(mid, c1);
       } else if (pattern == 1) {
-        mid[39] = 1;
-        getsunrise(elements, mid);
-        midobservational();
+        // mid[39] = 1;
+        // getsunrise(elements, mid);
+        // midobservational();
         mid[40] = 2;
-        copycircumstances(mid, c1);
+        // copycircumstances(mid, c1);
       } else if (pattern == 0) {
-        mid[39] = 0;
+        // mid[39] = 0;
       }
       // There are other patterns, but those are the only ones we're covering!
     } else {
@@ -635,25 +638,25 @@ function getall(elements: any) {
         pattern += 1;
       }
       if (pattern == 110) {
-        getsunset(elements, c4);
-        observational(c4);
+        // getsunset(elements, c4);
+        // observational(c4);
         c4[40] = 3;
       } else if (pattern == 100) {
-        getsunset(elements, mid);
-        midobservational();
+        // getsunset(elements, mid);
+        // midobservational();
         mid[40] = 3;
-        copycircumstances(mid, c4);
+        // copycircumstances(mid, c4);
       } else if (pattern == 11) {
-        getsunrise(elements, c1);
-        observational(c1);
+        // getsunrise(elements, c1);
+        // observational(c1);
         c1[40] = 2;
       } else if (pattern == 1) {
-        getsunrise(elements, mid);
-        midobservational();
+        // getsunrise(elements, mid);
+        // midobservational();
         mid[40] = 2;
-        copycircumstances(mid, c1);
+        // copycircumstances(mid, c1);
       } else if (pattern == 0) {
-        mid[39] = 0;
+        // mid[39] = 0;
       }
       // There are other patterns, but those are the only ones we're covering!
     }
@@ -664,36 +667,6 @@ function getall(elements: any) {
   if (mid[39] == 2 || mid[39] == 3) {
     mid[37] = mid[38];
   }
-}
-
-function parseFloat(value: string | number) {
-  consoleDebug("parseFloat");
-  return Number(value);
-}
-
-// get the latitude
-function getLatitude() {
-  consoleDebug("getLatitude");
-  let o = eclipseform.latd + eclipseform.latm / 60 + eclipseform.lats / 3600;
-  o = o * eclipseform.latx.options[eclipseform.latx.selectedIndex];
-  return o;
-}
-
-// get the longitude
-function getLongitude() {
-  consoleDebug("getLongitude");
-  let o = eclipseform.lond + eclipseform.lonm / 60 + eclipseform.lons / 3600;
-  o = o * eclipseform.lonx.options[eclipseform.lonx.selectedIndex];
-  return o;
-}
-
-// get the timezone
-function getTimezone() {
-  consoleDebug("getTimezone");
-  let o = eclipseform.tzm.options[eclipseform.tzm.selectedIndex];
-  o = eclipseform.tzh.options[eclipseform.tzh.selectedIndex] + o / 60.0;
-  o = eclipseform.tzx.options[eclipseform.tzx.selectedIndex] * o;
-  return o;
 }
 
 // observer type
@@ -708,39 +681,6 @@ function setObserver(latDeg: number, lonDeg: number, altm: number, tz: number) {
 }
 
 
-
-//
-// Read the data that's in the form, and populate the obsvconst array
-function readform() {
-  consoleDebug("readform");
-
-  // Write back to the form what we are parsing
-  eclipseform.latd = Math.abs(parseFloat(eclipseform.latd));
-  eclipseform.latm = Math.abs(parseFloat(eclipseform.latm));
-  eclipseform.lats = Math.abs(parseFloat(eclipseform.lats));
-  eclipseform.lond = Math.abs(parseFloat(eclipseform.lond));
-  eclipseform.lonm = Math.abs(parseFloat(eclipseform.lonm));
-  eclipseform.lons = Math.abs(parseFloat(eclipseform.lons));
-  eclipseform.alt = Math.abs(parseFloat(eclipseform.alt));
-
-  // Get the latitude
-  const latDeg = getLatitude();
-
-  // Get the longitude
-  const lonDeg = getLongitude();
-
-  // Get the altitude
-  const alt = parseFloat(eclipseform.alt);
-
-  // Get the time zone
-  const tz = getTimezone();
-
-  // Set the observer
-  setObserver(latDeg, lonDeg, alt, tz);
-
-  // The index of the selected eclipse...
-  //obsvconst[6] = 28 * (parseInt(eclipseform.index.options[eclipseform.index.selectedIndex].value) + 65)
-}
 
 //
 // Get the local date of an event
@@ -823,25 +763,16 @@ function gettime(elements: number[], circumstances: any[]): [string, SunBSR] {
     ans = ans + "0";
   }
   ans = ans + Math.floor(t);
-  // return the full time even if circumstances are b, s, r
+  // return the full time even if circumstances are b, s, r --
   // modern js Date requires a seconds value
-  // if (circumstances[40] <= 1) {
-  //   // not sunrise or sunset
-  //   ans = ans + ":";
-  //   t = t * 60.0 - 60.0 * Math.floor(t);
-  //   if (t < 10.0) {
-  //     ans = ans + "0";
-  //   }
-  //   ans = ans + Math.floor(t);
-  // }
   ans = ans + ":";
   t = t * 60.0 - 60.0 * Math.floor(t);
   if (t < 10.0) {
     ans = ans + "0";
   }
   ans = ans + Math.floor(t);
-  if (circumstances[40] == 1) {
-    // below horizon
+  if (circumstances[40] == 1 || circumstances[40] == 4) {
+    // below horizon or 4 = disregard
     return [ans,'b'];
   } else if (circumstances[40] == 2) {
     // during sunrise
@@ -860,13 +791,14 @@ function getalt(circumstances: any[]): [number, SunBSR]{
   consoleDebug("getalt");
   let t, ans;
 
-  if (circumstances[40] == 2) {
-    return [0,'r'];
-  }
-  if (circumstances[40] == 3) {
-    return [0,'s'];
-  }
-  if (circumstances[32] < 0.0 && circumstances[32] >= -0.00524) {
+  // don't short circuit
+  // if (circumstances[40] == 2) {
+  //   return [0,'r'];
+  // }
+  // if (circumstances[40] == 3) {
+  //   return [0,'s'];
+  // }
+  if (circumstances[32] < 0.0 && circumstances[32] >= SUN_REFRACTION_CORRECTION) {
     // Crude correction for refraction (and for consistency's sake)
     t = 0.0;
   } else {
@@ -878,15 +810,21 @@ function getalt(circumstances: any[]): [number, SunBSR]{
   } else {
     ans = 1;
   }
-  t = Math.floor(t + 0.5);
+  t = Math.round(t * 100) / 100; // 2 decimal places (was whole degrees)
   if (t < 10.0) {
     // don't neet to zero pad
     // ans = ans + "0";
   }
   ans = ans * t;
-  if (circumstances[40] == 1) {
-    // below horizon
+  if (circumstances[40] == 1 || circumstances[40] == 4) {
+    // below horizon (4 = disregard)
     return [ans,'b'];
+  } else if (circumstances[40] == 2) {
+    // during sunrise
+    return [ans,'r'];
+  } else if (circumstances[40] == 3) {
+    // during sunset
+    return [ans,'s'];
   } else {
     return [ans,null];
   }
@@ -906,7 +844,7 @@ function getazi(circumstances: any[]): number {
   if (t >= 360.0) {
     t = t - 360.0;
   }
-  t = Math.floor(t + 0.5);
+  t = Math.round(t * 100) / 100; // 2 decimal places (was whole degrees)
   if (t < 100.0) {
     // don't need to zero pad
     // ans = ans + "0";
@@ -932,13 +870,15 @@ function getduration() {
   consoleDebug("getduration");
   let tmp, ans;
 
-  if (c3[40] == 4) {
-    tmp = mid[1] - c2[1];
-  } else if (c2[40] == 4) {
-    tmp = c3[1] - mid[1];
-  } else {
-    tmp = c3[1] - c2[1];
-  }
+  // True duration is always C3-C2, don't clip to visible only?
+  // uncomment if we want that
+  // if (c3[40] == 4) {
+  //   tmp = mid[1] - c2[1];
+  // } else if (c2[40] == 4) {
+  //   tmp = c3[1] - mid[1];
+  // } else {
+  tmp = c3[1] - c2[1];
+  // }
   if (tmp < 0.0) {
     tmp = tmp + 24.0;
   } else if (tmp >= 24.0) {
@@ -960,8 +900,9 @@ function getmagnitude(): [number, SunBSR] {
   consoleDebug("getmagnitude");
   let a;
 
-  a = Math.floor(1000.0 * mid[37] + 0.5) / 1000.0;
-  if (mid[40] == 1) {
+  // a = Math.floor(1000.0 * mid[37] + 0.5) / 1000.0;
+  a = mid[37];
+  if (mid[40] == 1 || mid[40] == 4) {
     // below horizon
     return [a,'b'];
   }
@@ -1000,19 +941,20 @@ function getcoverage(): [number, SunBSR]{
       a = Math.PI - b - c;
       c = (mid[38] * mid[38] * a + b - mid[38] * Math.sin(c)) / Math.PI;
     }
-    a = Math.floor(1000.0 * c + 0.5) / 1000.0;
+    // a = Math.floor(1000.0 * c + 0.5) / 1000.0;
+    a = c;
   }
-  if (mid[40] == 1) {
+  if (mid[40] == 1 || mid[40] == 4) {
     // below horizon
     return [a,'b'];
   }
   if (mid[40] == 2) {
     // during sunrise
-    a = [a,"r"];
+    return [a,"r"];
   }
   if (mid[40] == 3) {
     // during sunset
-    a = [a,"s"];
+    return [a,"s"];
   }
   return [a as number,null];
 }
@@ -1057,15 +999,17 @@ function calculatefor(el: number[]) {
       }
 
       // Partial eclipse start
-      if (c1[40] == 4) {
-        continue;
-      } else {
-        // Partial eclipse start time
-        o.partialStart = gettime(el, c1);
-        o.sunAltStart = getalt(c1);
-      }
+      // OLD: skipped the whole eclipse when C1 was flagged 4 (disregard).
+      // if (c1[40] == 4) {
+      //   continue;
+      // } else {
+      // Partial eclipse start time
+      o.partialStart = gettime(el, c1);
+      o.sunAltStart = getalt(c1);
+      // }
+
       // Central eclipse time
-      if (mid[39] > 1 && c2[40] != 4) {
+      if (mid[39] > 1 /* OLD: && c2[40] != 4 */) {
         o.centralStart = gettime(el, c2);
       } else {
         o.centralStart = ['', null];
@@ -1079,7 +1023,7 @@ function calculatefor(el: number[]) {
       o.maxAzi = getazi(mid);
 
       // Central eclipse ends
-      if (mid[39] > 1 && c3[40] != 4) {
+      if (mid[39] > 1 /* OLD: && c3[40] != 4 */) {
         // if we are in P, A, or T
         o.centralEnd = gettime(el, c3);
       } else {
@@ -1087,13 +1031,14 @@ function calculatefor(el: number[]) {
       }
 
       // Partial eclipse ends
-      if (c4[40] == 4) {
-        continue;
-      } else {
-        // Partial eclipse ends
-        o.partialEnd = gettime(el, c4);
-        o.sunAltEnd = getalt(c4);
-      }
+      // OLD: skipped the whole eclipse when C4 was flagged 4 (disregard).
+      // if (c4[40] == 4) {
+      //   continue;
+      // } else {
+      // Partial eclipse ends
+      o.partialEnd = gettime(el, c4);
+      o.sunAltEnd = getalt(c4);
+      // }
       // Eclipse magnitude
       o.magnitude = getmagnitude();
       // Eclipse coverage
@@ -1114,11 +1059,6 @@ function calculatefor(el: number[]) {
 
 
 
-function recalculate() {
-  readform();
-  const result = calculatefor(SE2026());
-}
-
 const DEBUG = false;
 // create a wrapper for console.log with
 function consoleDebug(...data: any[]) {
@@ -1126,8 +1066,6 @@ function consoleDebug(...data: any[]) {
     console.log(...data);
   }
 }
-
-// recalculate();
 
 // the reads in data using the convention of the original form, and returns strings for the time.
 export function recalculateForObserver(latDeg: number, latDir: 'N' | 'S', lonDeg: number, lonDir: 'E' | 'W', alt: number, tz: number = 0, tzDir: 'W' | 'E' = 'W') {

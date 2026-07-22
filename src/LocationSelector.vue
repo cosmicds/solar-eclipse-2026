@@ -54,10 +54,6 @@ export default defineComponent({
   emits: ["place", "update:modelValue", "error", "dataclick", "finishLoading"],
 
   props: {
-    activatorColor: {
-      type: String,
-      default: "#ffffff"
-    },
     showCloudCover: {
       type: Boolean,
       default: false
@@ -160,6 +156,16 @@ export default defineComponent({
     }
     this.setup(true);
 
+    // Leaflet caches the container's pixel size at creation time in
+    // setup() above, but #guided-content-container's fit-content height
+    // (driven by sibling content still laying out) can still be settling
+    // at that exact instant -- the map then renders blank until
+    // something changes the container's size *again* later (dragging
+    // the resize handle, a window resize) for the ResizeObserver below
+    // to catch. Force one more measurement after layout has truly
+    // settled, independent of whether the size actually changed.
+    requestAnimationFrame(() => requestAnimationFrame(() => this.map?.invalidateSize()));
+
     // We shouldn't need to ever reset this,
     // unlike the regular setup which can get called again
     this.setupResizeObserver();
@@ -170,7 +176,6 @@ export default defineComponent({
       resizeObserver: null as ResizeObserver | null,
       eclipsePath: [] as L.GeoJSON[],
       placeCircles: [] as L.CircleMarker[],
-      hoveredPlace: null as Place | null,
       selectedCircle: null as L.CircleMarker | null,
       selectedPlace: null as Place | null,
       selectedPlaceCircle: null as L.CircleMarker | null,
@@ -186,11 +191,15 @@ export default defineComponent({
   methods: {
 
     setupResizeObserver() {
-      const container = document.querySelector("#map-container") as HTMLDivElement;
+      // Observe this component's own root -- the exact node passed to
+      // L.map() in setup() -- rather than the app-owned #map-container
+      // wrapper it happens to sit inside. Watching the node Leaflet
+      // actually measures is correct regardless of how the two are
+      // related by CSS.
       this.resizeObserver = new ResizeObserver(() => {
         this.map?.invalidateSize();
       });
-      this.resizeObserver.observe(container);
+      this.resizeObserver.observe(this.$el as HTMLDivElement);
     },
     
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -249,22 +258,10 @@ export default defineComponent({
         fillOpacity: this.cloudCoverOpacityFunction(cloudCover)
       });
       rect.on('click', () => {
-        console.log('dataclick', { lat, lon, cloudCover, index});
         this.$emit('dataclick', { lat, lon, cloudCover, index});
       });
       return rect;
     },
-    
-    sigmoid(val: number | null): number {
-      if (val === null) {
-        return 0;
-      }
-      // return sigmoid
-      const y = (val - 0.5) / .12;
-      const z = Math.exp(y);
-      return z / (1 + z);
-    },
-    
 
     getColor(_cloudCover:number) {
       // Calculate HSL color based on a gradient
@@ -355,7 +352,6 @@ export default defineComponent({
     },
 
     setup(initial=false) {
-      console.log('setup', initial);
       const mapContainer = this.$el as HTMLDivElement;
       const location: L.LatLngExpression = initial && this.mapOptions.initialLocation ?
         this.locationToLatLng(this.mapOptions.initialLocation) :
@@ -374,7 +370,6 @@ export default defineComponent({
       this.placeCircles.forEach((circle, index) => {
         circle.on('mouseover', () => {
           const place = this.places[index];
-          this.hoveredPlace = place;
           circle.openTooltip([place.latitudeDeg, place.longitudeDeg]);
         });
 
@@ -383,10 +378,6 @@ export default defineComponent({
             this.onPlaceSelect(this.places[index]);
           });
         }
-
-        circle.on('mouseout', () => {
-          this.hoveredPlace = null;
-        });
 
         circle.addTo(map);
       });
@@ -400,6 +391,10 @@ export default defineComponent({
       }
 
       map.attributionControl.setPrefix('<a href="https://leafletjs.com" title="A JavaScript library for interactive maps" target="_blank" rel="noopener noreferrer" >Leaflet</a>');
+      // Moved out of the bottom-right corner so the small map's own
+      // bottom-anchored overlay buttons (search, "use my location") can
+      // sit flush against the map's edges without overlapping it.
+      map.attributionControl.setPosition('topright');
       
       // show the geojson files
       this.geoJsonFiles.forEach((geojsonrecord) => {
@@ -473,6 +468,25 @@ export default defineComponent({
       return [location.latitudeDeg, location.longitudeDeg];
     },
 
+    // Public: re-centers/re-zooms the map back to this session's own
+    // starting view (mapOptions.initialLocation/initialZoom -- either
+    // the app's default map-center-on-the-eclipse-path view, or a
+    // shared-link's query-specified location/zoom). Distinct from the
+    // selected-location pin resetting to Antiguita, Spain: that's the
+    // marker, this is the camera, and they're independent -- the
+    // modelValue watcher's own zoom-to-6-on-change wouldn't fire this
+    // correctly since it always targets the *pin's* location, not the
+    // session's original viewport.
+    resetToInitialView() {
+      if (!this.map || !this.mapOptions.initialLocation) {
+        return;
+      }
+      this.map.setView(
+        this.locationToLatLng(this.mapOptions.initialLocation),
+        this.mapOptions.initialZoom ?? 4
+      );
+    },
+
     updateRectangleIntensity(val: number | null = null): void {
       (this.cloudCoverRectangles as L.LayerGroup<L.Rectangle>).eachLayer((layer) => {
         if (layer instanceof L.Rectangle) {
@@ -502,10 +516,8 @@ export default defineComponent({
           this.rectanglesCreated = true; // Set the flag to true
         }
       } else {
-        // Clear cloud cover rectangles if value is false
-        // this.cloudCoverRectangles.clearLayers();
-        // this.rectanglesCreated = false; // Reset the flag
-        // set opacity to 0 instead of clearing re: J.C.
+        // Set opacity to 0 instead of clearing the layers so the
+        // rectangles are ready to show again without recomputing.
         this.updateRectangleIntensity(0);
       }
     },
@@ -518,22 +530,6 @@ export default defineComponent({
     },
     latLng(): L.LatLngExpression {
       return this.locationToLatLng(this.modelValue);
-    },
-    
-    pixelSize(): number {
-      // not used but eventually
-      if (this.selectedCloudCover === null) {
-        return 0;
-      }
-      const lats = Array.from(new Set(this.selectedCloudCover?.map((row) => row.lat))).sort();
-      const lons = Array.from(new Set(this.selectedCloudCover?.map((row) => row.lon))).sort();
-      // get difference between consecutive latitudes
-      // average of the differences is the pixel size
-      const latDiff = lats.map((val, index, arr) => index === 0 ? 0 : val - arr[index - 1]);
-      const lonDiff = lons.map((val, index, arr) => index === 0 ? 0 : val - arr[index - 1]);
-      const latAvg = latDiff.reduce((a, b) => a + b, 0) / latDiff.length;
-      const lonAvg = lonDiff.reduce((a, b) => a + b, 0) / lonDiff.length;
-      return (latAvg + lonAvg) / 2;
     }
   },
 
@@ -541,7 +537,6 @@ export default defineComponent({
 
     selectedCloudCover(val: CloudData[] | null) {
       if (val !== null && val !== undefined) {
-        //this.updateRectangleIntensity();
         this.updateCloudCover(this.showCloudCover);
         this.bringLocationAndPathToFront();
       }
@@ -589,8 +584,18 @@ export default defineComponent({
 
 <style lang="less">
 .map-container {
-  height: 100%;
-  width: 100%;
+  // height: 100% (or relying on the parent's align-items: stretch)
+  // proved unreliable here in practice -- the parent (#map-container in
+  // SolarEclipse2026.vue) itself gets its own height from a flex-grow
+  // chain rather than an explicitly authored height, and empirically
+  // this element still collapsed to near-zero height even with
+  // align-items: stretch set on the parent and no explicit height set
+  // here. Absolute positioning against the parent's already-final,
+  // concretely computed box size sidesteps that chain entirely -- the
+  // parent (#map-container) has position: relative already.
+  position: absolute;
+  inset: 0;
+  width: auto;
   margin: auto;
   padding: 0;
   border-radius: 5px;
@@ -600,16 +605,18 @@ export default defineComponent({
     position: relative;
   }
   
-  .leaflet-bottom.leaflet-right::before {
+  .leaflet-top.leaflet-right::before {
     content: " Credit: © Leaflet.js";
-    top: 100%;
+    // Anchors the label's top-right corner flush against the control
+    // container's own top-right corner (the container itself already
+    // sits at the map's top-right, moved there via
+    // map.attributionControl.setPosition('topright')), growing
+    // downward-left -- the mirror image of the old bottom-right anchor,
+    // which grew upward-left from the container's bottom-right corner.
+    top: 0;
     left: 100%;
-    transform: translate(-100%, -100%);
+    transform: translate(-100%, 0);
     pointer-events: auto;
-  }
-
-  .leaflet-bottom.leaflet-right::before {
-    /* match formatting for actual attribution */
     color: #0078a8;
     background-color: rgba(255,255,255,0.8);
     font-size: 0.75em;
@@ -617,18 +624,34 @@ export default defineComponent({
     padding-block: 0.3em;
   }
 
-  .leaflet-bottom.leaflet-right:hover::before {
+  .leaflet-top.leaflet-right:hover::before {
     content: "";
     background-color: transparent;
   }
 
-  .leaflet-bottom.leaflet-right:hover > .leaflet-control-attribution {
+  .leaflet-top.leaflet-right:hover > .leaflet-control-attribution {
     display: block;
   }
 
 
   .leaflet-control-attribution {
     display: none;
+  }
+
+  // @cosmicds/vue-toolkit's bundled vendor chunk carries its own stale,
+  // internal copy of this exact CSS (an older revision of this file,
+  // also rooted at .map-container -- a generic enough class name that
+  // it collides directly with ours). Since the toolkit ships as one
+  // eager UMD bundle, importing ANY of its components for unrelated
+  // reasons (icon-button, geolocation-button, etc.) evaluates that
+  // whole bundle and injects its <style> tags regardless -- including
+  // its old .map-container .leaflet-bottom.leaflet-right::before rule,
+  // which still renders "Credit: © Leaflet.js" in the map's bottom-right
+  // corner even though our own copy of this rule moved to top-right.
+  // Can't fix the vendored copy (it's in node_modules), so explicitly
+  // neutralize it here instead.
+  .leaflet-bottom.leaflet-right::before {
+    content: none !important;
   }
 
   path.leaflet-interactive:focus {

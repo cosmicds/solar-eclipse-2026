@@ -1,221 +1,14 @@
+import { D2R, R2D } from "@cosmicds/vue-toolkit";
+import { HorizontalRad, EquatorialRad } from "./types";
 
-
-// make working with ordered pairs a little bit easier
-export type OrderedPair<T=number, R=number> = { x: T;y: R;};
-type OrderedPairs<T=number,R=number> = OrderedPair<T,R>[];
-
-/** Checks if a value is a number */
-
-export function isNumber(n: unknown): n is number{
-  const isnum = typeof n === 'number';
-  const isfinite = isnum && isFinite(n);
-  const notnan = isnum && !isNaN(n);
-  return isnum && isfinite && notnan;
+export function round99(fraction: number): number {
+  const val = fraction * 100;
+  if (val >= 100) return 100;
+  const rounded1 = Math.round(val * 10) / 10;
+  if (rounded1 >= 99.9) return 99.9;
+  if (val > 99) return rounded1;
+  return Math.round(val);
 }
-
-/** Converts two arrays into an array of ordered pairs [ {'x': x[i], 'y' : y[i]} , ... ] . */
-export function toOrderedPairs<T,R>(x: T[], y: R[]): OrderedPairs<T,R> {
-  return x.map((x, i) => ({ x, y: y[i] }));
-}
-
-/** Get the arrays from an OrderedPair[] */
-export function fromOrderedPairs<T,R>(pairs: OrderedPairs<T,R>): [T[], R[]] {
-  return [pairs.map((pair) => pair.x), pairs.map((pair) => pair.y)];
-}
-
-
-/** apply a function to an array and get back the order pairs */
-export function elementWise<Input=number, Output=number>(array: Input[], operation: (x: Input) => Output): OrderedPairs<Input,Output> {
-  return array.map((x) => ({ x, y: operation(x) }));
-}
-
-
-
-// Functions just for testing
-
-function _noise(x: number, n: number): number {
-  return x + Math.random() * n - n / 2;
-}
-
-
-// TimeSeries equations
-function fractionalYear(date: Date): number {
-  // get fractional year
-  const year = date.getFullYear();
-  const start = new Date(year, 0, 0);
-  const end = new Date(year, 11, 31, 23, 59, 59, 999);
-  const diff = date.getTime() - start.getTime();
-  const total = end.getTime() - start.getTime();
-  return year + diff / total;
-}
-
-
-
-// function generate a fake time series and one with and without noise
-export function generateFakeTimeSeries(start: Date, end: Date, n: number, noise: number = 0): OrderedPairs<Date> {
-  // get a list of dates
-  const dates = Array.from({ length: n }, (_, i) => start.getTime() + (end.getTime() - start.getTime()) * i / (n - 1));
-  // get the sine of the fractional year. We want a 1 year period for test data
-  const sine = dates.map( (date) => Math.sin(fractionalYear(new Date(date)) * 2 * Math.PI));
-  // add noise if requested
-  const out = noise ? sine.map(s => _noise(s,1)) : sine;
-  // return the ordered pairs
-  return toOrderedPairs(dates.map((d) => new Date(d)), out);
-}
-
-
-export function roundToNearest(val: number, nearest: number) {
-  return Math.round(val / nearest) * nearest;
-}
-
-export function roundToNearestHalf(val: number) {
-  return roundToNearest(val, 0.5);
-}
-
-
-
-
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deepMerge(target: {[key: string]: any}, source: {[key: string]: any}): {[key: string]: any} {
-  // copilot
-  for (const key in source) {
-    if (source[key] instanceof Object) {
-      Object.assign(source[key], deepMerge(target[key], source[key]));
-    }
-  }
-  Object.assign(target || {}, source);
-  return target;
-}
-
-
-
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-/**
- * Simple object check.
- * @param item
- * @returns {boolean}
- */
-export function isObject<T>(item: T): boolean {
-  return (item && typeof item === 'object' && !Array.isArray(item));
-}
-
-/**
- * Deep merge two objects.
- * @param target
- * @param ...sources
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function mergeDeep(target: any, ...sources: any) {
-  if (!sources.length) return target;
-  const source = sources.shift();
-
-  if (isObject(target) && isObject(source)) {
-    for (const key in source) {
-      if (isObject(source[key])) {
-        if (!target[key]) Object.assign(target, { [key]: {} });
-        mergeDeep(target[key], source[key]);
-      } else {
-        Object.assign(target, { [key]: source[key] });
-      }
-    }
-  }
-
-  return mergeDeep(target, ...sources);
-}
-
-
-
-/** MAPBOX RELATED FUNCTIONS. PULLED FROM SolarEclipse2024.vue Mar6'24 (original by Jon Carifio) */
-
-// The field names here come from MapBox
-export interface MapBoxFeature {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  place_type: string[];
-  text: string;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  properties: { short_code: string; };
-}
-
-export interface MapBoxFeatureCollection {
-  type: "FeatureCollection";
-  features: MapBoxFeature[];
-}
-
-const RELEVANT_FEATURE_TYPES = ["postcode", "place", "region", "country"];
-const NA_COUNTRIES = ["United States", "Canada", "Mexico"];
-const NA_ABBREVIATIONS = ["US-", "CA-", "MX-"];
-
-function mapboxLocationText(location: MapBoxFeatureCollection): string {
-  const relevantFeatures = location.features.filter(feature => RELEVANT_FEATURE_TYPES.some(type => feature.place_type.includes(type)));
-  const placeFeature = relevantFeatures.find(feature => feature.place_type.includes("place")) ?? (relevantFeatures.find(feature => feature.place_type.includes("postcode")) ?? null);
-  const pieces: string[] = [];
-  if (placeFeature && placeFeature.text) {
-    pieces.push(placeFeature.text);
-  }
-  const countryFeature = relevantFeatures.find(feature => feature.place_type.includes("country"));
-  if (countryFeature) {
-    let countryText: string | null = countryFeature.text;
-    if (NA_COUNTRIES.includes(countryText)) {
-      countryText = null;
-      const regionFeature = relevantFeatures.find(feature => feature.place_type.includes("region"));
-      if (regionFeature) {
-        let stateCode = regionFeature.properties.short_code as string;
-        if (stateCode) {
-          if (NA_ABBREVIATIONS.some(abbr => stateCode.startsWith(abbr))) {
-            stateCode = stateCode.substring(3);
-          }
-          pieces.push(stateCode);
-        }
-      }
-    }
-    if (countryText) {
-      pieces.push(countryText);
-    }
-  }
-  return pieces.join(", ");
-}
-
-export async function textForLocation(longitudeDeg: number, latitudeDeg: number): Promise<string> {
-  const accessToken = process.env.VUE_APP_MAPBOX_ACCESS_TOKEN;
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitudeDeg},${latitudeDeg}.json?access_token=${accessToken}`;
-  const mapBoxText = await fetch(url)
-    .then(response => response.json())
-    .then((result: MapBoxFeatureCollection) => {
-      if (result.features.length === 0) {
-        return null;
-      }
-      return mapboxLocationText(result);
-    })
-    .catch((_err) => null);
-  if (mapBoxText) {
-    return mapBoxText;
-  } else {
-    const ns = latitudeDeg >= 0 ? 'N' : 'S';
-    const ew = longitudeDeg >= 0 ? 'E' : 'W';
-    const lat = Math.abs(latitudeDeg).toFixed(3);
-    const lon = Math.abs(longitudeDeg).toFixed(3);
-    return `${lat}° ${ns}, ${lon}° ${ew}`;
-  }
-}
-
-type Degrees = number;
-export function sphereDistance(lat1: Degrees, lon1: Degrees, lat2: Degrees, lon2: Degrees): number {
-
-  const φ1 = lat1 * Math.PI/180; // φ, λ in radians
-  const φ2 = lat2 * Math.PI/180;
-  const deltaPhi = (lat2-lat1) * Math.PI/180;
-  const deltaLambda = (lon2-lon1) * Math.PI/180;
-
-  const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); // angular distance
- 
-  return c;  
-}
-
 
 export function toHMS(milliseconds: number): string {
   const seconds = milliseconds / 1000;
@@ -232,4 +25,123 @@ export function toHMS(milliseconds: number): string {
 export function spaceHMS(hms: string): string {
   // take a string like 0h0m0s to 0h 0m 0s
   return hms.replace(/(\d)([hms])/g, '$1$2 ');
+}
+
+// WWT does have all of this functionality built in
+// but it doesn't seem to be exposed
+// We should do that, but for now we just copy the web engine code
+// https://github.com/Carifio24/wwt-webgl-engine/blob/master/engine/wwtlib/Coordinates.cs
+export function altAzToHADec(altRad: number, azRad: number, latRad: number): { ra: number; dec: number; } {
+  azRad = Math.PI - azRad;
+  if (azRad < 0) {
+    azRad += 2 * Math.PI;
+  }
+  let ra = Math.atan2(Math.sin(azRad), Math.cos(azRad) * Math.sin(latRad) + Math.tan(altRad) * Math.cos(latRad));
+  if (ra < 0) {
+    ra += 2 * Math.PI;
+  }
+  const dec = Math.asin(Math.sin(latRad) * Math.sin(altRad) - Math.cos(latRad) * Math.cos(altRad) * Math.cos(azRad));
+  return { ra, dec };
+}
+
+export function getJulian(utc: Date): number {
+  let year = utc.getUTCFullYear();
+  let month = utc.getUTCMonth()+1;
+  const day = utc.getUTCDate();
+  const hour = utc.getUTCHours();
+  const minute = utc.getUTCMinutes();
+  const second = utc.getUTCSeconds() + utc.getUTCMilliseconds() / 1000.0;
+
+  if (month == 1 || month == 2)
+  {
+    year -= 1;
+    month += 12;
+  }
+
+  const a = Math.floor(year / 100);
+  const b = 2 - a + Math.floor(a / 4.0);
+  const c = Math.floor(365.25 * year);
+  const d = Math.floor(30.6001 * (month + 1));
+
+  // gives julian date: number of days since Jan 1, 4713 BC
+  const jd = b + c + d + 1720994.5 + day + (hour + minute / 60.00 + second / 3600.00) / 24.00;
+  return jd;
+}
+
+export function mstFromUTC2(utc: Date, longRad: number): number {
+  const lng = longRad * R2D;
+
+  const modifiedJD = getJulian(utc)  - 2451545;
+
+  const julianCenturies = modifiedJD / 36525.0;
+  // this form wants julianDays - 2451545
+  let mst = 280.46061837 + 360.98564736629 * modifiedJD + 0.000387933 * julianCenturies * julianCenturies - julianCenturies * julianCenturies * julianCenturies / 38710000 + lng;
+
+  if (mst > 0.0) {
+    while (mst > 360.0) {
+      mst = mst - 360.0;
+    }
+  } else {
+    while (mst < 0.0) {
+      mst = mst + 360.0;
+    }
+  }
+
+  return mst;
+}
+
+export function horizontalToEquatorial(altRad: number, azRad: number, latRad: number, longRad: number, utc: Date): EquatorialRad {
+  const st = mstFromUTC2(utc, longRad); // siderial time 
+
+  const haDec = altAzToHADec(altRad, azRad, latRad); // get Hour Angle and Declination
+  
+  const ha = haDec.ra * R2D;
+
+  let ra = st + ha;
+  if (ra < 0) {
+    ra += 360;
+  }
+  if (ra > 360) {
+    ra -= 360;
+  }
+  // ra -= 180;
+  // console.log(`Alt: ${(altRad*R2D).toFixed(2)} Az: ${(azRad*R2D).toFixed(2)} Ra: ${ra.toFixed(2)} Dec: ${(haDec.dec*R2D).toFixed(2)}`)
+
+  return { raRad: D2R * ra, decRad: haDec.dec };
+}
+
+export function equatorialToHorizontal(raRad: number, decRad: number, latRad: number, longRad: number, utc: Date): HorizontalRad {
+  let hourAngle = mstFromUTC2(utc, longRad) - R2D * raRad;
+  if (hourAngle < 0) {
+    hourAngle += 360;
+  }
+
+  const ha = D2R * hourAngle;
+  const dec = decRad;
+  const lat = latRad;
+  
+  const sinAlt = Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(lat) * Math.cos(ha);
+  const altitude = Math.asin(sinAlt);
+  const cosAz = (Math.sin(dec) - Math.sin(altitude) * Math.sin(lat)) / (Math.cos(altitude) * Math.cos(lat));
+  let azimuth = Math.acos(cosAz);
+
+  azimuth = azimuth + (Math.PI * 80) % (Math.PI * 2);
+
+  if (Math.sin(ha) > 0) {
+    azimuth = 2 * Math.PI - azimuth;
+  }
+  return { altRad: altitude, azRad: azimuth };
+
+}
+
+export function skyOpacityForSunAlt(sunAltRad: number) {
+  const civilTwilight = -6 * D2R;
+  const astronomicalTwilight = 3 * civilTwilight;
+  
+  return Math.min(Math.max((1 + Math.atan(Math.PI * sunAltRad / (-astronomicalTwilight))) / 2, 0), 1);
+}
+
+export const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+export function dayFractionForTimestamp(timestamp: number): number {
+  return (timestamp % MILLISECONDS_PER_DAY) / MILLISECONDS_PER_DAY;
 }

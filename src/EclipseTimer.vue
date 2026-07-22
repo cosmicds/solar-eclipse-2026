@@ -7,30 +7,6 @@
         {{ timeText }} {{ location !== '' ? 'at ' + location : '' }}
       </div>
     </div>
-<!--     
-    print out the time conditions as a table
-    <table>
-      <tr>
-        <td>Before Max:</td>
-        <td>{{ beforeMax() }}</td>
-      </tr>
-      <tr>
-        <td>After Max:</td>
-        <td>{{ afterMax() }}</td>
-      </tr>
-      <tr>
-        <td>Before End Partial:</td>
-        <td>{{ beforeEndPartial() }}</td>
-      </tr>
-      <tr>
-        <td>Before Totality:</td>
-        <td>{{ beforeTotality() }}</td>
-      </tr>
-      <tr>
-        <td>In Totality:</td>
-        <td>{{ inTotality() }}</td>
-      </tr>
-    </table> -->
 
     <div v-if="noEclipse">
       <p>No eclipse is predicted for this location.</p>
@@ -42,6 +18,7 @@
     </div>
     <div class="eclipse-data-list" v-if="!noEclipse">
       <table id="eclipse-values">
+        <tbody>
         <tr>
           <td>
             <define-term
@@ -50,7 +27,7 @@
               underlined
               />:
           </td>
-          <td> {{ coverage < 0.01 ? '<1' :(coverage*100).toFixed(0) }}% </td>
+          <td> {{ coveragePercent }}% </td>
         </tr>
         <tr v-if="isTotal">
           <td>Totality Duration:</td>
@@ -60,9 +37,11 @@
           <td>Eclipse Duration:</td>
           <td> {{ eclipseDuration }}</td>
         </tr>
+        </tbody>
       </table>
       <hr class="eclipse-timer-dividier"/>
       <table id="time-container">
+        <tbody>
         <tr class="time">
           <td class="time-label">Partial Start</td>
           <td class="time-value">{{ partialStart[1] === '' ? timeString(partialStart[0]) : 'Sun below Horizon' }}</td>
@@ -83,6 +62,7 @@
           <td class="time-label">Partial End</td>
           <td class="time-value">{{ partialEnd[1] === '' ? timeString(partialEnd[0]) : 'Sun below Horizon' }}</td>
         </tr>
+        </tbody>
       </table>
       <hr class="mt-4" style="width:100%">
     </div>
@@ -109,7 +89,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { VBtnToggle } from 'vuetify/components/VBtnToggle';
 import { VBtn } from 'vuetify/components/VBtn';
 import DefineTerm from './DefineTerm.vue';
-import { toHMS, spaceHMS } from './utils';
+import { toHMS, spaceHMS, round99 } from './utils';
 
 const dayInMs = 1000 * 60 * 60 * 24;
 const hourInMs = 1000 * 60 * 60;
@@ -166,16 +146,7 @@ export default defineComponent({
   
   data() {
     return {
-      pred: this.prediction,
       tzPref: 'Local' as 'UTC' | 'Local',
-      // partialStart: this.prediction.partialStart[0],
-      // centralStart: this.prediction.centralStart[0],
-      // maxTime: this.prediction.maxTime[0],
-      // centralEnd: this.prediction.centralEnd[0],
-      // partialEnd: this.prediction.partialEnd[0],
-      // magnitude: this.prediction.magnitude[0],
-      // coverage: this.prediction.coverage[0],
-      // duration: this.prediction.duration,
       timeToEclipse: '',
       timeToEndPartial: '',
       timeToEndTotality: '',
@@ -235,11 +206,11 @@ export default defineComponent({
     maxTime() {
       return this.circumstance(this.prediction.maxTime, 'Max Eclipse');
     },
-    magnitude(): number {
-      return this.prediction.magnitude[0];
-    },
     coverage(): number {
       return this.prediction.coverage[0];
+    },
+    coveragePercent(): string {
+      return this.coverage < 0.01 ? '<1%' : `${round99(this.coverage)}%`;
     },
     
     eclipseDuration(): string {
@@ -303,14 +274,6 @@ export default defineComponent({
       if (this.type !== 'Total') return false;
       if (this.centralEnd[0] === null) return false;
       return Date.now() > this.centralEnd[0].getTime();
-    },
-    
-    updateTimeConditions() {
-      this.beforeMax();
-      this.afterMax();
-      this.beforeEndPartial();
-      this.beforeTotality();
-      this.inTotality();
     },
     
     toUtcString(date: Date | null): string {
@@ -426,7 +389,6 @@ export default defineComponent({
 
     updateTimeData() {
       if (this.showTimer) {
-        this.updateTimeConditions();
         this.updateTime();
         this.timeText = this.getTimeText();
         this.timeToShow = this.getTimeToShow();
@@ -444,7 +406,8 @@ export default defineComponent({
 <style lang="less">
 
 #eclipse-timer-container {
-  width: max-content;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.5em;
 }
 
@@ -471,6 +434,10 @@ hr.eclipse-timer-dividier {
   aspect-ratio: 1/1;
   width: 10em;
   background-size: contain;
+
+  @media (max-width: 350px) {
+    width: 6em;
+  }
 }
 
 .eclipse-icon-total {
@@ -485,14 +452,14 @@ hr.eclipse-timer-dividier {
   background-image: url('./assets/annular.png');
 }
 
-.eclipse-icon- {
-  background-image: url('./assets/none.png');
-}
-
 .eclipse-countdown {
   text-align: center;
   margin-bottom: 0.5em;
   min-width: 20em;
+
+  @media (max-width: 350px) {
+    min-width: 0;
+  }
 }
 
 .ec-timer {
@@ -535,14 +502,6 @@ table#time-container {
 
 #time-container td.time-value {
   text-align: right;
-}
-
-label {
-  display: block;
-  font-size: 1.5em;
-  margin-bottom: 0.5em;
-  margin-inline: auto;
-  
 }
 
 </style>
