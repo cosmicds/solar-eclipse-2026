@@ -28,7 +28,7 @@ sunPlace.set_target(SolarSystemObjects.sun);
 sunPlace.set_zoomLevel(20);
 
 
-export const drawHorizon = (renderContext: RenderContext, options: HorizonSkyOptions) => {
+export function drawHorizon(renderContext: RenderContext, options: HorizonSkyOptions) {
   const n = 6;
   const delta = 2 * Math.PI / n;
   const triangleList = new wwtlib.TriangleList();
@@ -56,7 +56,7 @@ export const drawHorizon = (renderContext: RenderContext, options: HorizonSkyOpt
 };
 
 
-export const drawSky = (renderContext: RenderContext, options: HorizonSkyOptions) => {
+export function drawSky(renderContext: RenderContext, options: HorizonSkyOptions) {
   const n = 6;
   const delta = 2 * Math.PI / n;
   const triangleList = new wwtlib.TriangleList();
@@ -70,7 +70,7 @@ export const drawSky = (renderContext: RenderContext, options: HorizonSkyOptions
                                           latitudeRad,
                                           longitudeRad,
                                           SpaceTimeController.get_now());
-  const opacity = skyOpacityForSunAlt(sunAltAz.altRad);
+  const opacity = options.opacity;
   color.a = Math.round(255 * opacity);
   WWTControl.scriptInterface.setForegroundOpacity((1 - opacity) * 100);
   const now = SpaceTimeController.get_now();
