@@ -675,7 +675,7 @@
                 <h3>Credits:</h3>
                 <p>Atmospheric Physicist <a href="https://www.cfa.harvard.edu/people/caroline-nowlan" target="_blank" rel="noopener noreferrer">Caroline Nowlan</a> provided valuable guidance on interpreting the <a href="https://neo.gsfc.nasa.gov/view.php?datasetId=MYDAL2_E_CLD_FR&date=2023-04-07"  target="_blank" rel="noopener noreferrer">MODIS Cloud Cover</a> data.</p>
 
-                <p>The path of totality data are from <a href="https://nso.edu/for-public/eclipse-map-2026/" target="_blank" rel="noopener noreferrer">National Solar Observatory</a>.</p>
+                <p>The path of totality data are created by Ernie Wright at <a href="https://svs.gsfc.nasa.gov/5656/" target="_blank" rel="noopener noreferrer">NASA Science Visualization Studio</a>.</p>
 
                 <p>Eclipse Timing Predictions are by <a href="https://eclipse.gsfc.nasa.gov/JSEX/JSEX-NA.html" target="_blank" rel="noopener noreferrer">Fred Espenak and Chris O'Byrne</a> (NASA's GSFC). <em>Adapted for TypeScript by CosmicDS Team</em></p>
 
@@ -1581,7 +1581,6 @@ import { recalculateForObserverUTC } from "./eclipse_predict";
 import { EclipseData } from "./eclipse_types";
 import { sunPlace } from "./horizon_sky";
 import { spaceHMS, round99 } from './utils';
-import nso from './nso_coordinates';
 
 interface CloudData {
   lat: number;
@@ -1731,7 +1730,8 @@ const MAX_PLAYBACK_RATE = 5**6;
 const wwtMove = WWTControl.singleton.move;
 
 /* READ IN Eclipse Umbra */
-// import eclipseUmbra from "./assets/upath_lo.json";
+import eclipseUmbra from "./assets/upath_lo_ernie_202608.json";
+import centerLine from "./assets/center_lo_ernie_202608.json";
 
 export default defineComponent({
   extends: MiniDSBase,
@@ -1987,12 +1987,12 @@ export default defineComponent({
       // the order is the layer order form bottom to top
       geojson: [
         {
-          // geojson: eclipseUmbra as GeoJSON.GeometryCollection,
-          geojson: nso.umbra as GeoJSON.GeometryCollection,
+          geojson: eclipseUmbra as GeoJSON.FeatureCollection,
+          // geojson: nso.umbra as GeoJSON.GeometryCollection,
           style: {fillColor: '#333', weight: 1, opacity: 0, fillOpacity: 0.3, id:"upath"}
         },
         {
-          'geojson': {'type': 'FeatureCollection', 'features': [nso.centerline]} as GeoJSON.FeatureCollection,
+          'geojson': centerLine as GeoJSON.FeatureCollection,
           style: {color: '#ff0000', weight: 1, opacity: 1, fillOpacity: 0}
         },
       ],
@@ -2562,9 +2562,10 @@ export default defineComponent({
     
     locationInTotality() {
       const location = this.locationDeg;
-      // const poly = eclipseUmbra.geometries[0].coordinates[0];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const poly = (nso.umbra.geometries[0] as any).coordinates[0];
+      const poly = eclipseUmbra.features[0].geometry.coordinates[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // const poly = (nso.umbra.geometries[0] as any).coordinates[0];
       const point = [location.longitudeDeg, location.latitudeDeg];
       return pointInPolygon(point, poly);
     },
