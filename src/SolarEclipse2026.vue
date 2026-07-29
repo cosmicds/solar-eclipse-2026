@@ -2507,7 +2507,7 @@ export default defineComponent({
     },
 
     inEclipse(): boolean | null {
-      if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null) {
+      if (this.eclipsePrediction && this.eclipseStart != null && this.eclipseEnd != null && this.eclipseType === 'Total') {
         return this.wwtCurrentTime.getTime() >= this.eclipseStart && this.wwtCurrentTime.getTime() <= this.eclipseEnd;
       } else {
         return null;
