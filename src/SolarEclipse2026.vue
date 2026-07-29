@@ -1638,7 +1638,7 @@ const withinForecastRange = (Date.now() >= (eclipseStartTime - 1000 * 60 * 60 * 
 const SECONDS_PER_DAY = 60 * 60 * 24;
 const MILLISECONDS_PER_DAY = 1000 * SECONDS_PER_DAY;
 
-const secondsInterval = 40;
+const secondsInterval = 10;
 const MILLISECONDS_PER_INTERVAL = 1000 * secondsInterval;
 
 const times: number[] = [];
@@ -3735,7 +3735,7 @@ export default defineComponent({
     },
     
     getEclipsePrediction() {
-      const eclipsePrediction = recalculateForObserverUTC(this.locationDeg.latitudeDeg, this.locationDeg.longitudeDeg, 100);
+      const eclipsePrediction = recalculateForObserverUTC(this.locationDeg.latitudeDeg, this.locationDeg.longitudeDeg, 0);
       this.eclipsePrediction = eclipsePrediction[0];
 
       if ((this.eclipsePrediction.type === "T" || this.eclipsePrediction.type === "A") && !this.locationInTotality) {

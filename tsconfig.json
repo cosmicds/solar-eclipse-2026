@@ -35,6 +35,7 @@
     "plugins/*.ts",
     "src/**/*.ts",
     "src/**/*.vue",
+    "src/assets/upath_lo.json",
     "src/assets/upath_lo_ernie_202608.json",
     "src/assets/center_lo_ernie_202608.json",
   ]

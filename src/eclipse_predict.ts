@@ -165,6 +165,9 @@ const SUN_REFRACTION_CORRECTION = 0; // radians
 // if these were 0, sunrise/sunset would be the moment the sun's center cross altitude = 0
 // so setting this to -0.5 * Math.PI / 180.0 would make sunrise/sunset the moment the top of the sun crosses altitude = 0
 
+// if true use the old rounded values // mainly for debugging. keep it false
+const ROUNDED = false;
+
 
 //
 // Populate the circumstances array with the time-only dependent circumstances (x, y, d, m, ...)
@@ -810,7 +813,11 @@ function getalt(circumstances: any[]): [number, SunBSR]{
   } else {
     ans = 1;
   }
-  t = Math.round(t * 100) / 100; // 2 decimal places (was whole degrees)
+  if (ROUNDED) {
+    t = Math.floor(t + 0.5); // whole degrees
+  } else {
+    t = Math.round(t * 100) / 100; // 2 decimal places
+  }
   if (t < 10.0) {
     // don't neet to zero pad
     // ans = ans + "0";
@@ -844,7 +851,11 @@ function getazi(circumstances: any[]): number {
   if (t >= 360.0) {
     t = t - 360.0;
   }
-  t = Math.round(t * 100) / 100; // 2 decimal places (was whole degrees)
+  if (ROUNDED) {
+    t = Math.floor(t + 0.5); // whole degrees
+  } else {
+    t = Math.round(t * 100) / 100; // 2 decimal places
+  }
   if (t < 100.0) {
     // don't need to zero pad
     // ans = ans + "0";
@@ -900,8 +911,11 @@ function getmagnitude(): [number, SunBSR] {
   consoleDebug("getmagnitude");
   let a;
 
-  // a = Math.floor(1000.0 * mid[37] + 0.5) / 1000.0;
-  a = mid[37];
+  if (ROUNDED) {
+    a = Math.floor(1000.0 * mid[37] + 0.5) / 1000.0;
+  } else {
+    a = mid[37];
+  }
   if (mid[40] == 1 || mid[40] == 4) {
     // below horizon
     return [a,'b'];
@@ -941,8 +955,11 @@ function getcoverage(): [number, SunBSR]{
       a = Math.PI - b - c;
       c = (mid[38] * mid[38] * a + b - mid[38] * Math.sin(c)) / Math.PI;
     }
-    // a = Math.floor(1000.0 * c + 0.5) / 1000.0;
-    a = c;
+    if (ROUNDED) {
+      a = Math.floor(1000.0 * c + 0.5) / 1000.0;
+    } else {
+      a = c;
+    }
   }
   if (mid[40] == 1 || mid[40] == 4) {
     // below horizon
