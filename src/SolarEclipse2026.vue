@@ -1578,7 +1578,7 @@ import { drawPlanets, drawSkyOverlays, getScreenPosForCoordinates, makeAltAzGrid
 import pointInPolygon from 'point-in-polygon';
 
 import { recalculateForObserverUTC } from "./eclipse_predict";
-import { EclipseData } from "./eclipse_types";
+import { EclipseData, PartialEclipseData } from "./eclipse_types";
 import { sunPlace } from "./horizon_sky";
 import { spaceHMS, round99 } from './utils';
 
@@ -3737,6 +3737,17 @@ export default defineComponent({
     getEclipsePrediction() {
       const eclipsePrediction = recalculateForObserverUTC(this.locationDeg.latitudeDeg, this.locationDeg.longitudeDeg, 100);
       this.eclipsePrediction = eclipsePrediction[0];
+
+      if ((this.eclipsePrediction.type === "T" || this.eclipsePrediction.type === "A") && !this.locationInTotality) {
+        const forced = this.eclipsePrediction as unknown as PartialEclipseData<Date>;
+        forced.type = "P";
+        forced.centralStart = [null, null];
+        forced.centralEnd = [null, null];
+        forced.duration = "";
+        this.eclipsePrediction = forced;
+        eclipsePrediction[0] = forced;
+      }
+
       if (this.eclipsePrediction.centralStart[0]) {
         this.eclipseStart = this.eclipsePrediction.centralStart[0].getTime();
       } else if (this.eclipsePrediction.partialStart[0]) {
