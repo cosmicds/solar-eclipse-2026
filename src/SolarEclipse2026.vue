@@ -2089,6 +2089,7 @@ export default defineComponent({
         boundRenderOneFrame(
           this.showHorizon,
           this.showSky,
+          this.skyOpacity,
         );
       };
       this.wwtControl.renderOneFrame = newFrameRender;
@@ -2530,8 +2531,15 @@ export default defineComponent({
     nearTotality(): boolean {
       let nearEclipseMax = false;
       if (this.eclipsePrediction) {
-        if (this.eclipsePrediction.maxTime[0]) {
-          nearEclipseMax = Math.abs(this.eclipsePrediction.maxTime[0].getTime() - this.wwtCurrentTime.getTime()) < 120_000;
+        const { centralStart, centralEnd, maxTime } = this.eclipsePrediction;
+        const start = centralStart[0];
+        const end = centralEnd[0];
+        const now = this.wwtCurrentTime.getTime();
+        if (start instanceof Date && end instanceof Date) {
+          nearEclipseMax = (now >= start.getTime() - 30_000) && (now <= end.getTime() + 30_000);
+        } else if (maxTime[0]) {
+          // Fallback for eclipse types without a central start/end (e.g. partial).
+          nearEclipseMax = Math.abs(maxTime[0].getTime() - now) < 120_000;
         }
       }
 
@@ -4090,6 +4098,10 @@ export default defineComponent({
     showSplashScreen(val: boolean) {
       if (!val) {
         if (this.dontShowIntro) {
+          this.playing = true;
+          if (this.responseOptOut === null) {
+            this.showPrivacyDialog = true;
+          }
           return;
         }
         this.introSlide = 1;
@@ -4229,9 +4241,7 @@ export default defineComponent({
     },
 
     sunPosition(pos: EquatorialRad & HorizontalRad) {
-
       this.updateSkyOpacityForSunAlt(pos.altRad);
-      return;
     },
     
     currentFractionEclipsed(_frac: number) {
@@ -5217,7 +5227,7 @@ body {
 }
 
 .v-container {
-  max-width: 100%;
+  max-width: 100% !important;
 }
 
 #closed-top-container {
@@ -5233,13 +5243,13 @@ body {
     }
 
     #show-guided-content-button {
-      width: fit-content;
-      height: fit-content;
-      padding: 6px 12px;
-      border-radius: var(--normal-border-radius);
+      width: fit-content !important;
+      height: fit-content !important;
+      padding: 6px 12px !important;
+      border-radius: var(--normal-border-radius) !important;
 
       @media (max-width: 600px) {
-        padding-left: 6px;
+        padding-left: 6px !important;
       }
     }
   }
@@ -5289,7 +5299,6 @@ body {
   width: calc(100% - 2*var(--margin));
   max-height: var(--top-content-max-height);
   min-height: var(--top-content-min-height);
-  align-items: center;
   gap: 0.5rem;
   // border-bottom: 1px solid var(--accent-color);
   background-color: #272727;
@@ -5439,8 +5448,8 @@ body {
 
     #hide-guided-content-button {
       flex: 0 0 auto;
-      border: none;
-      background: transparent;
+      border: none !important;
+      background: transparent !important;
     }
 
     .title-row-close-button {
@@ -5504,19 +5513,19 @@ body {
       gap: 0.5em;
 
       .icon-wrapper {
-        background-color: rgba(209, 209, 209, .2);
-        border: none;
-        border-radius: 5px;
-        padding-block: 4px;
+        background-color: rgba(209, 209, 209, .2) !important;
+        border: none !important;
+        border-radius: 5px !important;
+        padding-block: 4px !important;
         // be as large as you can but shrink if needed
-        width: 100%;
-        height: auto;
+        width: 100% !important;
+        height: auto !important;
         min-width: 0;
         flex-shrink: 1;
 
 
         &.active {
-          border: 2px solid var(--sky-color);
+          border: 2px solid var(--sky-color) !important;
 
           &:focus {
             border-color: var(--sky-color) !important;
@@ -6130,12 +6139,12 @@ body {
   }
   
   .icon-wrapper {
-    width: auto;
-    height: auto;
+    width: auto !important;
+    height: auto !important;
     margin: 0;
-    padding: 0.15em;
-    border: none;
-    border-radius: 4px;
+    padding: 0.15em !important;
+    border: none !important;
+    border-radius: 4px !important;
     min-width: 0;
   }
 }
@@ -6171,17 +6180,15 @@ a {
   }
 
 .icon-wrapper {
-  box-sizing: border-box;
-  width: 35px;
-  height: 37px;
-  padding: 0;
-  border-radius: var(--normal-border-radius);
-  border: 2px solid var(--color);
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
+  box-sizing: border-box !important;
+  width: 35px !important;
+  height: 37px !important;
+  padding: 0 !important;
+  border-radius: var(--normal-border-radius) !important;
+  border: 2px solid var(--color) !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(6px) !important;
 }
-
-
 
 .rating-root {
   position: absolute !important;

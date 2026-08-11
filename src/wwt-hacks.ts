@@ -180,7 +180,7 @@ export function updateViewParameters() {
   this.renderContext.viewCamera.angle = dc * this.renderContext.viewCamera.angle + oneMinusDragCoefficient * this.renderContext.targetCamera.angle;
 }
 
-export function renderOneFrame(showHorizon=true, showSky=true) {
+export function renderOneFrame(showHorizon=true, showSky=true, skyOpacity=0.95) {
   if (this.renderContext.get_backgroundImageset() != null) {
     this.renderType = this.renderContext.get_backgroundImageset().get_dataSetType();
   } else {
@@ -275,7 +275,7 @@ export function renderOneFrame(showHorizon=true, showSky=true) {
   }
   else {
     if (showSky) {
-      drawSky(this.renderContext, { opacity: 0.95, color: "#4190ED" });
+      drawSky(this.renderContext, { opacity: skyOpacity, color: "#4190ED" });
     }
     const index = 0;
     Annotation.prepBatch(this.renderContext);

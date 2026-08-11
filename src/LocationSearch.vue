@@ -138,9 +138,6 @@ export default defineComponent({
       default: '1x',
     },
 
-    // Opens the results dropdown upward (above the input) instead of
-    // downward -- for when the search box sits near the bottom of its
-    // own container/screen, where a downward dropdown would get clipped.
     openUpward: {
       type: Boolean,
       default: false,
@@ -178,36 +175,11 @@ export default defineComponent({
         '--accent-color': this.accentColor,
         '--bg-color': 'rgba(0, 0, 0, 0.7)',
         '--fg-container-padding': this.searchOpen ? (this.small ? '0px 5px 0px 0px' : '5px 10px 12px 10px') : '0px',
-        // --tight-border-radius/--normal-border-radius come from the app
-        // itself (set on <v-app>, which is an ancestor of every
-        // location-search instance) — CSS custom properties inherit
-        // through the DOM regardless of component boundaries, so they're
-        // already available here with no extra wiring needed.
         '--border-radius': this.searchOpen ? 'var(--tight-border-radius, 5px)' : 'var(--normal-border-radius, 10px)',
-        // When open, the container's own border wraps the whole input row.
-        // When closed, it collapses to hug just the icon — if it kept its
-        // own border on top of the icon's, the closed button would be 4px
-        // bigger in each dimension than every other icon-wrapper button.
-        // So the border moves onto the icon itself instead while closed.
         '--container-border': this.searchOpen ? '2px solid var(--accent-color)' : 'none',
-        // Closed, the container collapses (zero padding/border) to hug just
-        // the icon, so its own background would render as a solid patch
-        // exactly behind the (background-less) icon -- indistinguishable
-        // from the icon itself having a background. Only give the container
-        // a background while it's actually showing the input row.
         '--container-background': this.searchOpen ? 'rgba(0, 0, 0, 0.7)' : 'transparent',
         '--search-icon-border': this.searchOpen ? 'none' : '2px solid var(--accent-color)',
-        // Open, the icon sits inline in the input row (the row/container
-        // itself carries the background) so it should have none of its own.
-        // Closed, it's a standalone button and should look exactly like
-        // every other icon-wrapper button, background included.
         '--search-icon-background': this.searchOpen ? 'none' : 'rgba(0, 0, 0, 0.7)',
-        // The global .icon-wrapper rule applies backdrop-filter: blur(6px)
-        // unconditionally. Left on while open, it still blurs/darkens
-        // whatever's behind the icon (the container's own already-blurred
-        // background) even with no background-color of its own -- looking
-        // just like a background. Only keep the blur while closed, to
-        // match the other icon-wrapper buttons.
         '--search-icon-backdrop-filter': this.searchOpen ? 'none' : 'blur(6px)',
       };
     },
@@ -215,19 +187,10 @@ export default defineComponent({
   
   
   methods: {
-    // The magnifying-glass icon: opens the box when closed. When open,
-    // it submits a search if there's text to search for (typing then
-    // tabbing/clicking the icon should search, not close) -- otherwise,
-    // with nothing typed, it closes the box instead.
     activateSearchIcon() {
       if (this.searchOpen) {
         if (this.stayOpen || (this.searchText && this.searchText.length > 0)) {
           this.performForwardGeocodingSearch();
-          // Keyboard-activating this icon (Enter, as opposed to a mouse
-          // click) drops focus to <body> immediately afterward for
-          // reasons that don't trace back to any handler in this file --
-          // re-assert focus so the results focus trap (which keys off
-          // document.activeElement) has something to find it by.
           this.$nextTick(() => {
             (this.$refs.searchIcon as HTMLElement | undefined)?.focus();
           });
@@ -293,16 +256,6 @@ export default defineComponent({
       };
     },
 
-    // While results are showing, Tab should cycle between the input box,
-    // the search (magnifying-glass) icon, and each result -- not escape
-    // to the rest of the page. Without the icon in this list, a user who
-    // tabs to and activates it (rather than pressing Enter in the input)
-    // would Tab away to wherever it sits in the page's normal DOM tab
-    // order on their very next Tab press, instead of into the results.
-    // The results themselves are queried by class rather than scoped
-    // under this component's own root, since escapeContainer teleports
-    // them to <body> (there's only ever one location-search instance
-    // active at a time in this app).
     locationSearchTabStops(): HTMLElement[] {
       const container = this.$refs.container as HTMLElement | undefined;
       const input = container?.querySelector('.forward-geocoding-input input') as HTMLElement | null ?? null;
@@ -329,9 +282,6 @@ export default defineComponent({
 
   mounted() {
     window.addEventListener('resize', this.updateEscapedResultsPosition);
-    // Capture phase: the search input has @keydown.stop, which would
-    // otherwise stop a normal (bubble-phase) document listener from ever
-    // seeing Tab presses that originate there.
     document.addEventListener('keydown', this.onLocationSearchTabKeydown, true);
   },
 
@@ -392,10 +342,6 @@ export default defineComponent({
   
   .forward-geocoding-input > .v-input__control > .v-field {
     border-radius: var(--border-radius);
-    // The solo variant's default elevation shadow extends a few pixels
-    // past the field's own box. The container has no top/bottom padding
-    // around it, so that shadow bled over the container's own border,
-    // making it look discontinuous.
     box-shadow: none;
   }
 
@@ -417,11 +363,11 @@ export default defineComponent({
     align-items: center;
   }
   
-  .geocoding-search-icon {
+  .icon-wrapper.geocoding-search-icon {
     --color: var(--accent-color);
-    background: var(--search-icon-background);
-    border: var(--search-icon-border);
-    backdrop-filter: var(--search-icon-backdrop-filter);
+    background: var(--search-icon-background) !important;
+    border: var(--search-icon-border) !important;
+    backdrop-filter: var(--search-icon-backdrop-filter) !important;
   }
 
   .geocoding-search-icon:hover {
@@ -452,9 +398,6 @@ export default defineComponent({
   backdrop-filter: blur(6px);
   border: 2px solid var(--accent-color);
   border-top: 0px;
-  // Results only ever show while searchOpen (the container itself is
-  // using --tight-border-radius then), so match that instead of a
-  // separately hardcoded value.
   border-bottom-left-radius: var(--tight-border-radius, 5px);
   border-bottom-right-radius: var(--tight-border-radius, 5px);
   padding: 0px 10px;
@@ -466,8 +409,6 @@ export default defineComponent({
     left: -2px;
   }
 
-  // Opens above the input instead of below -- for a search box sitting
-  // near the bottom of its own container/screen.
   &.results-up {
     top: auto;
     bottom: 42px;
