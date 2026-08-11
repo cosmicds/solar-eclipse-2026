@@ -1684,6 +1684,12 @@ const OPT_OUT_KEY = "eclipse-2026-mini-optout" as const;
 const RATING_OPT_OUT_KEY = "eclipse-2026-mini-rating-optout" as const;
 const DONT_SHOW_INTRO_KEY = "eclipse-2026-mini-dontshowintro" as const;
 
+/* Temporarily suppress the user experience rating and consequently
+ * its privacy policy, which can only be reached from the "What is this" button
+ * Will re-enables  automatically at **UTC** noon on 2026-08-13.
+*/ 
+const HIDE_RATING_UNTIL = new Date(Date.UTC(2026, 7, 13, 12, 0)); // Aug 13, 2026, noon UTC, well after final partial
+
 
 const RELEVANT_FEATURE_TYPES = ["postcode", "place", "region", "country"];
 const NA_COUNTRIES = ["United States", "Canada", "Mexico"];
@@ -3072,6 +3078,11 @@ export default defineComponent({
         console.log(e);
       }
       
+      // Don't run the rating code until after HIDE_RATING_UNTIL
+      if (Date.now() < HIDE_RATING_UNTIL.getTime()) {
+        return;
+      }
+
       if (this.ratingOptOut) {
         return;
       }
