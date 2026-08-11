@@ -27,7 +27,7 @@
               underlined
               />:
           </td>
-          <td> {{ coveragePercent }}% </td>
+          <td> {{ coveragePercent }} </td>
         </tr>
         <tr v-if="isTotal">
           <td>Totality Duration:</td>
