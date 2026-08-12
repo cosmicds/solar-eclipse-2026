@@ -286,6 +286,18 @@
                   });
                 }"
               ></icon-button>
+              <icon-button
+                v-if="withinForecastRange"
+                id="forecast-overmap"
+                md-icon="mdi-cloud-clock"
+                md-size="24"
+                :color="accentColor"
+                :focus-color="accentColor"
+                :box-shadow="false"
+                tooltip-text="August 12 Weather Forecast"
+                tooltip-location="start"
+                @activate="() => { showForecastSheet = true; }"
+              ></icon-button>
             </div>
             <!-- :places="places" -->
             <location-selector
